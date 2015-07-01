@@ -74,24 +74,35 @@ benchmark vs-other-libs
   hs-source-dirs:    bench, .
   main-is:           Main.hs
   other-modules:     Real.Types,
-                     Real.ReadShow,
+                     Real.Load,
                      Real.DeepSeq,
                      Real.MemSize,
-                     Real.Load,
-
+                     Real.ReadShow,
                      Real.PkgAesonGeneric,
                      Real.PkgAesonTH,
                      Real.PkgBinary,
                      Real.PkgCereal,
-                     Real.PkgMsgpack,
-                     Real.CBOR
+                     --Real.PkgMsgpack,
+                     Real.CBOR,
+
+                     Tree.Types,
+                     Tree.Load,
+                     Tree.DeepSeq,
+                     Tree.MemSize,
+                     Tree.ReadShow,
+                     Tree.PkgAesonGeneric,
+                     Tree.PkgAesonTH,
+                     Tree.PkgBinary,
+                     Tree.PkgCereal,
+                     --Tree.PkgMsgpack,
+                     Tree.CBOR
 
   build-depends:     base, ghc-prim,
                      text, bytestring, deepseq,
                      aeson  >=0.7,
                      binary ==0.7.*,
                      cereal ==0.4.*,
-                     msgpack == 0.7.*, blaze-builder, attoparsec,
+--                     msgpack == 0.7.*, blaze-builder, attoparsec,
                      containers >=0.5,
                      array,
                      half,
