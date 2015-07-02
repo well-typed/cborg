@@ -17,7 +17,7 @@ extra-source-files:  tests/test-vectors/appendix_a.json
                      tests/test-vectors/README.md
 
 library
-  exposed-modules:
+  exposed-modules:   Data.Binary.Serialise.CBOR,
                      Data.Binary.Serialise.CBOR.Encoding,
                      Data.Binary.Serialise.CBOR.Decoding,
                      Data.Binary.Serialise.CBOR.Class,
