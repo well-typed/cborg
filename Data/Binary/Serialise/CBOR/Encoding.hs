@@ -23,7 +23,6 @@ data Tokens =
     -- Positive and negative integers (type 0,1)
       TkWord     {-# UNPACK #-} !Word         Tokens
     | TkWord64   {-# UNPACK #-} !Word64       Tokens
-    | TkNegInt64 {-# UNPACK #-} !Word64       Tokens
       -- convenience for either positive or negative
     | TkInt      {-# UNPACK #-} !Int          Tokens
     | TkInt64    {-# UNPACK #-} !Int64        Tokens
@@ -77,14 +76,8 @@ encodeInt = Encoding . TkInt
 encodeInt64 :: Int64 -> Encoding
 encodeInt64 = Encoding . TkInt64
 
---TODO: move this check into the encoder side
 encodeInteger :: Integer -> Encoding
-encodeInteger n
-  | n >= 0 && n <= fromIntegral (maxBound :: Word64)
-                          = Encoding (TkWord64 (fromIntegral n))
-  | n <  0 && n >= -1 - fromIntegral (maxBound :: Word64)
-                          = Encoding (TkNegInt64 (fromIntegral (-1 - n)))
-  | otherwise             = Encoding (TkInteger n)
+encodeInteger n = Encoding (TkInteger n)
 
 encodeBytes :: B.ByteString -> Encoding
 encodeBytes = Encoding . TkBytes

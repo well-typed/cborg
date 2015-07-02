@@ -68,8 +68,6 @@ toBuilder =
               TkWord     x vs' -> PI.runB wordMP     x op >>= go vs'
               TkWord64   x vs' -> PI.runB word64MP   x op >>= go vs'
 
-              TkNegInt64 x vs' -> PI.runB negInt64MP x op >>= go vs'
-
               TkInt      x vs' -> PI.runB intMP      x op >>= go vs'
               TkInt64    x vs' -> PI.runB int64MP    x op >>= go vs'
 
@@ -87,7 +85,17 @@ toBuilder =
 
               TkTag      x vs' -> PI.runB tagMP      x op >>= go vs'
               TkTag64    x vs' -> PI.runB tag64MP      x op >>= go vs'
-              TkInteger  x vs' -> BI.runBuilderWith (integerMP x) (step vs' k) (BI.BufferRange op ope0)
+              TkInteger  x vs'
+                --TODO: for GMP can optimimise this by looking at the S# 
+                -- constructors to see if it fits in an Int, and if it's
+                -- positive or negative.
+                | x >= 0
+                , x <= fromIntegral (maxBound :: Word64)
+                                -> PI.runB word64MP (fromIntegral x) op >>= go vs'
+                | x <  0
+                , x >= -1 - fromIntegral (maxBound :: Word64)
+                                -> PI.runB negInt64MP (fromIntegral (-1 - x)) op >>= go vs'
+                | otherwise     -> BI.runBuilderWith (integerMP x) (step vs' k) (BI.BufferRange op ope0)
 
               TkBool False vs' -> PI.runB falseMP   () op >>= go vs'
               TkBool True  vs' -> PI.runB trueMP    () op >>= go vs'
