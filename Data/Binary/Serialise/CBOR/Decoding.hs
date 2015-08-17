@@ -149,70 +149,7 @@ data TokenType = TypeUInt
                | TypeInvalid
   deriving (Eq, Ord, Enum, Bounded, Show)
 
------------------
--- Notes:
---
--- In one example of 1000 Cabal package descriptions we have:
---   414 k list len tokens
---   317 k word tokens
---    76 k strings
--- hardly anything else
---
--- this is mostly because of the constructor encoding
--- and that we don't use Bool enc yet
---
--- Conclusion: we should have special decode actions for:
--- ConsumeTokenListLen
--- ConsumeTokenWord
--- ConsumeTokenCtrTagLen
--- ConsumeTokenString
---
--- Additionally, the full power of PeekToken is not needed. All that is needed
--- in practice is peeking variable length list ends.
 
-{-
--- A flattened representation of a term
-data Token =
-
-    -- Positive integers (type 0)
-      TkWord     {-# UNPACK #-} !Word
-    | TkWord64   {-# UNPACK #-} !Word64
-
-    -- Negative integers (type 1)
-    | TkInt      {-# UNPACK #-} !Int
-    | TkInt64    {-# UNPACK #-} !Int64
-
-    -- Bytes and string (type 2,3)
-    | TkBytes    {-# UNPACK #-} !ByteString
-    | TkBytesBegin
-    | TkString   {-# UNPACK #-} !Text
-    | TkStringBegin
-
-    -- Structures (type 4,5)
-    | TkListLen    {-# UNPACK #-} !Word
-    | TkListLen64  {-# UNPACK #-} !Word64
-    | TkListBegin
-    | TkMapLen     {-# UNPACK #-} !Word
-    | TkMapLen64   {-# UNPACK #-} !Word64
-    | TkMapBegin
-
-    -- Tagged values (type 6)
-    | TkTag      {-# UNPACK #-} !Word
-    | TkTag64    {-# UNPACK #-} !Word64
-    | TkInteger                 !Integer
-
-    -- Simple and floats (type 7)
-    | TkBool                    !Bool
-    | TkNull
-    | TkUndef
-    | TkSimple   {-# UNPACK #-} !Word8
-    | TkFloat16  {-# UNPACK #-} !Float
-    | TkFloat32  {-# UNPACK #-} !Float
-    | TkFloat64  {-# UNPACK #-} !Double
-    | TkBreak
-
-  deriving (Eq, Ord, Show)
--}
 instance Functor Decoder where
     {-# INLINE fmap #-}
     fmap f = \d -> Decoder $ \k -> runDecoder d (k . f)
