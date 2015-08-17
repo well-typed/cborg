@@ -71,6 +71,10 @@ test-suite tests
                      tasty-hunit,
                      tasty-quickcheck,
                      QuickCheck >= 2
+  if flag(newtime15)
+    build-depends:   time >= 1.5
+  else
+    build-depends:   time < 1.5, old-locale
   default-language:  Haskell2010
   ghc-options:       -Wall
   c-sources:         cbits/half.c
@@ -118,6 +122,10 @@ benchmark vs-other-libs
                      pretty,
                      time >=1.4,
                      criterion
+  if flag(newtime15)
+    build-depends:   time >= 1.5
+  else
+    build-depends:   time < 1.5, old-locale
   default-language:  Haskell2010
   ghc-options:       -Wall -rtsopts
   c-sources:         cbits/half.c

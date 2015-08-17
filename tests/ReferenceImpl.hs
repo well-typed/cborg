@@ -1022,19 +1022,33 @@ instance Arbitrary LargeInteger where
       bigger n = n * abs n
 
 
-arbitraryFullRangeIntegral :: forall a. (FiniteBits a, Bounded a, Integral a) => Gen a
+arbitraryFullRangeIntegral :: forall a. (Bounded a,
+#if MIN_VERSION_base(4,7,0)
+                                         FiniteBits a,
+#else
+                                         Bits a,
+#endif
+                                         Integral a) => Gen a
 arbitraryFullRangeIntegral
   | isSigned (undefined :: a)
-  = let maxBits = finiteBitSize (undefined :: a) - 1
+  = let maxBits = bitSize' (undefined :: a) - 1
      in sized $ \s ->
           let bound = fromIntegral (maxBound :: a)
                       `shiftR` ((maxBits - s) `max` 0)
            in fmap fromInteger $ choose (-bound, bound)
 
   | otherwise
-  = let maxBits = finiteBitSize (undefined :: a)
+  = let maxBits = bitSize' (undefined :: a)
      in sized $ \s ->
           let bound = fromIntegral (maxBound :: a)
                       `shiftR` ((maxBits - s) `max` 0)
            in fmap fromInteger $ choose (0, bound)
+
+  where
+    bitSize' =
+#if MIN_VERSION_base(4,7,0)
+      finiteBitSize
+#else
+      bitSize
+#endif
 
