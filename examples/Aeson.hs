@@ -21,7 +21,7 @@ instance Serialise Value where
 
 encodeValue :: Value -> Encoding
 
-encodeValue (Object vs) = encodeMapLen (fromIntegral $ length vs)
+encodeValue (Object vs) = encodeMapLen (fromIntegral $ HashMap.size vs)
                        <> mconcat [ encodeString k <> encodeValue v
                                   | (k,v) <- HashMap.toList vs ]
 encodeValue (Array  vs) = encodeListLen (fromIntegral $ Vec.length vs)
