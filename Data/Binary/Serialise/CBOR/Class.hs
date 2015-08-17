@@ -25,6 +25,9 @@ import qualified Data.ByteString as BS
 --import qualified Data.Array as Array
 --import qualified Data.Array.Unboxed as UArray
 
+import Data.Time (UTCTime)
+import Data.Time.Format (formatTime, parseTimeM, defaultTimeLocale)
+
 import Prelude hiding (encodeFloat, decodeFloat)
 
 
@@ -166,4 +169,30 @@ instance (Serialise a, Serialise b) => Serialise (Either a b) where
                   0 -> Left  <$> decode
                   1 -> Right <$> decode
                   _ -> fail "unknown tag"
+
+------------------------
+-- Time instances
+--
+-- CBOR has some special encodings for times/timestamps
+
+instance Serialise UTCTime where
+    encode d = encodeTag 0
+            <> encode (formatUTCrfc3339 d)
+
+    decode = do
+      tag <- decodeTag
+      case tag of
+        0 -> do str <- decodeString
+                case parseUTCrfc3339 (Text.unpack str) of
+                  Just t  -> return t
+                  Nothing -> fail "Could not parse RFC3339 date"
+        _ -> fail "Expected timestamp (tag 0 or 1)"
+
+
+formatUTCrfc3339 :: UTCTime -> String
+parseUTCrfc3339  :: String -> Maybe UTCTime
+
+-- Format UTC as timezone 'Z' but on parsing accept 'Z' or any numeric offset
+formatUTCrfc3339 = formatTime       defaultTimeLocale "%Y-%m-%dT%H:%M:%S%QZ"
+parseUTCrfc3339  = parseTimeM False defaultTimeLocale "%Y-%m-%dT%H:%M:%S%Q%Z"
 
