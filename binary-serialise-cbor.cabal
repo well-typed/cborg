@@ -2,7 +2,7 @@
 -- further documentation, see http://haskell.org/cabal/users-guide/
 
 name:                binary-serialise-cbor
-version:             0.1.0.0
+version:             0.1.1.0
 synopsis:            Binary serialisation using the CBOR format
 -- description:         
 license:             BSD3
