@@ -9,7 +9,9 @@ license:             BSD3
 license-files:       LICENSE, cbits/half.LICENSE
 author:              Duncan Coutts
 maintainer:          duncan@community.haskell.org
--- copyright:           
+copyright:           2015 Duncan Coutts,
+                     2015 Well-Typed LLP,
+                     2015 IRIS Connect Ltd.
 category:            Codec
 build-type:          Simple
 cabal-version:       >=1.10
