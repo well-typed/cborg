@@ -1,30 +1,37 @@
 {-# LANGUAGE CPP, MagicHash, UnboxedTuples, ForeignFunctionInterface #-}
 module Data.Binary.Serialise.CBOR.ByteOrder where
 
-import           GHC.Exts
-import           GHC.Word
-import           Foreign.C.Types
-import           Foreign.Ptr
-import           GHC.ForeignPtr
-
-import           Data.ByteString (ByteString)
-import qualified Data.ByteString.Internal as BS
-
 #include "MachDeps.h"
+
+#if __GLASHOW_HASKELL >= 710
+#define HAVE_BYTESWAP_PRIMOPS
+#endif
 
 #if i386_HOST_ARCH || x86_64_HOST_ARCH
 #define MEM_UNALIGNED_OPS
-#else
-import           Data.Bits ((.|.), shiftL)
 #endif
 
 #if WORD_SIZE_IN_BITS == 64
 #define ARCH_64bit
 #elif WORD_SIZE_IN_BITS == 32
-import           GHC.IntWord64 (wordToWord64#)
 #else
 #error expected WORD_SIZE_IN_BITS to be 32 or 64
 #endif
+
+import           GHC.Exts
+import           GHC.Word
+import           Foreign.C.Types
+import           Foreign.Ptr
+import           GHC.ForeignPtr
+#if !defined(HAVE_BYTESWAP_PRIMOPS) || !defined(MEM_UNALIGNED_OPS)
+import           Data.Bits ((.|.), shiftL)
+#endif
+#if !defined(ARCH_64bit)
+import           GHC.IntWord64 (wordToWord64#)
+#endif
+import           Data.ByteString (ByteString)
+import qualified Data.ByteString.Internal as BS
+
 
 
 {-# INLINE grabWord8 #-}
@@ -32,7 +39,9 @@ grabWord8 :: Ptr () -> Word
 grabWord8 (Ptr ip#) =
     W# (indexWord8OffAddr# ip# 0#)
 
-#if defined(MEM_UNALIGNED_OPS) && !defined(WORDS_BIGENDIAN)
+#if defined(HAVE_BYTESWAP_PRIMOPS) && \
+    defined(MEM_UNALIGNED_OPS) && \
+   !defined(WORDS_BIGENDIAN)
 
 {-# INLINE grabWord16 #-}
 grabWord16 :: Ptr () -> Word
@@ -49,7 +58,8 @@ grabWord64 :: Ptr () -> Word64
 grabWord64 (Ptr ip#) =
     W64# (byteSwap64# (indexWord64OffAddr# ip# 0#))
 
-#elif defined(MEM_UNALIGNED_OPS) && defined(WORDS_BIGENDIAN)
+#elif defined(MEM_UNALIGNED_OPS) && \
+      defined(WORDS_BIGENDIAN)
 
 {-# INLINE grabWord16 #-}
 grabWord16 :: Ptr () -> Word
@@ -67,6 +77,7 @@ grabWord64 (Ptr ip#) =
     W64# (indexWord64OffAddr# ip# 0#)
 
 #else
+-- fallback version:
 
 {-# INLINE grabWord16 #-}
 grabWord16 :: Ptr () -> Word

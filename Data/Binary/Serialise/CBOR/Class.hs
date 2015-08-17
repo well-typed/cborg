@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module Data.Binary.Serialise.CBOR.Class (
     -- * The Serialise class
     Serialise(..),
@@ -27,10 +28,18 @@ import Data.Version
 --import qualified Data.Array.Unboxed as UArray
 
 import Data.Time (UTCTime)
+#if MIN_VERSION_time(1,5,0)
 import Data.Time.Format (formatTime, parseTimeM, defaultTimeLocale)
+#else
+import Data.Time.Format (formatTime, parseTime)
+import System.Locale    (defaultTimeLocale)
+#endif
 
 import Prelude hiding (encodeFloat, decodeFloat)
 
+------------------------
+-- The Serialise class
+--
 
 class Serialise a where
     encode  :: a -> Encoding
@@ -210,5 +219,8 @@ parseUTCrfc3339  :: String -> Maybe UTCTime
 
 -- Format UTC as timezone 'Z' but on parsing accept 'Z' or any numeric offset
 formatUTCrfc3339 = formatTime       defaultTimeLocale "%Y-%m-%dT%H:%M:%S%QZ"
+#if MIN_VERSION_time(1,5,0)
 parseUTCrfc3339  = parseTimeM False defaultTimeLocale "%Y-%m-%dT%H:%M:%S%Q%Z"
-
+#else
+parseUTCrfc3339  = parseTime        defaultTimeLocale "%Y-%m-%dT%H:%M:%S%Q%Z"
+#endif
