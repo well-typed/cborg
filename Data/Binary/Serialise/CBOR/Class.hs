@@ -15,6 +15,7 @@ import Data.Word
 import Data.Int
 import qualified Data.Text       as Text
 import qualified Data.ByteString as BS
+import Data.Version
 
 --TODO: lots more instances
 --import qualified Data.Text.Lazy  as Text.Lazy
@@ -169,6 +170,21 @@ instance (Serialise a, Serialise b) => Serialise (Either a b) where
                   0 -> Left  <$> decode
                   1 -> Right <$> decode
                   _ -> fail "unknown tag"
+
+------------------------
+-- Misc base package instances
+--
+
+instance Serialise Version where
+    encode (Version ns ts) = encodeListLen 3
+                          <> encodeWord 0 <> encode ns <> encode ts
+    decode = do
+      len <- decodeListLen
+      tag <- decodeWord
+      case tag of
+        0 | len == 3
+          -> Version <$> decode <*> decode
+        _ -> fail "unexpected tag"
 
 ------------------------
 -- Time instances
