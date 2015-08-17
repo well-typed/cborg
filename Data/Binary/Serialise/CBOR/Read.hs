@@ -50,7 +50,6 @@ import           Control.Exception
 #if WORD_SIZE_IN_BITS == 64
 #define ARCH_64bit
 #elif WORD_SIZE_IN_BITS == 32
-import           GHC.IntWord64 (wordToWord64#)
 #else
 #error expected WORD_SIZE_IN_BITS to be 32 or 64
 #endif
@@ -122,7 +121,7 @@ runDecodeAction da = do
     mbs <- needChunk
     case mbs of
       Nothing -> decodeFail BS.empty 0 "end of input"
-      Just bs -> go_slow da bs
+      Just bs -> go_slow da bs 0
 
 -- The decoder is split into a fast path and a slow path. The fast path is
 -- used for a single input chunk. It decodes as far as it can, reading only
@@ -439,22 +438,29 @@ go_fast_end (ConsumeMapLenOrIndef k) !bs =
 -- then looking at where it finished, fixing up the chunk boundary issues,
 -- getting more input and going around again.
 --
-go_slow :: DecodeAction a -> ByteString
+-- The offset here is the offset after of all data consumed so far,
+-- so not including the current chunk.
+--
+go_slow :: DecodeAction a -> ByteString -> ByteOffset
         -> IncrementalDecoder (ByteString, ByteOffset, a)
-go_slow da bs =
+go_slow da bs !offset =
   case go_fast da bs of
-    FastDone bs' x -> return (bs', offset, x)
+    FastDone bs' x -> return (bs', offset', x)
       where
-        offset = 0
+        !offset' = offset + fromIntegral (BS.length bs - BS.length bs')
 
-    SlowConsumeTokenBytes   bs' k len -> do
-      (bstr, bs'') <- getTokenVarLen len bs'
-      go_slow (k bstr) bs''
+    SlowConsumeTokenBytes bs' k len -> do
+      (bstr, bs'') <- getTokenVarLen len bs' offset'
+      go_slow (k bstr) bs'' (offset' + fromIntegral len)
+      where
+        !offset' = offset + fromIntegral (BS.length bs - BS.length bs')
 
-    SlowConsumeTokenString  bs' k len -> do
-      (bstr, bs'') <- getTokenVarLen len bs'
+    SlowConsumeTokenString bs' k len -> do
+      (bstr, bs'') <- getTokenVarLen len bs' offset'
       let !str = T.decodeUtf8 bstr  --FIXME: utf8 validation
-      go_slow (k str) bs''
+      go_slow (k str) bs'' (offset' + fromIntegral len)
+      where
+        !offset' = offset + fromIntegral (BS.length bs - BS.length bs')
 
     -- we didn't have enough input in the buffer
     SlowDecodeAction bs' da' | BS.null bs' -> do
@@ -462,51 +468,52 @@ go_slow da bs =
       -- so we can get more input and carry on
       mbs <- needChunk
       case mbs of
-        Nothing   -> decodeFail bs offset "end of input"
-          where
-            offset    = 0
-        Just bs'' -> go_slow da' bs''
+        Nothing   -> decodeFail bs' offset' "end of input"
+        Just bs'' -> go_slow da' bs'' offset'
+      where
+        !offset' = offset + fromIntegral (BS.length bs - BS.length bs')
 
     SlowDecodeAction bs' da' ->
       -- of course we should only end up here when we really are out of
       -- input, otherwise go_fast_end could have continued
       assert (BS.length bs' < tokenSize (BS.head bs')) $
-      go_slow_fixup da' bs'
-
-    SlowFail bs' msg   -> decodeFail bs' offset msg
+      go_slow_fixup da' bs' offset'
       where
-        offset    = 0
+        !offset' = offset + fromIntegral (BS.length bs - BS.length bs')
+
+    SlowFail bs' msg -> decodeFail bs' offset' msg
+      where
+        !offset' = offset + fromIntegral (BS.length bs - BS.length bs')
 
 -- The complicated case is when a token spans a chunk boundary.
 --
 -- Our goal is to get enough input so that go_fast_end can consume exactly one
 -- token without need for further fixups.
 --
-go_slow_fixup :: DecodeAction a -> ByteString
+go_slow_fixup :: DecodeAction a -> ByteString -> ByteOffset
               -> IncrementalDecoder (ByteString, ByteOffset, a)
-go_slow_fixup da !bs = do
+go_slow_fixup da !bs !offset = do
     let !hdr = BS.head bs
         !sz  = tokenSize hdr
     mbs <- needChunk
     case mbs of
       Nothing -> decodeFail bs offset "end of input"
-        where
-          offset    = 0
 
       Just bs'
           -- We have enough input now, try reading one final token
         | BS.length bs + BS.length bs' >= sz
-       -> go_slow_overlapped da sz bs bs'
+       -> go_slow_overlapped da sz bs bs' offset
 
           -- We still don't have enough input, get more
         | otherwise
-       -> go_slow_fixup da (bs <> bs')
+       -> go_slow_fixup da (bs <> bs') offset
 
 -- We've now got more input, but we have one token that spanned the old and
 -- new input buffers, so we have to decode that one before carrying on
 go_slow_overlapped :: DecodeAction a -> Int -> ByteString -> ByteString
+                   -> ByteOffset
                    -> IncrementalDecoder (ByteString, ByteOffset, a)
-go_slow_overlapped da sz bs_cur bs_next =
+go_slow_overlapped da sz bs_cur bs_next !offset =
 
     -- we have:
     --   sz            the size of the pending input token
@@ -523,7 +530,8 @@ go_slow_overlapped da sz bs_cur bs_next =
     --                   which will become the next input buffer
 
     let bs_tok   = bs_cur <> BS.unsafeTake (sz - BS.length bs_cur) bs_next
-        bs'      =           BS.unsafeDrop (sz - BS.length bs_cur) bs_next in
+        bs'      =           BS.unsafeDrop (sz - BS.length bs_cur) bs_next
+        offset'  = offset + fromIntegral sz in
 
     -- so the token chunk should be exactly the right size
     assert (BS.length bs_tok == sz) $
@@ -537,39 +545,36 @@ go_slow_overlapped da sz bs_cur bs_next =
       -- consumed exactly one token, now with no trailing data
       SlowDecodeAction bs_empty da' ->
         assert (BS.null bs_empty) $
-        go_slow da' bs'
+        go_slow da' bs' offset'
 
       -- but the other possibilities can happen too
       FastDone bs_empty x ->
         assert (BS.null bs_empty) $       
-        return (bs', offset, x)
-        where
-          offset = 0
+        return (bs', offset', x)
 
       SlowConsumeTokenBytes bs_empty k len ->
         assert (BS.null bs_empty) $ do
         (bstr, bs'') <- if BS.length bs' < len
-                          then getTokenVarLen len bs'
+                          then getTokenVarLen len bs' offset'
                           else let !bstr = BS.take len bs'
                                    !bs'' = BS.drop len bs'
                                 in return (bstr, bs'')
-        go_slow (k bstr) bs''
+        go_slow (k bstr) bs'' (offset' + fromIntegral len)
 
       SlowConsumeTokenString bs_empty k len ->
         assert (BS.null bs_empty) $ do
         (bstr, bs'') <- if BS.length bs' < len
-                          then getTokenVarLen len bs'
+                          then getTokenVarLen len bs' offset'
                           else let !bstr = BS.take len bs'
                                    !bs'' = BS.drop len bs'
                                 in return (bstr, bs'')
         let !str = T.decodeUtf8 bstr  --FIXME: utf8 validation
-        go_slow (k str) bs''
+        go_slow (k str) bs'' (offset' + fromIntegral len)
 
-      SlowFail bs_empty msg ->
-        assert (BS.null bs_empty) $        
-        decodeFail bs' offset msg
+      SlowFail bs_unconsumed msg ->
+        decodeFail (bs_unconsumed <> bs') offset'' msg
         where
-          offset = 0 --FIXME
+          !offset'' = offset + fromIntegral (sz - BS.length bs_unconsumed)
 
 
 
@@ -580,13 +585,13 @@ go_slow_overlapped da sz bs_cur bs_next =
 
 --TODO: also consider sharing or not sharing here, and possibly rechunking.
 
-getTokenVarLen :: Int -> ByteString
+getTokenVarLen :: Int -> ByteString -> ByteOffset
                -> IncrementalDecoder (ByteString, ByteString)
-getTokenVarLen len bs =
+getTokenVarLen len bs offset =
     assert (len > BS.length bs) $ do
     mbs <- needChunk
     case mbs of
-      Nothing -> decodeFail BS.empty 0 "end of input"
+      Nothing -> decodeFail BS.empty offset "end of input"
       Just bs'
         | let n = len - BS.length bs
         , BS.length bs' >= n ->
@@ -596,18 +601,19 @@ getTokenVarLen len bs =
         | otherwise -> getTokenVarLenSlow
                          [bs',bs] 
                          (len - (BS.length bs + BS.length bs'))
+                         offset
 
-getTokenVarLenSlow :: [ByteString] -> Int
+getTokenVarLenSlow :: [ByteString] -> Int -> ByteOffset
                    -> IncrementalDecoder (ByteString, ByteString)
-getTokenVarLenSlow bss n = do
+getTokenVarLenSlow bss n offset = do
     mbs <- needChunk
     case mbs of
-      Nothing -> decodeFail BS.empty 0 "end of input"
+      Nothing -> decodeFail BS.empty offset "end of input"
       Just bs
         | BS.length bs >= n ->
             let !tok = BS.concat (reverse (BS.unsafeTake n bs : bss))
              in return (tok, BS.drop n bs)
-        | otherwise -> getTokenVarLenSlow (bs:bss) (n - BS.length bs)
+        | otherwise -> getTokenVarLenSlow (bs:bss) (n - BS.length bs) offset
 
 
 
