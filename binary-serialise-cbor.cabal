@@ -27,11 +27,8 @@ library
                      Data.Binary.Serialise.CBOR.Read,
                      Data.Binary.Serialise.CBOR.Term
   other-modules:     Data.Binary.Serialise.CBOR.ByteOrder
-  other-extensions:  TypeOperators, RankNTypes, ScopedTypeVariables, GADTs,
-                     DataKinds, TypeFamilies, UndecidableInstances,
-                     BangPatterns, CPP, MagicHash, UnboxedTuples,
-                     TemplateHaskell, DeriveDataTypeable, DeriveGeneric,
-                     StandaloneDeriving, ForeignFunctionInterface
+  other-extensions:  CPP, ForeignFunctionInterface, MagicHash, UnboxedTuples,
+                     BangPatterns, DeriveDataTypeable, RankNTypes
   build-depends:     base       >=4.6 && <4.9,
                      ghc-prim   >=0.3 && <0.5,
                      text       >=1.1 && <1.3,
