@@ -1,5 +1,7 @@
 Copyright (c) 2015, Duncan Coutts
 
+Portions (the half-float support) are copyright 2014 Edward Kmett.
+
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

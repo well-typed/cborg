@@ -22,10 +22,10 @@ module Data.Binary.Serialise.CBOR.Write (
 
 
 import Data.Binary.Serialise.CBOR.Encoding
+import Data.Binary.Serialise.CBOR.ByteOrder
 
 import           Data.Monoid
 import           Data.Bits
-import qualified Numeric.Half as Half
 import qualified Data.ByteString                                as S
 import qualified Data.ByteString.Builder                        as B
 import qualified Data.ByteString.Lazy                           as L
@@ -477,7 +477,7 @@ undefMP :: P.BoundedPrim ()
 undefMP = constHeader 0xf7
 
 halfMP :: P.BoundedPrim Float
-halfMP = fromIntegral . Half.getHalf . Half.toHalf >$<
+halfMP = floatToWord16 >$<
          withConstHeader 0xf9 P.word16BE
 
 floatMP :: P.BoundedPrim Float

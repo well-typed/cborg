@@ -1,12 +1,12 @@
-{-# LANGUAGE CPP, MagicHash, UnboxedTuples #-}
+{-# LANGUAGE CPP, MagicHash, UnboxedTuples, ForeignFunctionInterface #-}
 module Data.Binary.Serialise.CBOR.ByteOrder where
 
 import           GHC.Exts
 import           GHC.Word
+import           Foreign.C.Types
 import           Foreign.Ptr
 import           GHC.ForeignPtr
 
-import qualified Numeric.Half as Half
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Internal as BS
 
@@ -45,7 +45,18 @@ unsafeHead (BS.PS (ForeignPtr addr# _fpc) (I# off#) _len) =
 
 {-# INLINE wordToFloat16 #-}
 wordToFloat16 :: Word -> Float
-wordToFloat16 = Half.fromHalf . Half.Half . fromIntegral
+wordToFloat16 = halfToFloat . fromIntegral
+
+{-# INLINE floatToWord16 #-}
+floatToWord16 :: Float -> Word16
+floatToWord16 = fromIntegral . floatToHalf
+
+foreign import ccall unsafe "hs_binary_halfToFloat"
+  halfToFloat :: CUShort -> Float
+
+foreign import ccall unsafe "hs_binary_floatToHalf"
+  floatToHalf :: Float -> CUShort
+
 
 -- Casting words to floats. We have to go via a word because of the endian
 -- issues.
