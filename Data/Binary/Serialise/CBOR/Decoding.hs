@@ -158,7 +158,6 @@ data TokenType = TypeUInt
                | TypeTag64
                | TypeBool
                | TypeNull
-               | TypeUndef
                | TypeSimple
                | TypeBreak
                | TypeInvalid

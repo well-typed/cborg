@@ -155,7 +155,7 @@ toRefTerm (TTagged w t) = RefImpl.TTagged (RefImpl.toUInt (fromIntegral w))
 toRefTerm (TBool False) = RefImpl.TFalse
 toRefTerm (TBool True)  = RefImpl.TTrue
 toRefTerm  TNull        = RefImpl.TNull
-toRefTerm  TUndef       = RefImpl.TUndef
+toRefTerm (TSimple  23) = RefImpl.TUndef
 toRefTerm (TSimple   w) = RefImpl.TSimple (fromIntegral w)
 toRefTerm (THalf     f) = RefImpl.TFloat16 (Half.toHalf f)
 toRefTerm (TFloat    f) = RefImpl.TFloat32 f
@@ -190,7 +190,7 @@ fromRefTerm (RefImpl.TTagged w t) = TTagged (RefImpl.fromUInt w)
 fromRefTerm (RefImpl.TFalse)     = TBool False
 fromRefTerm (RefImpl.TTrue)      = TBool True
 fromRefTerm  RefImpl.TNull       = TNull
-fromRefTerm  RefImpl.TUndef      = TUndef
+fromRefTerm  RefImpl.TUndef      = TSimple 23
 fromRefTerm (RefImpl.TSimple  w) = TSimple w
 fromRefTerm (RefImpl.TFloat16 f) = THalf (Half.fromHalf f)
 fromRefTerm (RefImpl.TFloat32 f) = TFloat f
@@ -248,7 +248,6 @@ instance Arbitrary Term where
 
   shrink (TBool _) = []
   shrink TNull  = []
-  shrink TUndef = []
 
   shrink (TSimple w) = [ TSimple w' | w' <- shrink w
                        , not (RefImpl.reservedSimple (fromIntegral w)) ]

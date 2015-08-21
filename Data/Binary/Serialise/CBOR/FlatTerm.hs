@@ -80,7 +80,6 @@ data TermToken
     | TkTag      {-# UNPACK #-} !Word64
     | TkBool                    !Bool
     | TkNull
-    | TkUndef
     | TkSimple   {-# UNPACK #-} !Word8
     | TkFloat16  {-# UNPACK #-} !Float
     | TkFloat32  {-# UNPACK #-} !Float
@@ -120,7 +119,7 @@ convFlatTerm (Enc.TkTag      n  ts) = TkTag (fromIntegral n) : convFlatTerm ts
 convFlatTerm (Enc.TkTag64    n  ts) = TkTag       n : convFlatTerm ts
 convFlatTerm (Enc.TkBool     b  ts) = TkBool      b : convFlatTerm ts
 convFlatTerm (Enc.TkNull        ts) = TkNull        : convFlatTerm ts
-convFlatTerm (Enc.TkUndef       ts) = TkUndef       : convFlatTerm ts
+convFlatTerm (Enc.TkUndef       ts) = TkSimple   23 : convFlatTerm ts
 convFlatTerm (Enc.TkSimple   n  ts) = TkSimple    n : convFlatTerm ts
 convFlatTerm (Enc.TkFloat16  f  ts) = TkFloat16   f : convFlatTerm ts
 convFlatTerm (Enc.TkFloat32  f  ts) = TkFloat32   f : convFlatTerm ts
@@ -300,7 +299,6 @@ tokenTypeOf TkMapBegin{}    = TypeMapLenIndef
 tokenTypeOf TkTag{}         = TypeTag
 tokenTypeOf TkBool{}        = TypeBool
 tokenTypeOf TkNull          = TypeNull
-tokenTypeOf TkUndef         = TypeUndef
 tokenTypeOf TkBreak         = TypeBreak
 tokenTypeOf TkSimple{}      = TypeSimple
 tokenTypeOf TkFloat16{}     = TypeFloat16
@@ -354,7 +352,6 @@ validateTerm  loc (TkMapBegin      : ts) = validateMap   loc 0     ts
 validateTerm  loc (TkTag       w   : ts) = validateTerm  (InTagged w loc) ts
 validateTerm _loc (TkBool      _   : ts) = return ts
 validateTerm _loc (TkNull          : ts) = return ts
-validateTerm _loc (TkUndef         : ts) = return ts
 validateTerm  loc (TkBreak         : _)  = unexpectedToken TkBreak loc
 validateTerm _loc (TkSimple  _     : ts) = return ts
 validateTerm _loc (TkFloat16 _     : ts) = return ts

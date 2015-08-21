@@ -782,7 +782,7 @@ decodeTokenTypeTable =
  ++ [ (encodeHeader 7 20, TypeBool)
     , (encodeHeader 7 21, TypeBool)
     , (encodeHeader 7 22, TypeNull)
-    , (encodeHeader 7 23, TypeUndef)
+    , (encodeHeader 7 23, TypeSimple)
     , (encodeHeader 7 24, TypeSimple)
     , (encodeHeader 7 25, TypeFloat16)
     , (encodeHeader 7 26, TypeFloat32)

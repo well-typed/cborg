@@ -74,7 +74,6 @@ data Term
   | TTagged  {-# UNPACK #-} !Word64 !Term
   | TBool                   !Bool
   | TNull
-  | TUndef
   | TSimple  {-# UNPACK #-} !Word8
   | THalf    {-# UNPACK #-} !Float
   | TFloat   {-# UNPACK #-} !Float
@@ -117,7 +116,6 @@ encodeTerm (TMapI ts)     = encodeMapLenIndef
 encodeTerm (TTagged w t)  = encodeTag64 w <> encodeTerm t
 encodeTerm (TBool     b)  = encodeBool b
 encodeTerm  TNull         = encodeNull
-encodeTerm  TUndef        = encodeUndef
 encodeTerm (TSimple   w)  = encodeSimple w
 encodeTerm (THalf     f)  = encodeFloat16 f
 encodeTerm (TFloat    f)  = encodeFloat   f
@@ -193,7 +191,6 @@ decodeTerm = do
       TypeBool    -> do !x <- decodeBool
                         return (TBool x)
       TypeNull    -> TNull   <$  decodeNull
-      TypeUndef   -> TUndef  <$  decodeSimple
       TypeSimple  -> do !x <- decodeSimple
                         return (TSimple x)
       TypeBreak   -> fail "unexpected break"
