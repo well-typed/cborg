@@ -197,6 +197,7 @@ wordToFloat32# w# =
             case readFloatArray# mba# 0# s'' of
               (# _, f# #) -> f#
 
+#if !defined(ghcjs_HOST_OS)
 {-# INLINE wordToFloat64 #-}
 wordToFloat64 :: Word64 -> Double
 wordToFloat64 (W64# w#) = D# (wordToFloat64# w#)
@@ -210,6 +211,7 @@ wordToFloat64# w# =
           s'' ->
             case readDoubleArray# mba# 0# s'' of
               (# _, f# #) -> f#
+#endif
 
 
 -- Alternative impl that goes via the FFI
