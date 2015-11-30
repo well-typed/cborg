@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
 
 -- |
@@ -23,6 +24,7 @@ import Data.Binary.Serialise.CBOR.Decoding
 
 import Data.Monoid
 import Control.Applicative
+import Control.DeepSeq
 
 import Data.Word
 import Data.Int
@@ -160,7 +162,9 @@ instance (Serialise a, Serialise b) => Serialise (a,b) where
                 <> encode a
                 <> encode b
     decode = do decodeListLenOf 2
-                (,) <$> decode <*> decode
+                !x <- decode
+                !y <- decode
+                return $! (x, y)
 
 instance (Serialise a, Serialise b, Serialise c) => Serialise (a,b,c) where
     encode (a,b,c) = encodeListLen 3
@@ -169,7 +173,10 @@ instance (Serialise a, Serialise b, Serialise c) => Serialise (a,b,c) where
                   <> encode c
 
     decode = do decodeListLenOf 3
-                (,,) <$> decode <*> decode <*> decode
+                !x <- decode
+                !y <- decode
+                !z <- decode
+                return $! (x, y, z)
 
 instance Serialise a => Serialise (Maybe a) where
     encode Nothing  = encodeListLen 0
@@ -177,8 +184,9 @@ instance Serialise a => Serialise (Maybe a) where
 
     decode = do n <- decodeListLen
                 case n of
-                  0 -> pure Nothing
-                  1 -> Just <$> decode
+                  0 -> return $! Nothing
+                  1 -> do !x <- decode
+                          return $! Just x
                   _ -> fail "unknown tag"
 
 instance (Serialise a, Serialise b) => Serialise (Either a b) where
@@ -188,8 +196,10 @@ instance (Serialise a, Serialise b) => Serialise (Either a b) where
     decode = do decodeListLenOf 2
                 t <- decodeWord
                 case t of
-                  0 -> Left  <$> decode
-                  1 -> Right <$> decode
+                  0 -> do !x <- decode
+                          return $! x
+                  1 -> do !x <- decode
+                          return $! x
                   _ -> fail "unknown tag"
 
 ------------------------
@@ -200,11 +210,13 @@ instance Serialise Version where
     encode (Version ns ts) = encodeListLen 3
                           <> encodeWord 0 <> encode ns <> encode ts
     decode = do
-      len <- decodeListLen
-      tag <- decodeWord
+      !len <- decodeListLen
+      !tag <- decodeWord
       case tag of
         0 | len == 3
-          -> Version <$> decode <*> decode
+          -> do !x <- decode
+                !y <- decode
+                return $! Version x y
         _ -> fail "unexpected tag"
 
 ------------------------
@@ -217,11 +229,11 @@ instance Serialise UTCTime where
             <> encode (formatUTCrfc3339 d)
 
     decode = do
-      tag <- decodeTag
+      !tag <- decodeTag
       case tag of
-        0 -> do str <- decodeString
+        0 -> do !str <- decodeString
                 case parseUTCrfc3339 (Text.unpack str) of
-                  Just t  -> return t
+                  Just t  -> return $! force t
                   Nothing -> fail "Could not parse RFC3339 date"
         _ -> fail "Expected timestamp (tag 0 or 1)"
 
