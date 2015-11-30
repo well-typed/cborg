@@ -1,4 +1,16 @@
 {-# LANGUAGE BangPatterns #-}
+
+-- |
+-- Module      : Data.Binary.Serialise.CBOR.Term
+-- Copyright   : (c) Duncan Coutts 2015
+-- License     : BSD3-style (see LICENSE.txt)
+--
+-- Maintainer  : duncan@community.haskell.org
+-- Stability   : experimental
+-- Portability : non-portable (GHC extensions)
+--
+-- Lorem ipsum...
+--
 module Data.Binary.Serialise.CBOR.Term (
     Term(..),
     encodeTerm,

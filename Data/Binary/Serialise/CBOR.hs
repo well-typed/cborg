@@ -1,7 +1,17 @@
 {-# LANGUAGE DeriveDataTypeable #-}
--- | This module provides functions to serialise and deserialise Haskell values
--- for storage or transmission. It also provides a type class and utilities to
--- help you make your types serialisable.
+
+-- |
+-- Module      : Data.Binary.Serialise.CBOR.ByteOrder
+-- Copyright   : (c) Duncan Coutts 2015
+-- License     : BSD3-style (see LICENSE.txt)
+--
+-- Maintainer  : duncan@community.haskell.org
+-- Stability   : experimental
+-- Portability : non-portable (GHC extensions)
+--
+-- This module provides functions to serialise and deserialise Haskell
+-- values for storage or transmission. It also provides a type class
+-- and utilities to help you make your types serialisable.
 --
 module Data.Binary.Serialise.CBOR (
     -- * Serialization and derialization of Haskell values

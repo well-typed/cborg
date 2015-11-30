@@ -1,4 +1,19 @@
-{-# LANGUAGE CPP, MagicHash, UnboxedTuples, ForeignFunctionInterface #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
+
+-- |
+-- Module      : Data.Binary.Serialise.CBOR.ByteOrder
+-- Copyright   : (c) Duncan Coutts 2015
+-- License     : BSD3-style (see LICENSE.txt)
+--
+-- Maintainer  : duncan@community.haskell.org
+-- Stability   : experimental
+-- Portability : non-portable (GHC extensions)
+--
+-- Lorem ipsum...
+--
 module Data.Binary.Serialise.CBOR.ByteOrder where
 
 #include "MachDeps.h"
