@@ -17,7 +17,9 @@ import Data.Word
 import Data.Int
 import qualified Data.Text as T
 import qualified Data.ByteString as B
+#if __GLASGOW_HASKELL__ < 710
 import Data.Monoid
+#endif
 
 -- | An intermediate form used during serialisation. It supports efficient
 -- concatenation.

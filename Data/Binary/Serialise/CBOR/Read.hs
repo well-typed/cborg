@@ -26,7 +26,9 @@ import Data.Binary.Serialise.CBOR.Decoding
 
 import qualified Data.Binary.Get as Bin (Decoder(..))
 
+#if __GLASGOW_HASKELL__ < 710
 import           Control.Applicative
+#endif
 import           Control.Monad (ap)
 import           Data.Array.IArray
 import           Data.Array.Unboxed
