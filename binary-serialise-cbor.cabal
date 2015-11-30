@@ -10,12 +10,12 @@ description:
   pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
   culpa qui officia deserunt mollit anim id est laborum.
 license:             BSD3
-license-files:       LICENSE, cbits/half.LICENSE
+license-files:       LICENSE.txt
 author:              Duncan Coutts
 maintainer:          duncan@community.haskell.org
 copyright:           2015 Duncan Coutts,
                      2015 Well-Typed LLP,
-                     2015 IRIS Connect Ltd.
+                     2015 IRIS Connect Ltd
 category:            Codec
 build-type:          Simple
 cabal-version:       >=1.10

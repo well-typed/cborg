@@ -3,7 +3,7 @@
 -- |
 -- Module      : Data.Binary.Serialize.CBOR.Read
 -- Copyright   : 2013-2015 Duncan Coutts,
--- License     : BSD3-style (see LICENSE)
+-- License     : BSD3-style (see LICENSE.txt)
 --
 -- Maintainer  : Duncan Coutts
 --
