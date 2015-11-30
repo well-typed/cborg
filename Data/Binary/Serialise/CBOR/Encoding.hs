@@ -1,11 +1,25 @@
+{-# LANGUAGE CPP #-}
+
+-- |
+-- Module      : Data.Binary.Serialise.CBOR.Encoding
+-- Copyright   : (c) Duncan Coutts 2015
+-- License     : BSD3-style (see LICENSE.txt)
+--
+-- Maintainer  : duncan@community.haskell.org
+-- Stability   : experimental
+-- Portability : non-portable (GHC extensions)
+--
+-- Lorem ipsum...
+--
 module Data.Binary.Serialise.CBOR.Encoding where
 
 import Data.Word
 import Data.Int
 import qualified Data.Text as T
 import qualified Data.ByteString as B
+#if __GLASGOW_HASKELL__ < 710
 import Data.Monoid
-
+#endif
 
 -- | An intermediate form used during serialisation. It supports efficient
 -- concatenation.

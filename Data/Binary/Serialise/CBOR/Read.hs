@@ -1,16 +1,19 @@
-{-# LANGUAGE CPP, BangPatterns, MagicHash, RankNTypes #-}
------------------------------------------------------------------------------
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE RankNTypes #-}
+
 -- |
--- Module      : Data.Binary.Serialize.CBOR.Read
--- Copyright   : 2013-2015 Duncan Coutts,
--- License     : BSD3-style (see LICENSE)
+-- Module      : Data.Binary.Serialise.CBOR.Read
+-- Copyright   : (c) Duncan Coutts 2015
+-- License     : BSD3-style (see LICENSE.txt)
 --
--- Maintainer  : Duncan Coutts
+-- Maintainer  : duncan@community.haskell.org
+-- Stability   : experimental
+-- Portability : non-portable (GHC extensions)
 --
 -- CBOR format support.
 --
------------------------------------------------------------------------------
-
 module Data.Binary.Serialise.CBOR.Read (
     deserialiseFromBytes,
     deserialiseIncremental,
@@ -23,7 +26,9 @@ import Data.Binary.Serialise.CBOR.Decoding
 
 import qualified Data.Binary.Get as Bin (Decoder(..))
 
+#if __GLASGOW_HASKELL__ < 710
 import           Control.Applicative
+#endif
 import           Control.Monad (ap)
 import           Data.Array.IArray
 import           Data.Array.Unboxed

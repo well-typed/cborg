@@ -1,23 +1,26 @@
-{-# LANGUAGE CPP, BangPatterns, MagicHash, UnboxedTuples, RankNTypes, ScopedTypeVariables #-}
------------------------------------------------------------------------------
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns #-}
+
 -- |
--- Module      : Data.Binary.Serialize.CBOR.Write
--- Copyright   : 2013 Simon Meier <iridcode@gmail.com>,
---               2013-2015 Duncan Coutts,
--- License     : BSD3-style (see LICENSE)
+-- Module      : Data.Binary.Serialise.CBOR.Term
+-- Copyright   : (c) Duncan Coutts 2015
+-- License     : BSD3-style (see LICENSE.txt)
 --
--- Maintainer  : Duncan Coutts
+-- Maintainer  : duncan@community.haskell.org
+-- Stability   : experimental
+-- Portability : non-portable (GHC extensions)
 --
 -- CBOR format support.
 --
------------------------------------------------------------------------------
-
 module Data.Binary.Serialise.CBOR.Write (
 
     -- * Streams of values to be encoded
     toBuilder,
     toLazyByteString,
-    
   ) where
 
 
