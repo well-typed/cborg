@@ -23,8 +23,6 @@ import Data.Binary.Serialise.CBOR.Encoding
 import Data.Binary.Serialise.CBOR.Decoding
 
 import Data.Monoid
-import Control.Applicative
-import Control.DeepSeq
 
 import Data.Word
 import Data.Int
@@ -41,7 +39,7 @@ import Data.Version
 --import qualified Data.Array as Array
 --import qualified Data.Array.Unboxed as UArray
 
-import Data.Time (UTCTime)
+import Data.Time (UTCTime(..))
 #if MIN_VERSION_time(1,5,0)
 import Data.Time.Format (formatTime, parseTimeM, defaultTimeLocale)
 #else
@@ -164,7 +162,7 @@ instance (Serialise a, Serialise b) => Serialise (a,b) where
     decode = do decodeListLenOf 2
                 !x <- decode
                 !y <- decode
-                return $! (x, y)
+                return (x, y)
 
 instance (Serialise a, Serialise b, Serialise c) => Serialise (a,b,c) where
     encode (a,b,c) = encodeListLen 3
@@ -176,7 +174,7 @@ instance (Serialise a, Serialise b, Serialise c) => Serialise (a,b,c) where
                 !x <- decode
                 !y <- decode
                 !z <- decode
-                return $! (x, y, z)
+                return (x, y, z)
 
 instance Serialise a => Serialise (Maybe a) where
     encode Nothing  = encodeListLen 0
@@ -184,9 +182,9 @@ instance Serialise a => Serialise (Maybe a) where
 
     decode = do n <- decodeListLen
                 case n of
-                  0 -> return $! Nothing
+                  0 -> return Nothing
                   1 -> do !x <- decode
-                          return $! Just x
+                          return (Just x)
                   _ -> fail "unknown tag"
 
 instance (Serialise a, Serialise b) => Serialise (Either a b) where
@@ -197,9 +195,9 @@ instance (Serialise a, Serialise b) => Serialise (Either a b) where
                 t <- decodeWord
                 case t of
                   0 -> do !x <- decode
-                          return $! x
+                          return x
                   1 -> do !x <- decode
-                          return $! x
+                          return x
                   _ -> fail "unknown tag"
 
 ------------------------
@@ -210,13 +208,13 @@ instance Serialise Version where
     encode (Version ns ts) = encodeListLen 3
                           <> encodeWord 0 <> encode ns <> encode ts
     decode = do
-      !len <- decodeListLen
-      !tag <- decodeWord
+      len <- decodeListLen
+      tag <- decodeWord
       case tag of
         0 | len == 3
           -> do !x <- decode
                 !y <- decode
-                return $! Version x y
+                return (Version x y)
         _ -> fail "unexpected tag"
 
 ------------------------
@@ -229,11 +227,11 @@ instance Serialise UTCTime where
             <> encode (formatUTCrfc3339 d)
 
     decode = do
-      !tag <- decodeTag
+      tag <- decodeTag
       case tag of
-        0 -> do !str <- decodeString
+        0 -> do str <- decodeString
                 case parseUTCrfc3339 (Text.unpack str) of
-                  Just t  -> return $! force t
+                  Just t  -> return $! forceUTCTime t
                   Nothing -> fail "Could not parse RFC3339 date"
         _ -> fail "Expected timestamp (tag 0 or 1)"
 
@@ -248,3 +246,7 @@ parseUTCrfc3339  = parseTimeM False defaultTimeLocale "%Y-%m-%dT%H:%M:%S%Q%Z"
 #else
 parseUTCrfc3339  = parseTime        defaultTimeLocale "%Y-%m-%dT%H:%M:%S%Q%Z"
 #endif
+
+-- UTCTime has an unnecessarily lazy representation, and the parsing is lazy
+forceUTCTime :: UTCTime -> UTCTime
+forceUTCTime t@(UTCTime !_day !_daytime) = t
