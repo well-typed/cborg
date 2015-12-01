@@ -13,33 +13,33 @@
 --
 module Data.Binary.Serialise.CBOR.Encoding
   ( -- * Encoding implementation
-    Encoding(..)
-  , Tokens(..)
+    Encoding(..)             -- :: *
+  , Tokens(..)               -- :: *
 
     -- * @'Encoder'@ API for serialisation
-  , encodeWord
-  , encodeWord64
-  , encodeInt
-  , encodeInt64
-  , encodeInteger
-  , encodeBytes
-  , encodeBytesIndef
-  , encodeString
-  , encodeStringIndef
-  , encodeListLen
-  , encodeListLenIndef
-  , encodeMapLen
-  , encodeMapLenIndef
-  , encodeBreak
-  , encodeTag
-  , encodeTag64
-  , encodeBool
-  , encodeUndef
-  , encodeNull
-  , encodeSimple
-  , encodeFloat16
-  , encodeFloat
-  , encodeDouble
+  , encodeWord               -- :: Word -> Encoding
+  , encodeWord64             -- :: Word64 -> Encoding
+  , encodeInt                -- :: Int -> Encoding
+  , encodeInt64              -- :: Int64 -> Encoding
+  , encodeInteger            -- :: Integer -> Encoding
+  , encodeBytes              -- :: B.ByteString -> Encoding
+  , encodeBytesIndef         -- :: Encoding
+  , encodeString             -- :: T.Text -> Encoding
+  , encodeStringIndef        -- :: Encoding
+  , encodeListLen            -- :: Word -> Encoding
+  , encodeListLenIndef       -- :: Encoding
+  , encodeMapLen             -- :: Word -> Encoding
+  , encodeMapLenIndef        -- :: Encoding
+  , encodeBreak              -- :: Encoding
+  , encodeTag                -- :: Word -> Encoding
+  , encodeTag64              -- :: Word64 -> Encoding
+  , encodeBool               -- :: Bool -> Encoding
+  , encodeUndef              -- :: Encoding
+  , encodeNull               -- :: Encoding
+  , encodeSimple             -- :: Word8 -> Encoding
+  , encodeFloat16            -- :: Float -> Encoding
+  , encodeFloat              -- :: Float -> Encoding
+  , encodeDouble             -- :: Double -> Encoding
   ) where
 
 import           Data.Int
