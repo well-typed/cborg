@@ -107,12 +107,16 @@ deserialise =
       error $ "Data.Binary.Serialise.CBOR.deserialise: failed at offset "
            ++ show off ++ " : " ++ msg
 
+-- | An exception type that may be returned (by pure functions) or
+-- thrown (by IO actions) that fail to deserialise a given input.
 data DeserialiseFailure =
        DeserialiseFailure Bin.ByteOffset String
   deriving (Show, Typeable)
 
 instance Exception DeserialiseFailure
 
+-- | Strictly deserialise an entire @'BS.ByteString'@ and get back a
+-- resulting value of the specified type, or a @'DeserialiseFailure'@
 deserialiseOrFail :: Serialise a => BS.ByteString -> Either DeserialiseFailure a
 deserialiseOrFail = supplyAllInput deserialiseIncremental
   where

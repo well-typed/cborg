@@ -43,6 +43,9 @@ writeFileSerialise fname x =
 -- | Read the specified file (internally, by reading a @'BS.ByteString'@)
 -- and attempt to decode it into a Haskell value using @'deserialise'@
 -- (the type of which is determined by the choice of the result type).
+--
+-- /Throws/: @'DeserialiseError@' iff the file fails to
+-- deserialise properly.
 readFileDeserialise :: Serialise a => FilePath -> IO a
 readFileDeserialise fname =
     withFile fname ReadMode $ \hnd -> do
