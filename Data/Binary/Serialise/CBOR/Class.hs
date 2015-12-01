@@ -11,7 +11,7 @@
 -- Portability : non-portable (GHC extensions)
 --
 -- The @'Serialise'@ class allows you to encode a given type into a
--- CBOR object.
+-- CBOR object, or decode a CBOR object into the user-specified type.
 --
 module Data.Binary.Serialise.CBOR.Class
   ( -- * The Serialise class
