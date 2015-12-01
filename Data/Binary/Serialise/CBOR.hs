@@ -24,10 +24,7 @@ module Data.Binary.Serialise.CBOR
     deserialise,
     deserialiseOrFail,
 
-    -- TODO FIXME: move to IO module?
-    writeFileSerialise,
-    readFileDeserialise,
-    hPutSerialise,
+    -- * Deserialisation exceptions
     DeserialiseFailure(..),
 
     -- * Primitive, incremental interface
@@ -39,19 +36,19 @@ module Data.Binary.Serialise.CBOR
     Serialise(..),
   ) where
 
-import qualified Data.Binary.Get                  as Bin
-import           Data.Binary.Serialise.CBOR.Class
-import qualified Data.Binary.Serialise.CBOR.Read  as CBOR.Read
-import qualified Data.Binary.Serialise.CBOR.Write as CBOR.Write
+import           Control.Exception                (Exception)
+import           Data.Typeable                    (Typeable)
 
+import qualified Data.Binary.Get                  as Bin
 import qualified Data.ByteString.Builder          as BS
 import qualified Data.ByteString.Lazy             as BS
 import qualified Data.ByteString.Lazy.Internal    as BS
 
-import           Control.Exception
-import           Data.Typeable
-import           System.IO
+import           Data.Binary.Serialise.CBOR.Class
+import qualified Data.Binary.Serialise.CBOR.Read  as CBOR.Read
+import qualified Data.Binary.Serialise.CBOR.Write as CBOR.Write
 
+--------------------------------------------------------------------------------
 
 -- $primitives
 -- The following API...
@@ -126,20 +123,3 @@ deserialiseOrFail = supplyAllInput deserialiseIncremental
         BS.Empty           ->  supplyAllInput (k Nothing)      BS.Empty
     supplyAllInput (Bin.Fail _ offset msg) _ =
         Left (DeserialiseFailure offset msg)
-
-
-hPutSerialise :: Serialise a => Handle -> a -> IO ()
-hPutSerialise hnd x = BS.hPut hnd (serialise x)
-
-writeFileSerialise :: Serialise a => FilePath -> a -> IO ()
-writeFileSerialise fname x =
-    withFile fname WriteMode $ \hnd -> hPutSerialise hnd x
-
-readFileDeserialise :: Serialise a => FilePath -> IO a
-readFileDeserialise fname =
-    withFile fname ReadMode $ \hnd -> do
-      input <- BS.hGetContents hnd
-      case deserialiseOrFail input of
-        Left  err -> throwIO err
-        Right x   -> return x
-
