@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
 -- |
--- Module      : Data.Binary.Serialise.CBOR.ByteOrder
+-- Module      : Data.Binary.Serialise.CBOR
 -- Copyright   : (c) Duncan Coutts 2015
 -- License     : BSD3-style (see LICENSE.txt)
 --
@@ -10,49 +10,51 @@
 -- Portability : non-portable (GHC extensions)
 --
 -- This module provides functions to serialise and deserialise Haskell
--- values for storage or transmission. It also provides a type class
+-- values for storage or transmission, to and from lazy
+-- @'Data.ByteString.Lazy.ByteString'@s. It also provides a type class
 -- and utilities to help you make your types serialisable.
 --
-module Data.Binary.Serialise.CBOR (
-    -- * Serialization and derialization of Haskell values
-
-    -- ** Convenience functions
+-- For a full tutorial on using this module, see
+-- "Data.Binary.Serialise.CBOR.Tutorial".
+--
+module Data.Binary.Serialise.CBOR
+  ( -- * High level API
+    -- $highlevel
     serialise,
     deserialise,
     deserialiseOrFail,
+
+    -- TODO FIXME: move to IO module?
     writeFileSerialise,
     readFileDeserialise,
     hPutSerialise,
+    DeserialiseFailure(..),
 
-    -- ** The primitives
+    -- * Primitive, incremental interface
+    -- $primitives
     serialiseIncremental,
     deserialiseIncremental,
 
-    -- * Making types serializable
-    -- ** The Serialise class
-    -- | 
+    -- * The @'Serialise'@ class
     Serialise(..),
   ) where
 
---import Data.Serialise.Serialise.CBOR.Encode
---import Data.Serialise.Serialise.CBOR.Decode
+import qualified Data.Binary.Get                  as Bin
 import           Data.Binary.Serialise.CBOR.Class
 import qualified Data.Binary.Serialise.CBOR.Read  as CBOR.Read
 import qualified Data.Binary.Serialise.CBOR.Write as CBOR.Write
-import qualified Data.Binary.Get as Bin
+
+import qualified Data.ByteString.Builder          as BS
+import qualified Data.ByteString.Lazy             as BS
+import qualified Data.ByteString.Lazy.Internal    as BS
+
+import           Control.Exception
+import           Data.Typeable
+import           System.IO
 
 
-import qualified Data.ByteString.Lazy as BS
-import qualified Data.ByteString.Lazy.Internal as BS
-import qualified Data.ByteString.Builder as BS
-
-import System.IO
-import Data.Typeable
-import Control.Exception
-
-
--------------------
--- The primitives
+-- $primitives
+-- The following API...
 --
 
 -- | Serialise a Haskell value to an external binary representation.
@@ -76,8 +78,8 @@ serialiseIncremental = CBOR.Write.toBuilder . encode
 deserialiseIncremental :: Serialise a => Bin.Decoder a
 deserialiseIncremental = CBOR.Read.deserialiseIncremental decode
 
---------------------------
--- Convenience functions
+-- $highlevel
+-- This is a test
 --
 
 -- | Serialise a Haskell value to an external binary representation.
