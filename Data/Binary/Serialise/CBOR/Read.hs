@@ -1180,7 +1180,7 @@ tryConsumeDouble hdr !bs = case fromIntegral hdr :: Word of
 #if !defined(ghcjs_HOST_OS)
   0xfb -> DecodedToken 9                (wordToFloat64 $ withBsPtr grabWord64 (BS.unsafeTail bs))
 #else
-  0xfb -> DecodedToken 9                (float2Double $ wordToFloat32 $ withBsPtr grabWord32 (BS.unsafeTail bs))
+  0xfb -> DecodedToken 9                (wordToFloat64 $ withBsPtr grabWord32 (BS.unsafeTail bs))
 #endif
   _    -> DecodeFailure
 
