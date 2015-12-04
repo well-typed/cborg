@@ -217,7 +217,11 @@ wordToFloat64 :: Word64 -> Double
 wordToFloat64 (W64# w#) = D# (wordToFloat64# w#)
 
 {-# NOINLINE wordToFloat64# #-}
+#ifdef ARCH_64bit
 wordToFloat64# :: Word# -> Double#
+#else
+wordToFloat64# :: Word64# -> Double#
+#endif
 wordToFloat64# w# =
     case newByteArray# 8# realWorld# of
       (# s', mba# #) ->
@@ -225,6 +229,7 @@ wordToFloat64# w# =
           s'' ->
             case readDoubleArray# mba# 0# s'' of
               (# _, f# #) -> f#
+
 
 
 -- Alternative impl that goes via the FFI
