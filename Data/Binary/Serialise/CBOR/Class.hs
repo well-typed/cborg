@@ -1,60 +1,83 @@
-{-# LANGUAGE CPP #-}
-module Data.Binary.Serialise.CBOR.Class (
-    -- * The Serialise class
-    Serialise(..),
-    -- ** Instance helpers
-    encodeShortList
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP          #-}
+
+-- |
+-- Module      : Data.Binary.Serialise.CBOR.Class
+-- Copyright   : (c) Duncan Coutts 2015
+-- License     : BSD3-style (see LICENSE.txt)
+--
+-- Maintainer  : duncan@community.haskell.org
+-- Stability   : experimental
+-- Portability : non-portable (GHC extensions)
+--
+-- The @'Serialise'@ class allows you to encode a given type into a
+-- CBOR object, or decode a CBOR object into the user-specified type.
+--
+module Data.Binary.Serialise.CBOR.Class
+  ( -- * The Serialise class
+    Serialise(..)
   ) where
 
-import Data.Binary.Serialise.CBOR.Encoding
-import Data.Binary.Serialise.CBOR.Decoding
+import           Data.Int
+import           Data.Monoid
+import           Data.Version
+import           Data.Word
 
-import Data.Monoid
-import Control.Applicative
+import qualified Data.ByteString                     as BS
+import qualified Data.Text                           as Text
 
-import Data.Word
-import Data.Int
-import qualified Data.Text       as Text
-import qualified Data.ByteString as BS
-import Data.Version
+-- TODO: more instances
+--import qualified Data.Array                          as Array
+--import qualified Data.Array.Unboxed                  as UArray
+--import qualified Data.ByteString                     as BS.Lazy
+--import qualified Data.Map                            as Map
+--import qualified Data.Sequence                       as Sequence
+--import qualified Data.Set                            as Set
+--import qualified Data.Text.Lazy                      as Text.Lazy
 
---TODO: lots more instances
---import qualified Data.Text.Lazy  as Text.Lazy
---import qualified Data.ByteString as BS.Lazy
---import qualified Data.Map  as Map
---import qualified Data.Set  as Set
---import qualified Data.Sequence as Sequence
---import qualified Data.Array as Array
---import qualified Data.Array.Unboxed as UArray
-
-import Data.Time (UTCTime)
+import           Data.Time                           (UTCTime (..))
 #if MIN_VERSION_time(1,5,0)
-import Data.Time.Format (formatTime, parseTimeM, defaultTimeLocale)
+import           Data.Time.Format                    (defaultTimeLocale,
+                                                      formatTime, parseTimeM)
 #else
-import Data.Time.Format (formatTime, parseTime)
-import System.Locale    (defaultTimeLocale)
+import           Data.Time.Format                    (formatTime, parseTime)
+import           System.Locale                       (defaultTimeLocale)
 #endif
 
-import Prelude hiding (encodeFloat, decodeFloat)
+import           Prelude                             hiding (decodeFloat,
+                                                      encodeFloat)
 
-------------------------
+import           Data.Binary.Serialise.CBOR.Decoding
+import           Data.Binary.Serialise.CBOR.Encoding
+
+--------------------------------------------------------------------------------
 -- The Serialise class
---
 
+-- | Types that are instances of the @'Serialise'@ class allow values
+-- to be quickly encoded or decoded directly to a CBOR representation,
+-- for object transmission or storage.
 class Serialise a where
+    {-# MINIMAL encode, decode #-}
+
+    -- | Definition for encoding a given type into a binary
+    -- representation, using the @'Encoding'@ @'Monoid'@.
     encode  :: a -> Encoding
+
+    -- | Definition of a given @'Decoder'@ for a type.
     decode  :: Decoder a
 
-    -- Mainly here to support the Char/String instance.
+    -- | Utility to support specialised encoding for some list type -
+    -- used for @'Char'@/@'String'@ instances in this package.
     encodeList :: [a] -> Encoding
     encodeList = defaultEncodeList
 
+    -- | Utility to support specialised decoding for some list type -
+    -- used for @'Char'@/@'String'@ instances in this package.
     decodeList :: Decoder [a]
     decodeList = defaultDecodeList
 
-------------------------
+--------------------------------------------------------------------------------
 -- Special list business
---
 
 instance Serialise a => Serialise [a] where
     encode = encodeList
@@ -73,14 +96,8 @@ defaultDecodeList = do
       Just n  -> decodeSequenceLenN     (flip (:)) [] reverse n decode
 
 
-encodeShortList :: Serialise a => [a] -> Encoding
-encodeShortList xs = encodeListLen (fromIntegral $ length xs)
-                  <> foldr (\x r -> encode x <> r) mempty xs
-
-
-------------------------
+--------------------------------------------------------------------------------
 -- Primitive instances
---
 
 instance Serialise () where
     encode = const encodeNull
@@ -139,16 +156,17 @@ instance Serialise BS.ByteString where
     decode = decodeBytes
 
 
-------------------------
+--------------------------------------------------------------------------------
 -- Structure instances
---
 
 instance (Serialise a, Serialise b) => Serialise (a,b) where
     encode (a,b) = encodeListLen 2
                 <> encode a
                 <> encode b
     decode = do decodeListLenOf 2
-                (,) <$> decode <*> decode
+                !x <- decode
+                !y <- decode
+                return (x, y)
 
 instance (Serialise a, Serialise b, Serialise c) => Serialise (a,b,c) where
     encode (a,b,c) = encodeListLen 3
@@ -157,7 +175,10 @@ instance (Serialise a, Serialise b, Serialise c) => Serialise (a,b,c) where
                   <> encode c
 
     decode = do decodeListLenOf 3
-                (,,) <$> decode <*> decode <*> decode
+                !x <- decode
+                !y <- decode
+                !z <- decode
+                return (x, y, z)
 
 instance Serialise a => Serialise (Maybe a) where
     encode Nothing  = encodeListLen 0
@@ -165,8 +186,9 @@ instance Serialise a => Serialise (Maybe a) where
 
     decode = do n <- decodeListLen
                 case n of
-                  0 -> pure Nothing
-                  1 -> Just <$> decode
+                  0 -> return Nothing
+                  1 -> do !x <- decode
+                          return (Just x)
                   _ -> fail "unknown tag"
 
 instance (Serialise a, Serialise b) => Serialise (Either a b) where
@@ -176,13 +198,14 @@ instance (Serialise a, Serialise b) => Serialise (Either a b) where
     decode = do decodeListLenOf 2
                 t <- decodeWord
                 case t of
-                  0 -> Left  <$> decode
-                  1 -> Right <$> decode
+                  0 -> do !x <- decode
+                          return x
+                  1 -> do !x <- decode
+                          return x
                   _ -> fail "unknown tag"
 
-------------------------
+--------------------------------------------------------------------------------
 -- Misc base package instances
---
 
 instance Serialise Version where
     encode (Version ns ts) = encodeListLen 3
@@ -192,10 +215,12 @@ instance Serialise Version where
       tag <- decodeWord
       case tag of
         0 | len == 3
-          -> Version <$> decode <*> decode
+          -> do !x <- decode
+                !y <- decode
+                return (Version x y)
         _ -> fail "unexpected tag"
 
-------------------------
+--------------------------------------------------------------------------------
 -- Time instances
 --
 -- CBOR has some special encodings for times/timestamps
@@ -209,7 +234,7 @@ instance Serialise UTCTime where
       case tag of
         0 -> do str <- decodeString
                 case parseUTCrfc3339 (Text.unpack str) of
-                  Just t  -> return t
+                  Just t  -> return $! forceUTCTime t
                   Nothing -> fail "Could not parse RFC3339 date"
         _ -> fail "Expected timestamp (tag 0 or 1)"
 
@@ -224,3 +249,7 @@ parseUTCrfc3339  = parseTimeM False defaultTimeLocale "%Y-%m-%dT%H:%M:%S%Q%Z"
 #else
 parseUTCrfc3339  = parseTime        defaultTimeLocale "%Y-%m-%dT%H:%M:%S%Q%Z"
 #endif
+
+-- UTCTime has an unnecessarily lazy representation, and the parsing is lazy
+forceUTCTime :: UTCTime -> UTCTime
+forceUTCTime t@(UTCTime !_day !_daytime) = t

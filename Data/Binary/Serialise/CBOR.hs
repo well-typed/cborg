@@ -1,48 +1,57 @@
-{-# LANGUAGE DeriveDataTypeable #-}
--- | This module provides functions to serialise and deserialise Haskell values
--- for storage or transmission. It also provides a type class and utilities to
--- help you make your types serialisable.
---
-module Data.Binary.Serialise.CBOR (
-    -- * Serialization and derialization of Haskell values
+{-# LANGUAGE CPP, DeriveDataTypeable #-}
 
-    -- ** Convenience functions
+-- |
+-- Module      : Data.Binary.Serialise.CBOR
+-- Copyright   : (c) Duncan Coutts 2015
+-- License     : BSD3-style (see LICENSE.txt)
+--
+-- Maintainer  : duncan@community.haskell.org
+-- Stability   : experimental
+-- Portability : non-portable (GHC extensions)
+--
+-- This module provides functions to serialise and deserialise Haskell
+-- values for storage or transmission, to and from lazy
+-- @'Data.ByteString.Lazy.ByteString'@s. It also provides a type class
+-- and utilities to help you make your types serialisable.
+--
+-- For a full tutorial on using this module, see
+-- "Data.Binary.Serialise.CBOR.Tutorial".
+--
+module Data.Binary.Serialise.CBOR
+  ( -- * High level API
+    -- $highlevel
     serialise,
     deserialise,
     deserialiseOrFail,
-    writeFileSerialise,
-    readFileDeserialise,
-    hPutSerialise,
 
-    -- ** The primitives
+    -- * Deserialisation exceptions
+    DeserialiseFailure(..),
+
+    -- * Primitive, incremental interface
+    -- $primitives
     serialiseIncremental,
     deserialiseIncremental,
 
-    -- * Making types serializable
-    -- ** The Serialise class
-    -- | 
+    -- * The @'Serialise'@ class
     Serialise(..),
   ) where
 
---import Data.Serialise.Serialise.CBOR.Encode
---import Data.Serialise.Serialise.CBOR.Decode
+import           Control.Exception                (Exception(..), throw)
+import           Data.Typeable                    (Typeable)
+
+import qualified Data.Binary.Get                  as Bin
+import qualified Data.ByteString.Builder          as BS
+import qualified Data.ByteString.Lazy             as BS
+import qualified Data.ByteString.Lazy.Internal    as BS
+
 import           Data.Binary.Serialise.CBOR.Class
 import qualified Data.Binary.Serialise.CBOR.Read  as CBOR.Read
 import qualified Data.Binary.Serialise.CBOR.Write as CBOR.Write
-import qualified Data.Binary.Get as Bin
 
+--------------------------------------------------------------------------------
 
-import qualified Data.ByteString.Lazy as BS
-import qualified Data.ByteString.Lazy.Internal as BS
-import qualified Data.ByteString.Builder as BS
-
-import System.IO
-import Data.Typeable
-import Control.Exception
-
-
--------------------
--- The primitives
+-- $primitives
+-- The following API...
 --
 
 -- | Serialise a Haskell value to an external binary representation.
@@ -66,8 +75,8 @@ serialiseIncremental = CBOR.Write.toBuilder . encode
 deserialiseIncremental :: Serialise a => Bin.Decoder a
 deserialiseIncremental = CBOR.Read.deserialiseIncremental decode
 
---------------------------
--- Convenience functions
+-- $highlevel
+-- This is a test
 --
 
 -- | Serialise a Haskell value to an external binary representation.
@@ -81,9 +90,8 @@ serialise = BS.toLazyByteString . serialiseIncremental
 -- | Deserialise a Haskell value from the external binary representation
 -- (which must have been made using 'serialise' or related function).
 --
--- This is a convenience function; it takes all the input at once and it will
--- fail with an exception if the given external representation is invalid or
--- does not correspond to a value of the expected type.
+-- /Throws/: @'DeserialiseError@' if the given external representation is
+-- invalid or does not correspond to a value of the expected type.
 --
 deserialise :: Serialise a => BS.ByteString -> a
 deserialise =
@@ -95,15 +103,25 @@ deserialise =
         BS.Chunk chunk bs' ->  supplyAllInput (k (Just chunk)) bs'
         BS.Empty           ->  supplyAllInput (k Nothing)      BS.Empty
     supplyAllInput (Bin.Fail _ off msg) _ =
-      error $ "Data.Binary.Serialise.CBOR.deserialise: failed at offset "
-           ++ show off ++ " : " ++ msg
+      throw (DeserialiseFailure off msg)
 
+-- | An exception type that may be returned (by pure functions) or
+-- thrown (by IO actions) that fail to deserialise a given input.
+--
 data DeserialiseFailure =
        DeserialiseFailure Bin.ByteOffset String
   deriving (Show, Typeable)
 
-instance Exception DeserialiseFailure
+instance Exception DeserialiseFailure where
+#if MIN_VERSION_base(4,8,0)
+    displayException (DeserialiseFailure off msg) =
+      "Data.Binary.Serialise.CBOR: deserialising failed at offset "
+           ++ show off ++ " : " ++ msg
+#endif
 
+-- | Deserialise a Haskell value from the external binary representation,
+-- or get back a @'DeserialiseFailure'@.
+--
 deserialiseOrFail :: Serialise a => BS.ByteString -> Either DeserialiseFailure a
 deserialiseOrFail = supplyAllInput deserialiseIncremental
   where
@@ -114,20 +132,3 @@ deserialiseOrFail = supplyAllInput deserialiseIncremental
         BS.Empty           ->  supplyAllInput (k Nothing)      BS.Empty
     supplyAllInput (Bin.Fail _ offset msg) _ =
         Left (DeserialiseFailure offset msg)
-
-
-hPutSerialise :: Serialise a => Handle -> a -> IO ()
-hPutSerialise hnd x = BS.hPut hnd (serialise x)
-
-writeFileSerialise :: Serialise a => FilePath -> a -> IO ()
-writeFileSerialise fname x =
-    withFile fname WriteMode $ \hnd -> hPutSerialise hnd x
-
-readFileDeserialise :: Serialise a => FilePath -> IO a
-readFileDeserialise fname =
-    withFile fname ReadMode $ \hnd -> do
-      input <- BS.hGetContents hnd
-      case deserialiseOrFail input of
-        Left  err -> throwIO err
-        Right x   -> return x
-

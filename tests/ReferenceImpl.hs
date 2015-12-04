@@ -5,7 +5,7 @@
 -- Module      : Data.Binary.Serialize.CBOR
 -- Copyright   : 2013 Simon Meier <iridcode@gmail.com>,
 --               2013-2014 Duncan Coutts,
--- License     : BSD3-style (see LICENSE)
+-- License     : BSD3-style (see LICENSE.txt)
 --
 -- Maintainer  : Duncan Coutts
 -- Stability   :

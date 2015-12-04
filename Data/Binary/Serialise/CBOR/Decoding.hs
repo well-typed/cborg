@@ -1,4 +1,19 @@
-{-# LANGUAGE CPP, RankNTypes, BangPatterns, MagicHash #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE RankNTypes #-}
+
+-- |
+-- Module      : Data.Binary.Serialise.CBOR.Decoding
+-- Copyright   : (c) Duncan Coutts 2015
+-- License     : BSD3-style (see LICENSE.txt)
+--
+-- Maintainer  : duncan@community.haskell.org
+-- Stability   : experimental
+-- Portability : non-portable (GHC extensions)
+--
+-- Lorem ipsum...
+--
 module Data.Binary.Serialise.CBOR.Decoding (
 
   -- * Decode primitive operations
@@ -371,7 +386,7 @@ decodeSequenceLenIndef f z g get =
     go !acc = do
       stop <- decodeBreakOr
       if stop then return $! g acc
-              else do x <- get; go (f acc x)
+              else do !x <- get; go (f acc x)
 
 {-# INLINE decodeSequenceLenN #-}
 decodeSequenceLenN :: (r -> a -> r)
@@ -384,5 +399,5 @@ decodeSequenceLenN f z g c get =
     go z c
   where
     go !acc 0 = return $! g acc
-    go !acc n = do x <- get; go (f acc x) (n-1)
+    go !acc n = do !x <- get; go (f acc x) (n-1)
 

@@ -1,23 +1,69 @@
-module Data.Binary.Serialise.CBOR.Encoding where
+{-# LANGUAGE CPP #-}
 
-import Data.Word
-import Data.Int
-import qualified Data.Text as T
-import qualified Data.ByteString as B
-import Data.Monoid
-
-
--- | An intermediate form used during serialisation. It supports efficient
--- concatenation.
+-- |
+-- Module      : Data.Binary.Serialise.CBOR.Encoding
+-- Copyright   : (c) Duncan Coutts 2015
+-- License     : BSD3-style (see LICENSE.txt)
 --
--- It is used for the stage in serialisation where we flatten out the Haskell
--- data structure but it is independent of any specific external binary or text
--- format.
+-- Maintainer  : duncan@community.haskell.org
+-- Stability   : experimental
+-- Portability : non-portable (GHC extensions)
+--
+-- Lorem ipsum...
+--
+module Data.Binary.Serialise.CBOR.Encoding
+  ( -- * Encoding implementation
+    Encoding(..)             -- :: *
+  , Tokens(..)               -- :: *
+
+    -- * @'Encoder'@ API for serialisation
+  , encodeWord               -- :: Word -> Encoding
+  , encodeWord64             -- :: Word64 -> Encoding
+  , encodeInt                -- :: Int -> Encoding
+  , encodeInt64              -- :: Int64 -> Encoding
+  , encodeInteger            -- :: Integer -> Encoding
+  , encodeBytes              -- :: B.ByteString -> Encoding
+  , encodeBytesIndef         -- :: Encoding
+  , encodeString             -- :: T.Text -> Encoding
+  , encodeStringIndef        -- :: Encoding
+  , encodeListLen            -- :: Word -> Encoding
+  , encodeListLenIndef       -- :: Encoding
+  , encodeMapLen             -- :: Word -> Encoding
+  , encodeMapLenIndef        -- :: Encoding
+  , encodeBreak              -- :: Encoding
+  , encodeTag                -- :: Word -> Encoding
+  , encodeTag64              -- :: Word64 -> Encoding
+  , encodeBool               -- :: Bool -> Encoding
+  , encodeUndef              -- :: Encoding
+  , encodeNull               -- :: Encoding
+  , encodeSimple             -- :: Word8 -> Encoding
+  , encodeFloat16            -- :: Float -> Encoding
+  , encodeFloat              -- :: Float -> Encoding
+  , encodeDouble             -- :: Double -> Encoding
+  ) where
+
+import           Data.Int
+import           Data.Word
+#if __GLASGOW_HASKELL__ < 710
+import           Data.Monoid
+#endif
+
+import qualified Data.ByteString as B
+import qualified Data.Text       as T
+
+import           Prelude         hiding (encodeFloat)
+
+-- | An intermediate form used during serialisation, specified as a
+-- @'Monoid'@. It supports efficient concatenation, and is equivalent
+-- to a specialised @'Data.Monoid.Endo' 'Tokens'@ type.
+--
+-- It is used for the stage in serialisation where we flatten out the
+-- Haskell data structure but it is independent of any specific
+-- external binary or text format.
 --
 newtype Encoding = Encoding (Tokens -> Tokens)
 
 -- | A flattened representation of a term
---
 data Tokens =
 
     -- Positive and negative integers (type 0,1)
@@ -57,12 +103,14 @@ data Tokens =
     | TkEnd
 
 instance Monoid Encoding where
-  {-# INLINE mempty #-}
   mempty = Encoding (\ts -> ts)
-  {-# INLINE mappend #-}
+  {-# INLINE mempty #-}
+
   Encoding b1 `mappend` Encoding b2 = Encoding (\ts -> b1 (b2 ts))
-  {-# INLINE mconcat #-}
+  {-# INLINE mappend #-}
+
   mconcat = foldr mappend mempty
+  {-# INLINE mconcat #-}
 
 encodeWord :: Word -> Encoding
 encodeWord = Encoding . TkWord
@@ -103,7 +151,7 @@ encodeMapLen = Encoding . TkMapLen
 encodeMapLenIndef :: Encoding
 encodeMapLenIndef = Encoding TkMapBegin
 
-encodeBreak :: Encoding 
+encodeBreak :: Encoding
 encodeBreak = Encoding TkBreak
 
 encodeTag :: Word -> Encoding
@@ -132,4 +180,3 @@ encodeFloat = Encoding . TkFloat32
 
 encodeDouble :: Double -> Encoding
 encodeDouble = Encoding . TkFloat64
-

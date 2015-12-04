@@ -1,43 +1,44 @@
-{-# LANGUAGE CPP, BangPatterns, MagicHash, UnboxedTuples, RankNTypes, ScopedTypeVariables #-}
------------------------------------------------------------------------------
+{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE CPP                 #-}
+{-# LANGUAGE MagicHash           #-}
+{-# LANGUAGE RankNTypes          #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE UnboxedTuples       #-}
+
 -- |
--- Module      : Data.Binary.Serialize.CBOR.Write
--- Copyright   : 2013 Simon Meier <iridcode@gmail.com>,
---               2013-2015 Duncan Coutts,
--- License     : BSD3-style (see LICENSE)
+-- Module      : Data.Binary.Serialise.CBOR.Term
+-- Copyright   : (c) Duncan Coutts 2015
+-- License     : BSD3-style (see LICENSE.txt)
 --
--- Maintainer  : Duncan Coutts
+-- Maintainer  : duncan@community.haskell.org
+-- Stability   : experimental
+-- Portability : non-portable (GHC extensions)
 --
 -- CBOR format support.
 --
------------------------------------------------------------------------------
-
-module Data.Binary.Serialise.CBOR.Write (
-
-    -- * Streams of values to be encoded
-    toBuilder,
-    toLazyByteString,
-    
+module Data.Binary.Serialise.CBOR.Write
+  ( toBuilder         -- :: Encoding -> B.Builder
+  , toLazyByteString  -- :: Encoding -> L.ByteString
   ) where
 
-
-import Data.Binary.Serialise.CBOR.Encoding
-import Data.Binary.Serialise.CBOR.ByteOrder
-
-import           Data.Monoid
 import           Data.Bits
-import qualified Data.ByteString                                as S
-import qualified Data.ByteString.Builder                        as B
-import qualified Data.ByteString.Lazy                           as L
-import qualified Data.ByteString.Builder.Internal               as BI
-import qualified Data.ByteString.Builder.Prim.Internal         as PI
-import qualified Data.ByteString.Builder.Prim                  as P
-import           Data.ByteString.Builder.Prim  ( (>$<), (>*<), condB )
-import qualified Data.Text          as T
-import qualified Data.Text.Encoding as T
-import           Data.Word
 import           Data.Int
+import           Data.Monoid
+import           Data.Word
 import           Foreign.Ptr
+
+import qualified Data.ByteString                       as S
+import qualified Data.ByteString.Builder               as B
+import qualified Data.ByteString.Builder.Internal      as BI
+import           Data.ByteString.Builder.Prim          (condB, (>$<), (>*<))
+import qualified Data.ByteString.Builder.Prim          as P
+import qualified Data.ByteString.Builder.Prim.Internal as PI
+import qualified Data.ByteString.Lazy                  as L
+import qualified Data.Text                             as T
+import qualified Data.Text.Encoding                    as T
+
+import           Data.Binary.Serialise.CBOR.ByteOrder
+import           Data.Binary.Serialise.CBOR.Encoding
 
 #include "MachDeps.h"
 
@@ -48,14 +49,14 @@ import           Foreign.Ptr
 #error expected WORD_SIZE_IN_BITS to be 32 or 64
 #endif
 
-
 ------------------------------------------------------------------------
 
+-- | Turn an @'Encoding'@ into a @'L.ByteString'@ in CBOR binary format.
 toLazyByteString :: Encoding -> L.ByteString
 toLazyByteString = B.toLazyByteString . toBuilder
 
--- | Turn an 'Encoding' into a bytestring 'B.Builder' in MsgPack binary format.
---
+-- | Turn an @'Encoding'@ into a @'L.ByteString'@ @'B.Builder'@ in CBOR
+-- binary format.
 toBuilder :: Encoding -> B.Builder
 toBuilder =
     \(Encoding vs0) -> BI.builder (step (vs0 TkEnd))
@@ -86,7 +87,7 @@ toBuilder =
               TkTag      x vs' -> PI.runB tagMP      x op >>= go vs'
               TkTag64    x vs' -> PI.runB tag64MP      x op >>= go vs'
               TkInteger  x vs'
-                --TODO: for GMP can optimimise this by looking at the S# 
+                --TODO: for GMP can optimimise this by looking at the S#
                 -- constructors to see if it fits in an Int, and if it's
                 -- positive or negative.
                 | x >= 0
@@ -270,7 +271,7 @@ int64MP =
     prep n = (mt, ui)
       where
         sign :: Word64   -- extend sign to whole length
-        sign = fromIntegral (n `unsafeShiftR` intBits)        
+        sign = fromIntegral (n `unsafeShiftR` intBits)
 #if MIN_VERSION_base(4,7,0)
         intBits = finiteBitSize (undefined :: Int64) - 1
 #else
@@ -300,7 +301,7 @@ int64MP =
       two-byte length) followed by the two bytes 0x01f4 for a length of
       500, followed by 500 bytes of binary content.
 -}
-    
+
 bytesMP :: S.ByteString -> B.Builder
 bytesMP bs =
     P.primBounded bytesLenMP (fromIntegral $ S.length bs) <> B.byteString bs
@@ -468,7 +469,7 @@ integerMP n
 -}
 
 simpleMP :: P.BoundedPrim Word8
-simpleMP = 
+simpleMP =
     condB (<= 0x17) ((0xe0 +) >$< header) $
                     (withConstHeader 0xf8 P.word8)
 
