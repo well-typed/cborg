@@ -51,11 +51,11 @@ import           Data.Binary.Serialise.CBOR.Encoding
 
 ------------------------------------------------------------------------
 
--- | Turn an @'Encoding'@ into a @'L.ByteString'@ in MsgPack binary format.
+-- | Turn an @'Encoding'@ into a @'L.ByteString'@ in CBOR binary format.
 toLazyByteString :: Encoding -> L.ByteString
 toLazyByteString = B.toLazyByteString . toBuilder
 
--- | Turn an @'Encoding'@ into a @'L.ByteString'@ @'B.Builder'@ in MsgPack
+-- | Turn an @'Encoding'@ into a @'L.ByteString'@ @'B.Builder'@ in CBOR
 -- binary format.
 toBuilder :: Encoding -> B.Builder
 toBuilder =
