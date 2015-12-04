@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE CPP, DeriveDataTypeable #-}
 
 -- |
 -- Module      : Data.Binary.Serialise.CBOR
@@ -36,7 +36,7 @@ module Data.Binary.Serialise.CBOR
     Serialise(..),
   ) where
 
-import           Control.Exception                (Exception)
+import           Control.Exception                (Exception(..), throw)
 import           Data.Typeable                    (Typeable)
 
 import qualified Data.Binary.Get                  as Bin
@@ -90,9 +90,8 @@ serialise = BS.toLazyByteString . serialiseIncremental
 -- | Deserialise a Haskell value from the external binary representation
 -- (which must have been made using 'serialise' or related function).
 --
--- This is a convenience function; it takes all the input at once and it will
--- fail with an exception if the given external representation is invalid or
--- does not correspond to a value of the expected type.
+-- /Throws/: @'DeserialiseError@' if the given external representation is
+-- invalid or does not correspond to a value of the expected type.
 --
 deserialise :: Serialise a => BS.ByteString -> a
 deserialise =
@@ -104,19 +103,25 @@ deserialise =
         BS.Chunk chunk bs' ->  supplyAllInput (k (Just chunk)) bs'
         BS.Empty           ->  supplyAllInput (k Nothing)      BS.Empty
     supplyAllInput (Bin.Fail _ off msg) _ =
-      error $ "Data.Binary.Serialise.CBOR.deserialise: failed at offset "
-           ++ show off ++ " : " ++ msg
+      throw (DeserialiseFailure off msg)
 
 -- | An exception type that may be returned (by pure functions) or
 -- thrown (by IO actions) that fail to deserialise a given input.
+--
 data DeserialiseFailure =
        DeserialiseFailure Bin.ByteOffset String
   deriving (Show, Typeable)
 
-instance Exception DeserialiseFailure
+instance Exception DeserialiseFailure where
+#if MIN_VERSION_base(4,8,0)
+    displayException (DeserialiseFailure off msg) =
+      "Data.Binary.Serialise.CBOR: deserialising failed at offset "
+           ++ show off ++ " : " ++ msg
+#endif
 
--- | Strictly deserialise an entire @'BS.ByteString'@ and get back a
--- resulting value of the specified type, or a @'DeserialiseFailure'@
+-- | Deserialise a Haskell value from the external binary representation,
+-- or get back a @'DeserialiseFailure'@.
+--
 deserialiseOrFail :: Serialise a => BS.ByteString -> Either DeserialiseFailure a
 deserialiseOrFail = supplyAllInput deserialiseIncremental
   where
