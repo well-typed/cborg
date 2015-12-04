@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP          #-}
 
 -- |
 -- Module      : Data.Binary.Serialise.CBOR.Class
@@ -10,63 +10,74 @@
 -- Stability   : experimental
 -- Portability : non-portable (GHC extensions)
 --
--- Lorem ipsum...
+-- The @'Serialise'@ class allows you to encode a given type into a
+-- CBOR object, or decode a CBOR object into the user-specified type.
 --
-module Data.Binary.Serialise.CBOR.Class (
-    -- * The Serialise class
-    Serialise(..),
-    -- ** Instance helpers
-    encodeShortList
+module Data.Binary.Serialise.CBOR.Class
+  ( -- * The Serialise class
+    Serialise(..)
   ) where
 
-import Data.Binary.Serialise.CBOR.Encoding
-import Data.Binary.Serialise.CBOR.Decoding
+import           Data.Int
+import           Data.Monoid
+import           Data.Version
+import           Data.Word
 
-import Data.Monoid
+import qualified Data.ByteString                     as BS
+import qualified Data.Text                           as Text
 
-import Data.Word
-import Data.Int
-import qualified Data.Text       as Text
-import qualified Data.ByteString as BS
-import Data.Version
+-- TODO: more instances
+--import qualified Data.Array                          as Array
+--import qualified Data.Array.Unboxed                  as UArray
+--import qualified Data.ByteString                     as BS.Lazy
+--import qualified Data.Map                            as Map
+--import qualified Data.Sequence                       as Sequence
+--import qualified Data.Set                            as Set
+--import qualified Data.Text.Lazy                      as Text.Lazy
 
---TODO: lots more instances
---import qualified Data.Text.Lazy  as Text.Lazy
---import qualified Data.ByteString as BS.Lazy
---import qualified Data.Map  as Map
---import qualified Data.Set  as Set
---import qualified Data.Sequence as Sequence
---import qualified Data.Array as Array
---import qualified Data.Array.Unboxed as UArray
-
-import Data.Time (UTCTime(..))
+import           Data.Time                           (UTCTime (..))
 #if MIN_VERSION_time(1,5,0)
-import Data.Time.Format (formatTime, parseTimeM, defaultTimeLocale)
+import           Data.Time.Format                    (defaultTimeLocale,
+                                                      formatTime, parseTimeM)
 #else
-import Data.Time.Format (formatTime, parseTime)
-import System.Locale    (defaultTimeLocale)
+import           Data.Time.Format                    (formatTime, parseTime)
+import           System.Locale                       (defaultTimeLocale)
 #endif
 
-import Prelude hiding (encodeFloat, decodeFloat)
+import           Prelude                             hiding (decodeFloat,
+                                                      encodeFloat)
 
-------------------------
+import           Data.Binary.Serialise.CBOR.Decoding
+import           Data.Binary.Serialise.CBOR.Encoding
+
+--------------------------------------------------------------------------------
 -- The Serialise class
---
 
+-- | Types that are instances of the @'Serialise'@ class allow values
+-- to be quickly encoded or decoded directly to a CBOR representation,
+-- for object transmission or storage.
 class Serialise a where
+    {-# MINIMAL encode, decode #-}
+
+    -- | Definition for encoding a given type into a binary
+    -- representation, using the @'Encoding'@ @'Monoid'@.
     encode  :: a -> Encoding
+
+    -- | Definition of a given @'Decoder'@ for a type.
     decode  :: Decoder a
 
-    -- Mainly here to support the Char/String instance.
+    -- | Utility to support specialised encoding for some list type -
+    -- used for @'Char'@/@'String'@ instances in this package.
     encodeList :: [a] -> Encoding
     encodeList = defaultEncodeList
 
+    -- | Utility to support specialised decoding for some list type -
+    -- used for @'Char'@/@'String'@ instances in this package.
     decodeList :: Decoder [a]
     decodeList = defaultDecodeList
 
-------------------------
+--------------------------------------------------------------------------------
 -- Special list business
---
 
 instance Serialise a => Serialise [a] where
     encode = encodeList
@@ -85,14 +96,8 @@ defaultDecodeList = do
       Just n  -> decodeSequenceLenN     (flip (:)) [] reverse n decode
 
 
-encodeShortList :: Serialise a => [a] -> Encoding
-encodeShortList xs = encodeListLen (fromIntegral $ length xs)
-                  <> foldr (\x r -> encode x <> r) mempty xs
-
-
-------------------------
+--------------------------------------------------------------------------------
 -- Primitive instances
---
 
 instance Serialise () where
     encode = const encodeNull
@@ -151,9 +156,8 @@ instance Serialise BS.ByteString where
     decode = decodeBytes
 
 
-------------------------
+--------------------------------------------------------------------------------
 -- Structure instances
---
 
 instance (Serialise a, Serialise b) => Serialise (a,b) where
     encode (a,b) = encodeListLen 2
@@ -200,9 +204,8 @@ instance (Serialise a, Serialise b) => Serialise (Either a b) where
                           return x
                   _ -> fail "unknown tag"
 
-------------------------
+--------------------------------------------------------------------------------
 -- Misc base package instances
---
 
 instance Serialise Version where
     encode (Version ns ts) = encodeListLen 3
@@ -217,7 +220,7 @@ instance Serialise Version where
                 return (Version x y)
         _ -> fail "unexpected tag"
 
-------------------------
+--------------------------------------------------------------------------------
 -- Time instances
 --
 -- CBOR has some special encodings for times/timestamps
