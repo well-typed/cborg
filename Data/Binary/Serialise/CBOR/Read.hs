@@ -1182,7 +1182,11 @@ tryConsumeDouble :: Word8 -> ByteString -> DecodedToken Double
 tryConsumeDouble hdr !bs = case fromIntegral hdr :: Word of
   0xf9 -> DecodedToken 3 (float2Double $ wordToFloat16 $ withBsPtr grabWord16 (BS.unsafeTail bs))
   0xfa -> DecodedToken 5 (float2Double $ wordToFloat32 $ withBsPtr grabWord32 (BS.unsafeTail bs))
+#if !defined(ghcjs_HOST_OS)
   0xfb -> DecodedToken 9                (wordToFloat64 $ withBsPtr grabWord64 (BS.unsafeTail bs))
+#else
+  0xfb -> DecodedToken 9                (wordToFloat64 $ withBsPtr grabWord32 (BS.unsafeTail bs))
+#endif
   _    -> DecodeFailure
 
 

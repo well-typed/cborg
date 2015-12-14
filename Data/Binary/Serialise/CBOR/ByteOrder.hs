@@ -212,6 +212,7 @@ wordToFloat32# w# =
             case readFloatArray# mba# 0# s'' of
               (# _, f# #) -> f#
 
+#if !defined(ghcjs_HOST_OS)
 {-# INLINE wordToFloat64 #-}
 wordToFloat64 :: Word64 -> Double
 wordToFloat64 (W64# w#) = D# (wordToFloat64# w#)
@@ -229,6 +230,21 @@ wordToFloat64# w# =
           s'' ->
             case readDoubleArray# mba# 0# s'' of
               (# _, f# #) -> f#
+#else
+{-# INLINE wordToFloat64 #-}
+wordToFloat64 :: Word -> Double
+wordToFloat64 (W# w#) = D# (wordToFloat64# w#)
+
+{-# NOINLINE wordToFloat64# #-}
+wordToFloat64# :: Word# -> Double#
+wordToFloat64# w# =
+    case newByteArray# 8# realWorld# of
+      (# s', mba# #) ->
+        case writeWordArray# mba# 0# w# s' of
+          s'' ->
+            case readDoubleArray# mba# 0# s'' of
+              (# _, f# #) -> f#
+#endif
 
 
 
