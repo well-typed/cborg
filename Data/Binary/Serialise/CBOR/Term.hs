@@ -102,7 +102,8 @@ decodeTerm :: Decoder Term
 decodeTerm = do
     tkty <- peekTokenType
     case tkty of
-      TypeUInt   -> fromWord <$> decodeWord
+      TypeUInt   -> do w <- decodeWord
+                       return $! fromWord w
                     where
                       fromWord :: Word -> Term
                       fromWord w
@@ -110,35 +111,44 @@ decodeTerm = do
                                     = TInt     (fromIntegral w)
                         | otherwise = TInteger (fromIntegral w)
 
-      TypeUInt64 -> fromWord64 <$> decodeWord64
+      TypeUInt64 -> do w <- decodeWord64
+                       return $! fromWord64 w
                     where
                       fromWord64 w
                         | w <= fromIntegral (maxBound :: Int)
                                     = TInt     (fromIntegral w)
                         | otherwise = TInteger (fromIntegral w)
 
-      TypeNInt   -> fromNegWord <$> decodeNegWord
+      TypeNInt   -> do w <- decodeNegWord
+                       return $! fromNegWord w
                     where
                       fromNegWord w
                         | w <= fromIntegral (maxBound :: Int)
                                     = TInt     (-1 - fromIntegral w)
                         | otherwise = TInteger (-1 - fromIntegral w)
 
-      TypeNInt64 -> fromNegWord64 <$> decodeNegWord64
+      TypeNInt64 -> do w <- decodeNegWord64
+                       return $! fromNegWord64 w
                     where
                       fromNegWord64 w
                         | w <= fromIntegral (maxBound :: Int)
                                     = TInt     (-1 - fromIntegral w)
                         | otherwise = TInteger (-1 - fromIntegral w)
 
-      TypeInteger -> TInteger <$> decodeInteger
-      TypeFloat16 -> THalf    <$> decodeFloat
-      TypeFloat32 -> TFloat   <$> decodeFloat
-      TypeFloat64 -> TDouble  <$> decodeDouble
+      TypeInteger -> do !x <- decodeInteger
+                        return (TInteger x)
+      TypeFloat16 -> do !x <- decodeFloat
+                        return (TFloat x)
+      TypeFloat32 -> do !x <- decodeFloat
+                        return (TFloat x)
+      TypeFloat64 -> do !x <- decodeDouble
+                        return (TDouble x)
 
-      TypeBytes        -> TBytes <$> decodeBytes
+      TypeBytes        -> do !x <- decodeBytes
+                             return (TBytes x)
       TypeBytesIndef   -> decodeBytesIndef >> decodeBytesIndefLen []
-      TypeString       -> TString <$> decodeString
+      TypeString       -> do !x <- decodeString
+                             return (TString x)
       TypeStringIndef  -> decodeStringIndef >> decodeStringIndefLen []
 
       TypeListLen      -> decodeListLen      >>= flip decodeListN []
@@ -147,13 +157,19 @@ decodeTerm = do
       TypeMapLen       -> decodeMapLen       >>= flip decodeMapN []
       TypeMapLen64     -> decodeMapLen       >>= flip decodeMapN []
       TypeMapLenIndef  -> decodeMapLenIndef  >>  decodeMapIndefLen []
-      TypeTag          -> TTagged <$> decodeTag64 <*> decodeTerm
-      TypeTag64        -> TTagged <$> decodeTag64 <*> decodeTerm
+      TypeTag          -> do !x <- decodeTag64
+                             !y <- decodeTerm
+                             return (TTagged x y)
+      TypeTag64        -> do !x <- decodeTag64
+                             !y <- decodeTerm
+                             return (TTagged x y)
 
-      TypeBool    -> TBool   <$> decodeBool
+      TypeBool    -> do !x <- decodeBool
+                        return (TBool x)
       TypeNull    -> TNull   <$  decodeNull
       TypeUndef   -> TUndef  <$  decodeSimple
-      TypeSimple  -> TSimple <$> decodeSimple
+      TypeSimple  -> do !x <- decodeSimple
+                        return (TSimple x)
       TypeBreak   -> fail "unexpected break"
       TypeInvalid -> fail "invalid token encoding"
 
@@ -162,7 +178,7 @@ decodeBytesIndefLen :: [BS.ByteString] -> Decoder Term
 decodeBytesIndefLen acc = do
     stop <- decodeBreakOr
     if stop then return $! TBytesI (LBS.fromChunks (reverse acc))
-            else do bs <- decodeBytes
+            else do !bs <- decodeBytes
                     decodeBytesIndefLen (bs : acc)
 
 
@@ -170,7 +186,7 @@ decodeStringIndefLen :: [T.Text] -> Decoder Term
 decodeStringIndefLen acc = do
     stop <- decodeBreakOr
     if stop then return $! TStringI (LT.fromChunks (reverse acc))
-            else do str <- decodeString
+            else do !str <- decodeString
                     decodeStringIndefLen (str : acc)
 
 
@@ -178,7 +194,7 @@ decodeListN :: Int -> [Term] -> Decoder Term
 decodeListN !n acc =
     case n of
       0 -> return $! TList (reverse acc)
-      _ -> do t <- decodeTerm
+      _ -> do !t <- decodeTerm
               decodeListN (n-1) (t : acc)
 
 
@@ -186,7 +202,7 @@ decodeListIndefLen :: [Term] -> Decoder Term
 decodeListIndefLen acc = do
     stop <- decodeBreakOr
     if stop then return $! TListI (reverse acc)
-            else do tm <- decodeTerm
+            else do !tm <- decodeTerm
                     decodeListIndefLen (tm : acc)
 
 
@@ -194,8 +210,8 @@ decodeMapN :: Int -> [(Term, Term)] -> Decoder Term
 decodeMapN !n acc =
     case n of
       0 -> return $! TMap (reverse acc)
-      _ -> do tm   <- decodeTerm
-              tm'  <- decodeTerm
+      _ -> do !tm   <- decodeTerm
+              !tm'  <- decodeTerm
               decodeMapN (n-1) ((tm, tm') : acc)
 
 
@@ -203,7 +219,7 @@ decodeMapIndefLen :: [(Term, Term)] -> Decoder Term
 decodeMapIndefLen acc = do
     stop <- decodeBreakOr
     if stop then return $! TMapI (reverse acc)
-            else do tm  <- decodeTerm
-                    tm' <- decodeTerm
+            else do !tm  <- decodeTerm
+                    !tm' <- decodeTerm
                     decodeMapIndefLen ((tm, tm') : acc)
 

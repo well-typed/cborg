@@ -199,9 +199,9 @@ instance (Serialise a, Serialise b) => Serialise (Either a b) where
                 t <- decodeWord
                 case t of
                   0 -> do !x <- decode
-                          return x
+                          return (Left x)
                   1 -> do !x <- decode
-                          return x
+                          return (Right x)
                   _ -> fail "unknown tag"
 
 --------------------------------------------------------------------------------
