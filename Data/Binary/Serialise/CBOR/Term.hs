@@ -29,7 +29,6 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import           Data.Monoid
 import           Control.Applicative
-import           Control.Monad
 
 import Prelude hiding (encodeFloat, decodeFloat)
 
