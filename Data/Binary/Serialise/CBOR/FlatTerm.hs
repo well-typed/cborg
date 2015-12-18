@@ -1,8 +1,14 @@
 {-# LANGUAGE CPP, MagicHash #-}
 module Data.Binary.Serialise.CBOR.FlatTerm (
-    FlatTerm(..),
+    FlatTerm,
+    TermToken(..),
     toFlatTerm,
-    fromFlatTerm
+    fromFlatTerm,
+
+    Valid,
+    Loc(..),
+    validFlatTerm,
+    validateTerm
   ) where
 
 import Data.Binary.Serialise.CBOR.Encoding (Encoding(..))
@@ -186,7 +192,8 @@ fromFlatTerm decoder =
     go (ConsumeBreakOr        k) (TkBreak     : ts) = go (k True) ts
     go (ConsumeBreakOr        k) ts@(_        : _ ) = go (k False) ts
 
---    go (PeekTokenType k) =
+    go (PeekTokenType k) ts@(tk:_) = go (k (tokenTypeOf tk)) ts
+    go (PeekTokenType _) ts        = unexpected "peekTokenType" ts
 
     go (Fail msg) _  = Left msg
     go (Done x)   [] = Right x
@@ -231,6 +238,30 @@ fromFlatTerm decoder =
     unexpected name (tok:_) = Left $ name ++ ": unexpected token " ++ show tok
 
 
+tokenTypeOf :: TermToken -> TokenType
+tokenTypeOf (TkInt n)
+    | n >= 0                = TypeUInt
+    | otherwise             = TypeNInt
+tokenTypeOf TkInteger{}     = TypeInteger
+tokenTypeOf TkBytes{}       = TypeBytes
+tokenTypeOf TkBytesBegin{}  = TypeBytesIndef
+tokenTypeOf TkString{}      = TypeString
+tokenTypeOf TkStringBegin{} = TypeStringIndef
+tokenTypeOf TkListLen{}     = TypeListLen
+tokenTypeOf TkListBegin{}   = TypeListLenIndef
+tokenTypeOf TkMapLen{}      = TypeMapLen
+tokenTypeOf TkMapBegin{}    = TypeMapLenIndef
+tokenTypeOf TkTag{}         = TypeTag
+tokenTypeOf TkBool{}        = TypeBool
+tokenTypeOf TkNull          = TypeNull
+tokenTypeOf TkUndef         = TypeUndef
+tokenTypeOf TkBreak         = TypeBreak
+tokenTypeOf TkSimple{}      = TypeSimple
+tokenTypeOf TkFloat16{}     = TypeFloat16
+tokenTypeOf TkFloat32{}     = TypeFloat32
+tokenTypeOf TkFloat64{}     = TypeFloat64
+
+
 data Loc = TopLevelSingle
          | TopLevelSequence
          | InString   Int     Loc
@@ -254,7 +285,7 @@ validFlatTerm ts =
 
 type Valid a = Either String a
 
-validateTerm :: Loc -> [TermToken] -> Valid [TermToken]
+validateTerm :: Loc -> FlatTerm -> Valid FlatTerm
 validateTerm _loc (TkInt       _   : ts) = return ts
 validateTerm _loc (TkInteger   _   : ts) = return ts
 validateTerm _loc (TkBytes     _   : ts) = return ts
