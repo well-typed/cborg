@@ -55,6 +55,7 @@ library
     Data.Binary.Serialise.CBOR.Class,
     Data.Binary.Serialise.CBOR.Decoding,
     Data.Binary.Serialise.CBOR.Encoding,
+    Data.Binary.Serialise.CBOR.FlatTerm,
     Data.Binary.Serialise.CBOR.IO
     Data.Binary.Serialise.CBOR.Read,
     Data.Binary.Serialise.CBOR.Write,
