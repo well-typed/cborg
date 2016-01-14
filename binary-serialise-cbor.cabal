@@ -2,7 +2,7 @@ name:                binary-serialise-cbor
 version:             0.1.1.0
 synopsis:            Yet Another Binary Serialisation Library
 license:             BSD3
-license-files:       LICENSE.txt
+license-file:        LICENSE.txt
 author:              Duncan Coutts
 maintainer:          duncan@community.haskell.org
 copyright:           2015 Duncan Coutts,

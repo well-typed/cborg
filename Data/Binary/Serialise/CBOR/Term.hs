@@ -138,7 +138,7 @@ decodeTerm = do
       TypeInteger -> do !x <- decodeInteger
                         return (TInteger x)
       TypeFloat16 -> do !x <- decodeFloat
-                        return (TFloat x)
+                        return (THalf x)
       TypeFloat32 -> do !x <- decodeFloat
                         return (TFloat x)
       TypeFloat64 -> do !x <- decodeDouble
