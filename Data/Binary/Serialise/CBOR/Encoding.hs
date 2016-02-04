@@ -107,6 +107,7 @@ data Tokens =
     | TkBreak                                 Tokens
 
     | TkEnd
+    deriving (Show,Eq)
 
 instance Monoid Encoding where
   mempty = Encoding (\ts -> ts)
