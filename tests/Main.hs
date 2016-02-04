@@ -1,9 +1,12 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module Main where
 
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
+import Data.Typeable
 
+import Data.Binary.Serialise.CBOR (Serialise)
 import ReferenceTests (TestCase, specTestVector)
 import qualified ReferenceTests as Ref
 import ReferenceImpl
@@ -80,6 +83,17 @@ cborImplTests testCases =
         , testProperty "encode term matches ref impl 2" prop_encodeTermMatchesRefImpl2
         , testProperty "decoding term matches ref impl" prop_decodeTermMatchesRefImpl
         ]
+    , testGroup "Serialise class"
+        [ cborSerializeRoundTrip (T :: T ())
+        , cborSerializeRoundTrip (T :: T Bool)
+        , cborSerializeRoundTrip (T :: T Int)
+        , cborSerializeRoundTrip (T :: T Word)
+        , cborSerializeRoundTrip (T :: T Integer)
+        , cborSerializeRoundTrip (T :: T (Maybe Int))
+        , cborSerializeRoundTrip (T :: T (Either String Int))
+        , cborSerializeRoundTrip (T :: T String)
+        , cborSerializeRoundTrip (T :: T [Int])
+        ]
     ]
 
 safeTests :: TestTree
@@ -88,3 +102,11 @@ safeTests =
     [ testProperty "from/to 1-byte chunks"        prop_chunkByte
     , testProperty "from/to long data"            prop_longData
     ]
+
+cborSerializeRoundTrip
+    :: forall a. (Arbitrary a, Typeable a, Serialise a, Eq a, Show a)
+    => T a -> TestTree
+cborSerializeRoundTrip t =
+  testProperty
+  (show $ typeOf (undefined :: a))
+  (prop_serialiseRoundTrip t)

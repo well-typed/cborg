@@ -12,6 +12,8 @@ import qualified Numeric.Half as Half
 import           Data.Binary.Serialise.CBOR.Term
 import           Data.Binary.Serialise.CBOR.Read
 import           Data.Binary.Serialise.CBOR.Write
+import           Data.Binary.Serialise.CBOR.Class
+import qualified Data.Binary.Serialise.CBOR as CBOR (serialise,deserialise)
 
 import           Test.Tasty.HUnit
 import           Test.QuickCheck.Arbitrary
@@ -97,6 +99,12 @@ prop_decodeTermMatchesRefImpl term0 =
         term    = RefImpl.deserialise encoded
         term'   = deserialise encoded
      in term' `eqTerm` fromRefTerm term
+
+
+data T a = T
+
+prop_serialiseRoundTrip :: (Serialise a, Eq a, Show a) => T a -> a -> Bool
+prop_serialiseRoundTrip _ a = a == (CBOR.deserialise . CBOR.serialise) a
 
 
 ------------------------------------------------------------------------------
