@@ -47,6 +47,9 @@ import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Internal as BS
 import           Foreign.ForeignPtr (withForeignPtr)
 
+#if !MIN_VERSION_bytestring(0,10,6)
+import           System.IO.Unsafe (unsafeDupablePerformIO)
+#endif
 
 {-# INLINE grabWord8 #-}
 grabWord8 :: Ptr () -> Word
@@ -155,9 +158,13 @@ grabWord64 (Ptr ip#) =
 {-# INLINE withBsPtr #-}
 withBsPtr :: (Ptr b -> a) -> ByteString -> a
 withBsPtr f (BS.PS x off _) =
+#if MIN_VERSION_bytestring(0,10,6)
     BS.accursedUnutterablePerformIO $ withForeignPtr x $
         \(Ptr addr#) -> return $! (f (Ptr addr# `plusPtr` off))
-
+#else
+    unsafeDupablePerformIO $ withForeignPtr x $
+        \(Ptr addr#) -> return $! (f (Ptr addr# `plusPtr` off))
+#endif
 --
 -- Half floats
 --
