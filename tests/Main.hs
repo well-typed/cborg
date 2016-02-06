@@ -8,6 +8,7 @@ import ReferenceTests (TestCase, specTestVector)
 import qualified ReferenceTests as Ref
 import ReferenceImpl
 import CBORTests
+import SafeTests
 
 main :: IO ()
 main = do
@@ -18,6 +19,7 @@ main = do
         testGroup "CBOR tests"
           [ referenceImplTests tcs
           , cborImplTests tcs
+          , safeTests
           ]
 
 referenceImplTests :: [TestCase] -> TestTree
@@ -80,3 +82,9 @@ cborImplTests testCases =
         ]
     ]
 
+safeTests :: TestTree
+safeTests =
+  testGroup "Tests for incorrect lazy access"
+    [ testProperty "from/to 1-byte chunks"        prop_chunkByte
+    , testProperty "from/to long data"            prop_longData
+    ]
