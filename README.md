@@ -4,13 +4,26 @@
 [![BSD3](http://b.repl.ca/v1/license-BSD-blue.png)](http://en.wikipedia.org/wiki/BSD_License)
 [![Haskell](http://b.repl.ca/v1/language-haskell-lightgrey.png)](http://www.haskell.org)
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad
-minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-aliquip ex ea commodo consequat. Duis aute irure dolor in
-reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
-culpa qui officia deserunt mollit anim id est laborum.
+This package provides pure, efficient serialization of Haskell values directly
+into `ByteString`s for storage or transmission purposes. By providing a set of
+type class instances, you can also serialize any custom data type you have as
+well.
+
+The underlying binary format used is the 'Consise Binary Object
+Representation', or CBOR, specified in `RFC 7049`. As a result, serialized
+Haskell values have implicit structure outside of the Haskell program itself,
+meaning they can be inspected or analyzed with custom tools.
+
+This package is eventually intended to essentially replace the venerable
+`binary` library. Aside from having a more concise format that has an
+explicit structure, it's multiple times faster than competing libraries
+as well in both the encode and decode paths. However, the current API only
+provides CBOR serialization; it does not provide an independent notion of
+parsing arbitrary binary data. This has yet to be designed or implemented.
+
+Currently this library has not been released to the public Hackage server,
+although it has seen real production use (with good results). Experimentation
+is encouraged, with a healthy dose of careful inspection and analysis.
 
 # Installation
 
