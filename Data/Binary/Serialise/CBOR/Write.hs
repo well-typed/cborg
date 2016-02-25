@@ -17,8 +17,9 @@
 -- CBOR format support.
 --
 module Data.Binary.Serialise.CBOR.Write
-  ( toBuilder         -- :: Encoding -> B.Builder
-  , toLazyByteString  -- :: Encoding -> L.ByteString
+  ( toBuilder          -- :: Encoding -> B.Builder
+  , toLazyByteString   -- :: Encoding -> L.ByteString
+  , toStrictByteString -- :: Encoding -> S.ByteString
   ) where
 
 import           Data.Bits
@@ -51,9 +52,15 @@ import           Data.Binary.Serialise.CBOR.Encoding
 
 ------------------------------------------------------------------------
 
--- | Turn an @'Encoding'@ into a @'L.ByteString'@ in CBOR binary format.
+-- | Turn an @'Encoding'@ into a lazy @'L.ByteString'@ in CBOR binary
+-- format.
 toLazyByteString :: Encoding -> L.ByteString
 toLazyByteString = B.toLazyByteString . toBuilder
+
+-- | Turn an @'Encoding'@ into a strict @'S.ByteString'@ in CBOR binary
+-- format.
+toStrictByteString :: Encoding -> S.ByteString
+toStrictByteString = L.toStrict . B.toLazyByteString . toBuilder
 
 -- | Turn an @'Encoding'@ into a @'L.ByteString'@ @'B.Builder'@ in CBOR
 -- binary format.
