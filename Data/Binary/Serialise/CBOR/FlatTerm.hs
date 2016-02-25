@@ -15,13 +15,11 @@ import Data.Binary.Serialise.CBOR.Encoding (Encoding(..))
 import qualified Data.Binary.Serialise.CBOR.Encoding as Enc
 import Data.Binary.Serialise.CBOR.Decoding as Dec
 
-import GHC.Word  (Word(W#), Word8(W8#), Word64(W64#))
-import GHC.Int   (Int64(I64#))
+import GHC.Word  (Word(W#), Word8(W8#))
 import GHC.Exts  (Int(I#), Int#, Word#, Float#, Double#)
 import GHC.Float (Float(F#), Double(D#), float2Double)
 
 import Data.Word
-import Data.Int
 import Data.Text (Text)
 import Data.ByteString (ByteString)
 
@@ -99,39 +97,19 @@ convFlatTerm (Enc.TkFloat64  f  ts) = TkFloat64   f : convFlatTerm ts
 convFlatTerm (Enc.TkBreak       ts) = TkBreak       : convFlatTerm ts
 convFlatTerm  Enc.TkEnd             = []
 
-maxInt, minInt, maxInt64, minInt64,
- maxWord, minWord, maxWord64, minWord64 :: Num n => n
+maxInt, minInt, maxWord :: Num n => n
 maxInt    = fromIntegral (maxBound :: Int)
 minInt    = fromIntegral (minBound :: Int)
-maxInt64  = fromIntegral (maxBound :: Int64)
-minInt64  = fromIntegral (minBound :: Int64)
 maxWord   = fromIntegral (maxBound :: Word)
-minWord   = fromIntegral (minBound :: Word)
-maxWord64 = fromIntegral (maxBound :: Word64)
-minWord64 = fromIntegral (minBound :: Word64)
 
 unI# :: Int -> Int#
 unI#   (I#   i#) = i#
-
-#ifdef ARCH_64bit
-unI64# :: Int64 -> Int#
-#else
-unI64# :: Int64 -> Int64#
-#endif
-unI64# (I64# i#) = i#
 
 unW# :: Word -> Word#
 unW#   (W#  w#) = w#
 
 unW8# :: Word8 -> Word#
 unW8#  (W8# w#) = w#
-
-#ifdef ARCH_64bit
-unW64# :: Word64 -> Word#
-#else
-unW64# :: Word64 -> Word64#
-#endif
-unW64# (W64# w#) = w#
 
 unF# :: Float -> Float#
 unF#   (F#   f#) = f#
