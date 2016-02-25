@@ -1,17 +1,20 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE CPP, ScopedTypeVariables #-}
 module Main where
 
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 import Data.Typeable
-
 import Data.Binary.Serialise.CBOR (Serialise)
 import ReferenceTests (TestCase, specTestVector)
 import qualified ReferenceTests as Ref
 import ReferenceImpl
 import CBORTests
 import SafeTests
+
+#if __GLASGOW_HASKELL__ < 710
+import Data.Word
+#endif
 
 main :: IO ()
 main = do
