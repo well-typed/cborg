@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, NamedFieldPuns #-}
+{-# LANGUAGE CPP, OverloadedStrings, NamedFieldPuns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module CBORTests where
 
@@ -8,7 +8,6 @@ import qualified Data.Text            as T
 import qualified Data.Text.Lazy       as LT
 import           Data.Word
 import qualified Numeric.Half as Half
-import           Control.Applicative
 
 import           Data.Binary.Serialise.CBOR.Term
 import           Data.Binary.Serialise.CBOR.Read
@@ -20,6 +19,10 @@ import           Test.QuickCheck.Arbitrary
 import qualified ReferenceImpl  as RefImpl
 import qualified ReferenceTests as TestVector
 import           ReferenceTests (TestCase(..))
+
+#if __GLASGOW_HASKELL__ < 710
+import           Control.Applicative
+#endif
 
 
 externalTestCase :: TestCase -> Assertion

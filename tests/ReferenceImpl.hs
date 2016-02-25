@@ -73,14 +73,18 @@ import qualified Data.ByteString      as BS
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
-import           Data.Monoid (Monoid(..), (<>))
+import           Data.Monoid ((<>))
 import           Foreign
 import           System.IO.Unsafe
-import           Control.Applicative
 import           Control.Monad (ap)
 
 import           Test.QuickCheck.Arbitrary
 import           Test.QuickCheck.Gen
+
+#if __GLASGOW_HASKELL__ < 710
+import           Data.Monoid (Monoid(..))
+import           Control.Applicative
+#endif
 
 
 serialise :: Term -> LBS.ByteString
