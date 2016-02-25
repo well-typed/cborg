@@ -59,7 +59,6 @@ import qualified Data.Binary.Serialise.CBOR.Write as CBOR.Write
 -- The output is represented as a 'BS.Builder' and is constructed incrementally.
 -- The representation as a 'BS.Builder' allows efficient concatenation with
 -- other data.
---
 serialiseIncremental :: Serialise a => a -> BS.Builder
 serialiseIncremental = CBOR.Write.toBuilder . encode
 
@@ -71,7 +70,6 @@ serialiseIncremental = CBOR.Write.toBuilder . encode
 -- Note that the incremental behaviour is only for the input data, not the
 -- output value: the final deserialised value is constructed and returned as a
 -- whole, not incrementally.
---
 deserialiseIncremental :: Serialise a => Bin.Decoder a
 deserialiseIncremental = CBOR.Read.deserialiseIncremental decode
 
@@ -83,7 +81,6 @@ deserialiseIncremental = CBOR.Read.deserialiseIncremental decode
 --
 -- The output is represented as a lazy 'BS.ByteString' and is constructed
 -- incrementally.
---
 serialise :: Serialise a => a -> BS.ByteString
 serialise = BS.toLazyByteString . serialiseIncremental
 
@@ -92,7 +89,6 @@ serialise = BS.toLazyByteString . serialiseIncremental
 --
 -- /Throws/: @'DeserialiseError@' if the given external representation is
 -- invalid or does not correspond to a value of the expected type.
---
 deserialise :: Serialise a => BS.ByteString -> a
 deserialise =
     supplyAllInput deserialiseIncremental
@@ -121,7 +117,6 @@ instance Exception DeserialiseFailure where
 
 -- | Deserialise a Haskell value from the external binary representation,
 -- or get back a @'DeserialiseFailure'@.
---
 deserialiseOrFail :: Serialise a => BS.ByteString -> Either DeserialiseFailure a
 deserialiseOrFail = supplyAllInput deserialiseIncremental
   where
