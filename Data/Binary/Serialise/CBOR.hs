@@ -18,7 +18,7 @@
 -- "Data.Binary.Serialise.CBOR.Tutorial".
 --
 module Data.Binary.Serialise.CBOR
-  ( -- * High level API
+  ( -- * High level, one-shot API
     -- $highlevel
     serialise,
     deserialise,
@@ -27,7 +27,7 @@ module Data.Binary.Serialise.CBOR
     -- * Deserialisation exceptions
     DeserialiseFailure(..),
 
-    -- * Primitive, incremental interface
+    -- * Incremental encoding interface
     -- $primitives
     serialiseIncremental,
     deserialiseIncremental,
@@ -51,7 +51,9 @@ import qualified Data.Binary.Serialise.CBOR.Write as CBOR.Write
 --------------------------------------------------------------------------------
 
 -- $primitives
--- The following API...
+-- The following API allows you to encode or decode CBOR values incrementally,
+-- which is useful for large structures that require you to stream values in
+-- over time.
 --
 
 -- | Serialise a Haskell value to an external binary representation.
