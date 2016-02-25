@@ -1,0 +1,15 @@
+Author, primary target of blame:
+
+  Duncan Coutts <duncan [@at] community [.dot] haskell [.dot] org>
+
+Some of the core design of this library (particularly the embedding of
+builder actions) came from Simon Meier.
+
+People who contributed code, ideas or lively discussion include, in no
+particular order:
+
+  Adam Gundry        <adam   [@at] well-typed [.dot] com>
+  Austin Seipp       <austin [@at] well-typed [.dot] com>
+
+This package includes code from the 'half' package, particularly the C code
+in cbits/half.c. Thanks to Edward Kmett for this.
