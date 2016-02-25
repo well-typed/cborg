@@ -165,32 +165,32 @@ go_fast :: DecodeAction a -> ByteString -> SlowPath a
 go_fast da !bs | BS.length bs < 9 = go_fast_end da bs
 
 go_fast da@(ConsumeWord k) !bs =
-    case tryConsumeWord (unsafeHead bs) bs of
+    case tryConsumeWord (BS.unsafeHead bs) bs of
       DecodeFailure           -> go_fast_end da bs
       DecodedToken sz (W# w#) -> go_fast (k w#) (BS.unsafeDrop sz bs)
 
 go_fast da@(ConsumeNegWord k) !bs =
-    case tryConsumeNegWord (unsafeHead bs) bs of
+    case tryConsumeNegWord (BS.unsafeHead bs) bs of
       DecodeFailure           -> go_fast_end da bs
       DecodedToken sz (W# w#) -> go_fast (k w#) (BS.unsafeDrop sz bs)
 
 go_fast da@(ConsumeInt k) !bs =
-    case tryConsumeInt (unsafeHead bs) bs of
+    case tryConsumeInt (BS.unsafeHead bs) bs of
       DecodeFailure           -> go_fast_end da bs
       DecodedToken sz (I# n#) -> go_fast (k n#) (BS.unsafeDrop sz bs)
 
 go_fast da@(ConsumeListLen k) !bs =
-    case tryConsumeListLen (unsafeHead bs) bs of
+    case tryConsumeListLen (BS.unsafeHead bs) bs of
       DecodeFailure           -> go_fast_end da bs
       DecodedToken sz (I# n#) -> go_fast (k n#) (BS.unsafeDrop sz bs)
 
 go_fast da@(ConsumeMapLen k) !bs =
-    case tryConsumeMapLen (unsafeHead bs) bs of
+    case tryConsumeMapLen (BS.unsafeHead bs) bs of
       DecodeFailure           -> go_fast_end da bs
       DecodedToken sz (I# n#) -> go_fast (k n#) (BS.unsafeDrop sz bs)
 
 go_fast da@(ConsumeTag k) !bs =
-    case tryConsumeTag (unsafeHead bs) bs of
+    case tryConsumeTag (BS.unsafeHead bs) bs of
       DecodeFailure           -> go_fast_end da bs
       DecodedToken sz (W# w#) -> go_fast (k w#) (BS.unsafeDrop sz bs)
 
@@ -204,84 +204,84 @@ go_fast da@(ConsumeTag k) !bs =
 #endif
 
 go_fast da@(ConsumeInteger k) !bs =
-    case tryConsumeInteger (unsafeHead bs) bs of
+    case tryConsumeInteger (BS.unsafeHead bs) bs of
       DecodedToken sz (BigIntToken n) -> go_fast (k n) (BS.unsafeDrop sz bs)
       _                               -> go_fast_end da bs
 
 go_fast da@(ConsumeFloat k) !bs =
-    case tryConsumeFloat (unsafeHead bs) bs of
+    case tryConsumeFloat (BS.unsafeHead bs) bs of
       DecodeFailure     -> go_fast_end da bs
       DecodedToken sz (F# f#) -> go_fast (k f#) (BS.unsafeDrop sz bs)
 
 go_fast da@(ConsumeDouble k) !bs =
-    case tryConsumeDouble (unsafeHead bs) bs of
+    case tryConsumeDouble (BS.unsafeHead bs) bs of
       DecodeFailure     -> go_fast_end da bs
       DecodedToken sz (D# f#) -> go_fast (k f#) (BS.unsafeDrop sz bs)
 
 go_fast da@(ConsumeBytes k) !bs =
-    case tryConsumeBytes (unsafeHead bs) bs of
+    case tryConsumeBytes (BS.unsafeHead bs) bs of
       DecodeFailure                 -> go_fast_end da bs
       DecodedToken sz (Fits bstr)   -> go_fast (k bstr) (BS.unsafeDrop sz bs)
       DecodedToken sz (TooLong len) -> SlowConsumeTokenBytes (BS.unsafeDrop sz bs) k len
 
 go_fast da@(ConsumeString k) !bs =
-    case tryConsumeString (unsafeHead bs) bs of
+    case tryConsumeString (BS.unsafeHead bs) bs of
       DecodeFailure                 -> go_fast_end da bs
       DecodedToken sz (Fits str)    -> go_fast (k str) (BS.unsafeDrop sz bs)
       DecodedToken sz (TooLong len) -> SlowConsumeTokenString (BS.unsafeDrop sz bs) k len
 
 go_fast da@(ConsumeBool k) !bs =
-    case tryConsumeBool (unsafeHead bs) of
+    case tryConsumeBool (BS.unsafeHead bs) of
       DecodeFailure     -> go_fast_end da bs
       DecodedToken sz b -> go_fast (k b) (BS.unsafeDrop sz bs)
 
 go_fast da@(ConsumeSimple k) !bs =
-    case tryConsumeSimple (unsafeHead bs) bs of
+    case tryConsumeSimple (BS.unsafeHead bs) bs of
       DecodeFailure           -> go_fast_end da bs
       DecodedToken sz (W# w#) -> go_fast (k w#) (BS.unsafeDrop sz bs)
 
 go_fast da@(ConsumeBytesIndef k) !bs =
-    case tryConsumeBytesIndef (unsafeHead bs) of
+    case tryConsumeBytesIndef (BS.unsafeHead bs) of
       DecodeFailure     -> go_fast_end da bs
       DecodedToken sz _ -> go_fast k (BS.unsafeDrop sz bs)
 
 go_fast da@(ConsumeStringIndef k) !bs =
-    case tryConsumeStringIndef (unsafeHead bs) of
+    case tryConsumeStringIndef (BS.unsafeHead bs) of
       DecodeFailure     -> go_fast_end da bs
       DecodedToken sz _ -> go_fast k (BS.unsafeDrop sz bs)
 
 go_fast da@(ConsumeListLenIndef k) !bs =
-    case tryConsumeListLenIndef (unsafeHead bs) of
+    case tryConsumeListLenIndef (BS.unsafeHead bs) of
       DecodeFailure     -> go_fast_end da bs
       DecodedToken sz _ -> go_fast k (BS.unsafeDrop sz bs)
 
 go_fast da@(ConsumeMapLenIndef k) !bs =
-    case tryConsumeMapLenIndef (unsafeHead bs) of
+    case tryConsumeMapLenIndef (BS.unsafeHead bs) of
       DecodeFailure     -> go_fast_end da bs
       DecodedToken sz _ -> go_fast k (BS.unsafeDrop sz bs)
 
 go_fast da@(ConsumeNull k) !bs =
-    case tryConsumeNull (unsafeHead bs) of
+    case tryConsumeNull (BS.unsafeHead bs) of
       DecodeFailure     -> go_fast_end da bs
       DecodedToken sz _ -> go_fast k (BS.unsafeDrop sz bs)
 
 go_fast da@(ConsumeListLenOrIndef k) !bs =
-    case tryConsumeListLenOrIndef (unsafeHead bs) bs of
+    case tryConsumeListLenOrIndef (BS.unsafeHead bs) bs of
       DecodeFailure           -> go_fast_end da bs
       DecodedToken sz (I# n#) -> go_fast (k n#) (BS.unsafeDrop sz bs)
 
 go_fast da@(ConsumeMapLenOrIndef k) !bs =
-    case tryConsumeMapLenOrIndef (unsafeHead bs) bs of
+    case tryConsumeMapLenOrIndef (BS.unsafeHead bs) bs of
       DecodeFailure           -> go_fast_end da bs
       DecodedToken sz (I# n#) -> go_fast (k n#) (BS.unsafeDrop sz bs)
 
 go_fast (ConsumeBreakOr k) !bs =
-    case tryConsumeBreakOr (unsafeHead bs) of
+    case tryConsumeBreakOr (BS.unsafeHead bs) of
       DecodeFailure     -> go_fast (k False) bs
       DecodedToken sz _ -> go_fast (k True) (BS.unsafeDrop sz bs)
 
 go_fast (PeekTokenType k) !bs =
-    let !hdr  = unsafeHead bs
+    let !hdr  = BS.unsafeHead bs
         !tkty = decodeTokenTypeTable `A.unsafeAt` fromIntegral hdr
     in go_fast (k tkty) bs
 
@@ -307,49 +307,49 @@ go_fast_end (Done x)   !bs = FastDone bs x
 go_fast_end da !bs | BS.null bs = SlowDecodeAction bs da
 
 go_fast_end (ConsumeBreakOr k) !bs =
-    case tryConsumeBreakOr (unsafeHead bs) of
+    case tryConsumeBreakOr (BS.unsafeHead bs) of
       DecodeFailure     -> go_fast_end (k False) bs
       DecodedToken sz _ -> go_fast_end (k True) (BS.unsafeDrop sz bs)
 
 go_fast_end (PeekTokenType k) !bs =
-    let !hdr  = unsafeHead bs
+    let !hdr  = BS.unsafeHead bs
         !tkty = decodeTokenTypeTable `A.unsafeAt` fromIntegral hdr
     in go_fast_end (k tkty) bs
 
 -- all the remaining cases have to decode the current token
 
 go_fast_end da !bs
-    | let !hdr = unsafeHead bs
+    | let !hdr = BS.unsafeHead bs
     , BS.length bs < tokenSize hdr
     = SlowDecodeAction bs da
 
 go_fast_end (ConsumeWord k) !bs =
-    case tryConsumeWord (unsafeHead bs) bs of
+    case tryConsumeWord (BS.unsafeHead bs) bs of
       DecodeFailure           -> SlowFail bs "expected word"
       DecodedToken sz (W# w#) -> go_fast_end (k w#) (BS.unsafeDrop sz bs)
 
 go_fast_end (ConsumeNegWord k) !bs =
-    case tryConsumeNegWord (unsafeHead bs) bs of
+    case tryConsumeNegWord (BS.unsafeHead bs) bs of
       DecodeFailure           -> SlowFail bs "expected negative int"
       DecodedToken sz (W# w#) -> go_fast_end (k w#) (BS.unsafeDrop sz bs)
 
 go_fast_end (ConsumeInt k) !bs =
-    case tryConsumeInt (unsafeHead bs) bs of
+    case tryConsumeInt (BS.unsafeHead bs) bs of
       DecodeFailure           -> SlowFail bs "expected int"
       DecodedToken sz (I# n#) -> go_fast_end (k n#) (BS.unsafeDrop sz bs)
 
 go_fast_end (ConsumeListLen k) !bs =
-    case tryConsumeListLen (unsafeHead bs) bs of
+    case tryConsumeListLen (BS.unsafeHead bs) bs of
       DecodeFailure           -> SlowFail bs "expected list len"
       DecodedToken sz (I# n#) -> go_fast_end (k n#) (BS.unsafeDrop sz bs)
 
 go_fast_end (ConsumeMapLen k) !bs =
-    case tryConsumeMapLen (unsafeHead bs) bs of
+    case tryConsumeMapLen (BS.unsafeHead bs) bs of
       DecodeFailure           -> SlowFail bs "expected map len"
       DecodedToken sz (I# n#) -> go_fast_end (k n#) (BS.unsafeDrop sz bs)
 
 go_fast_end (ConsumeTag k) !bs =
-    case tryConsumeTag (unsafeHead bs) bs of
+    case tryConsumeTag (BS.unsafeHead bs) bs of
       DecodeFailure           -> SlowFail bs "expected tag"
       DecodedToken sz (W# w#) -> go_fast_end (k w#) (BS.unsafeDrop sz bs)
 
@@ -364,7 +364,7 @@ go_fast_end (ConsumeTag k) !bs =
 #endif
 
 go_fast_end (ConsumeInteger k) !bs =
-    case tryConsumeInteger (unsafeHead bs) bs of
+    case tryConsumeInteger (BS.unsafeHead bs) bs of
       DecodeFailure                         -> SlowFail bs "expected integer"
       DecodedToken sz (BigIntToken n)       -> go_fast_end (k n) (BS.unsafeDrop sz bs)
       DecodedToken sz (BigUIntNeedBody len) -> SlowConsumeTokenBytes (BS.unsafeDrop sz bs) (adjustContBigUIntNeedBody k) len
@@ -373,69 +373,69 @@ go_fast_end (ConsumeInteger k) !bs =
       DecodedToken sz  BigNIntNeedHeader    -> SlowDecodeAction      (BS.unsafeDrop sz bs) (adjustContBigNIntNeedHeader k)
 
 go_fast_end (ConsumeFloat k) !bs =
-    case tryConsumeFloat (unsafeHead bs) bs of
+    case tryConsumeFloat (BS.unsafeHead bs) bs of
       DecodeFailure     -> SlowFail bs "expected float"
       DecodedToken sz (F# f#) -> go_fast_end (k f#) (BS.unsafeDrop sz bs)
 
 go_fast_end (ConsumeDouble k) !bs =
-    case tryConsumeDouble (unsafeHead bs) bs of
+    case tryConsumeDouble (BS.unsafeHead bs) bs of
       DecodeFailure     -> SlowFail bs "expected double"
       DecodedToken sz (D# f#) -> go_fast_end (k f#) (BS.unsafeDrop sz bs)
 
 go_fast_end (ConsumeBytes k) !bs =
-    case tryConsumeBytes (unsafeHead bs) bs of
+    case tryConsumeBytes (BS.unsafeHead bs) bs of
       DecodeFailure                 -> SlowFail bs "expected bytes"
       DecodedToken sz (Fits bstr)   -> go_fast_end (k bstr) (BS.unsafeDrop sz bs)
       DecodedToken sz (TooLong len) -> SlowConsumeTokenBytes (BS.unsafeDrop sz bs) k len
 
 go_fast_end (ConsumeString k) !bs =
-    case tryConsumeString (unsafeHead bs) bs of
+    case tryConsumeString (BS.unsafeHead bs) bs of
       DecodeFailure                 -> SlowFail bs "expected string"
       DecodedToken sz (Fits str)    -> go_fast_end (k str) (BS.unsafeDrop sz bs)
       DecodedToken sz (TooLong len) -> SlowConsumeTokenString (BS.unsafeDrop sz bs) k len
 
 go_fast_end (ConsumeBool k) !bs =
-    case tryConsumeBool (unsafeHead bs) of
+    case tryConsumeBool (BS.unsafeHead bs) of
       DecodeFailure     -> SlowFail bs "expected bool"
       DecodedToken sz b -> go_fast_end (k b) (BS.unsafeDrop sz bs)
 
 go_fast_end (ConsumeSimple k) !bs =
-    case tryConsumeSimple (unsafeHead bs) bs of
+    case tryConsumeSimple (BS.unsafeHead bs) bs of
       DecodeFailure           -> SlowFail bs "expected simple"
       DecodedToken sz (W# w#) -> go_fast_end (k w#) (BS.unsafeDrop sz bs)
 
 go_fast_end (ConsumeBytesIndef k) !bs =
-    case tryConsumeBytesIndef (unsafeHead bs) of
+    case tryConsumeBytesIndef (BS.unsafeHead bs) of
       DecodeFailure     -> SlowFail bs "expected bytes start"
       DecodedToken sz _ -> go_fast_end k (BS.unsafeDrop sz bs)
 
 go_fast_end (ConsumeStringIndef k) !bs =
-    case tryConsumeStringIndef (unsafeHead bs) of
+    case tryConsumeStringIndef (BS.unsafeHead bs) of
       DecodeFailure     -> SlowFail bs "expected string start"
       DecodedToken sz _ -> go_fast_end k (BS.unsafeDrop sz bs)
 
 go_fast_end (ConsumeListLenIndef k) !bs =
-    case tryConsumeListLenIndef (unsafeHead bs) of
+    case tryConsumeListLenIndef (BS.unsafeHead bs) of
       DecodeFailure     -> SlowFail bs "expected list start"
       DecodedToken sz _ -> go_fast_end k (BS.unsafeDrop sz bs)
 
 go_fast_end (ConsumeMapLenIndef k) !bs =
-    case tryConsumeMapLenIndef (unsafeHead bs) of
+    case tryConsumeMapLenIndef (BS.unsafeHead bs) of
       DecodeFailure     -> SlowFail bs "expected map start"
       DecodedToken sz _ -> go_fast_end k (BS.unsafeDrop sz bs)
 
 go_fast_end (ConsumeNull k) !bs =
-    case tryConsumeNull (unsafeHead bs) of
+    case tryConsumeNull (BS.unsafeHead bs) of
       DecodeFailure     -> SlowFail bs "expected null"
       DecodedToken sz _ -> go_fast_end k (BS.unsafeDrop sz bs)
 
 go_fast_end (ConsumeListLenOrIndef k) !bs =
-    case tryConsumeListLenOrIndef (unsafeHead bs) bs of
+    case tryConsumeListLenOrIndef (BS.unsafeHead bs) bs of
       DecodeFailure           -> SlowFail bs "expected list len or indef"
       DecodedToken sz (I# n#) -> go_fast_end (k n#) (BS.unsafeDrop sz bs)
 
 go_fast_end (ConsumeMapLenOrIndef k) !bs =
-    case tryConsumeMapLenOrIndef (unsafeHead bs) bs of
+    case tryConsumeMapLenOrIndef (BS.unsafeHead bs) bs of
       DecodeFailure           -> SlowFail bs "expected map len or indef"
       DecodedToken sz (I# n#) -> go_fast_end (k n#) (BS.unsafeDrop sz bs)
 
@@ -1466,7 +1466,7 @@ readBigUInt :: ByteString -> DecodedToken (BigIntToken a)
 readBigUInt bs
     | let bs' = BS.unsafeTail bs
     , not (BS.null bs')
-    , let !hdr = unsafeHead bs'
+    , let !hdr = BS.unsafeHead bs'
     , BS.length bs' >= tokenSize hdr
     = case tryConsumeBytes hdr bs' of
         DecodeFailure                 -> DecodeFailure
@@ -1481,7 +1481,7 @@ readBigNInt :: ByteString -> DecodedToken (BigIntToken a)
 readBigNInt bs
     | let bs' = BS.unsafeTail bs
     , not (BS.null bs')
-    , let !hdr = unsafeHead bs'
+    , let !hdr = BS.unsafeHead bs'
     , BS.length bs' >= tokenSize hdr
     = case tryConsumeBytes hdr bs' of
         DecodeFailure                 -> DecodeFailure

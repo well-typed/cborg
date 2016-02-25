@@ -38,7 +38,6 @@ import           GHC.Exts
 import           GHC.Word
 import           Foreign.C.Types
 import           Foreign.Ptr
-import           GHC.ForeignPtr
 #if !defined(HAVE_BYTESWAP_PRIMOPS) || !defined(MEM_UNALIGNED_OPS)
 import           Data.Bits ((.|.), shiftL)
 #endif
@@ -48,7 +47,10 @@ import           GHC.IntWord64 (wordToWord64#)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Internal as BS
 
-
+import           Foreign.ForeignPtr (withForeignPtr)
+#if !MIN_VERSION_bytestring(0,10,6)
+import           System.IO.Unsafe (unsafeDupablePerformIO)
+#endif
 
 {-# INLINE grabWord8 #-}
 grabWord8 :: Ptr () -> Word
@@ -156,12 +158,14 @@ grabWord64 (Ptr ip#) =
 
 {-# INLINE withBsPtr #-}
 withBsPtr :: (Ptr b -> a) -> ByteString -> a
-withBsPtr f (BS.PS (ForeignPtr addr# _fpc) off _len) = f (Ptr addr# `plusPtr` off)
-
-{-# INLINE unsafeHead #-}
-unsafeHead :: ByteString -> Word8
-unsafeHead (BS.PS (ForeignPtr addr# _fpc) (I# off#) _len) =
-    W8# (indexWord8OffAddr# addr# off#)
+withBsPtr f (BS.PS x off _) =
+#if MIN_VERSION_bytestring(0,10,6)
+    BS.accursedUnutterablePerformIO $ withForeignPtr x $
+        \(Ptr addr#) -> return $! (f (Ptr addr# `plusPtr` off))
+#else
+    unsafeDupablePerformIO $ withForeignPtr x $
+        \(Ptr addr#) -> return $! (f (Ptr addr# `plusPtr` off))
+#endif
 
 --
 -- Half floats
