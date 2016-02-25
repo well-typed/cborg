@@ -21,21 +21,25 @@ as well in both the encode and decode paths. However, the current API only
 provides CBOR serialization; it does not provide an independent notion of
 parsing arbitrary binary data. This has yet to be designed or implemented.
 
-Currently this library has not been released to the public Hackage server,
-although it has seen real production use (with good results). Experimentation
-is encouraged, with a healthy dose of careful inspection and analysis.
+**NOTE**: Currently this library has not been released to the public Hackage
+server, although it has seen real production use (with good results).
+Experimentation is encouraged, with a healthy dose of careful inspection and
+analysis.
 
 # Installation
 
-It's just a `cabal install` away on [Hackage][]:
+It's just a `cabal install` away on [Hackage][], or through [Stackage][]:
 
 ```bash
 $ cabal install binary-serialise-cbor
+$ stack install binary-serialise-cbor
 ```
 
-TODO: The above doesn't actually work (yet). Also mention Stack when released.
+**NOTE**: The above currently **WILL NOT WORK**, as this package is not
+publicly released.
 
-[Hackage]: http://hackage.haskell.org/package/binary-serialise-cbor
+[Hackage]:  https://hackage.haskell.org/package/binary-serialise-cbor
+[Stackage]: https://www.stackage.org
 
 # Join in
 
@@ -45,6 +49,16 @@ in the GitHub [issue tracker][].
 Master [git repository][gh]:
 
 * `git clone https://github.com/well-typed/binary-serialise-cbor.git`
+
+Once you've done that, you can build it and run the tests:
+
+```bash
+$ cabal test
+$ stack test
+```
+
+Note: the `stack.yaml` file is currently synchronized to LTS-5.4. Further
+compilers and other LTS releases are currently not supported.
 
 [contribute]: https://github.com/well-typed/binary-serialise-cbor/blob/master/CONTRIBUTING.md
 [issue tracker]: http://github.com/well-typed/binary-serialise-cbor/issues
