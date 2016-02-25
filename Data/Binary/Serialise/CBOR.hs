@@ -74,7 +74,9 @@ deserialiseIncremental :: Serialise a => Bin.Decoder a
 deserialiseIncremental = CBOR.Read.deserialiseIncremental decode
 
 -- $highlevel
--- This is a test
+-- The following API exposes a high level interface allowing you to quickly
+-- convert between arbitrary Haskell values (which are an instance of
+-- @'Serialise'@) and lazy @'BS.ByteString'@s.
 --
 
 -- | Serialise a Haskell value to an external binary representation.
@@ -87,7 +89,7 @@ serialise = BS.toLazyByteString . serialiseIncremental
 -- | Deserialise a Haskell value from the external binary representation
 -- (which must have been made using 'serialise' or related function).
 --
--- /Throws/: @'DeserialiseFailure@' if the given external representation is
+-- /Throws/: @'DeserialiseFailure'@ if the given external representation is
 -- invalid or does not correspond to a value of the expected type.
 deserialise :: Serialise a => BS.ByteString -> a
 deserialise =
@@ -103,7 +105,6 @@ deserialise =
 
 -- | An exception type that may be returned (by pure functions) or
 -- thrown (by IO actions) that fail to deserialise a given input.
---
 data DeserialiseFailure =
        DeserialiseFailure Bin.ByteOffset String
   deriving (Show, Typeable)
