@@ -87,7 +87,7 @@ serialise = BS.toLazyByteString . serialiseIncremental
 -- | Deserialise a Haskell value from the external binary representation
 -- (which must have been made using 'serialise' or related function).
 --
--- /Throws/: @'DeserialiseError@' if the given external representation is
+-- /Throws/: @'DeserialiseFailure@' if the given external representation is
 -- invalid or does not correspond to a value of the expected type.
 deserialise :: Serialise a => BS.ByteString -> a
 deserialise =
