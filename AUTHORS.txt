@@ -9,7 +9,9 @@ People who contributed code, ideas or lively discussion include, in no
 particular order:
 
   Adam Gundry        <adam   [@at] well-typed [.dot] com>
+  Alexey Khudyakov   <alexey [.dot] skladnoy [@at] gmail.com>
   Austin Seipp       <austin [@at] well-typed [.dot] com>
+  Ondrej Palkovsky   <palkovsky [.dot] ondrej [@at] gmail.com>
 
 This package includes code from the 'half' package, particularly the C code
 in cbits/half.c. Thanks to Edward Kmett for this.
