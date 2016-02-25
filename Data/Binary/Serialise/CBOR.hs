@@ -96,7 +96,7 @@ deserialiseIncremental = CBOR.Read.deserialiseIncremental decode
 -- The output is represented as a lazy 'BS.ByteString' and is constructed
 -- incrementally.
 serialise :: Serialise a => a -> BS.ByteString
-serialise = BS.toLazyByteString . serialiseIncremental
+serialise = CBOR.Write.toLazyByteString . encode
 
 -- | Deserialise a Haskell value from the external binary representation
 -- (which must have been made using 'serialise' or related function).
