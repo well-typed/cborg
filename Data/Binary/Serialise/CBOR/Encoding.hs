@@ -9,14 +9,15 @@
 -- Stability   : experimental
 -- Portability : non-portable (GHC extensions)
 --
--- Lorem ipsum...
+-- API for encoding values in a high level format, for later serialization
+-- into CBOR binary values.
 --
 module Data.Binary.Serialise.CBOR.Encoding
   ( -- * Encoding implementation
     Encoding(..)             -- :: *
   , Tokens(..)               -- :: *
 
-    -- * @'Encoder'@ API for serialisation
+    -- * @'Encoding'@ API for serialisation
   , encodeWord               -- :: Word -> Encoding
   , encodeWord64             -- :: Word64 -> Encoding
   , encodeInt                -- :: Int -> Encoding
@@ -61,9 +62,14 @@ import           Prelude         hiding (encodeFloat)
 -- Haskell data structure but it is independent of any specific
 -- external binary or text format.
 --
+-- Traditionally, to build any arbitrary @'Encoding'@ value, you specify
+-- larger structures from smaller ones and append the small ones together
+-- using @'Data.Monoid.mconcat'@.
 newtype Encoding = Encoding (Tokens -> Tokens)
 
--- | A flattened representation of a term
+-- | A flattened representation of a term, which is independent
+-- of any underlying binary representation, but which we later
+-- serialize into CBOR format.
 data Tokens =
 
     -- Positive and negative integers (type 0,1)
@@ -112,27 +118,37 @@ instance Monoid Encoding where
   mconcat = foldr mappend mempty
   {-# INLINE mconcat #-}
 
+-- | Encode a @'Word'@ in a flattened format.
 encodeWord :: Word -> Encoding
 encodeWord = Encoding . TkWord
 
+-- | Encode a @'Word64'@ in a flattened format.
 encodeWord64 :: Word64 -> Encoding
 encodeWord64 = Encoding . TkWord64
 
+-- | Encode an @'Int'@ in a flattened format.
 encodeInt :: Int -> Encoding
 encodeInt = Encoding . TkInt
 
+-- | Encode an @'Int64' in a flattened format.
 encodeInt64 :: Int64 -> Encoding
 encodeInt64 = Encoding . TkInt64
 
+-- | Encode an arbitrarily large @'Integer' in a
+-- flattened format.
 encodeInteger :: Integer -> Encoding
 encodeInteger n = Encoding (TkInteger n)
 
+-- | Encode an arbitrary strict @'B.ByteString'@ in
+-- a flattened format.
 encodeBytes :: B.ByteString -> Encoding
 encodeBytes = Encoding . TkBytes
 
+-- | Encode 
 encodeBytesIndef :: Encoding
 encodeBytesIndef = Encoding TkBytesBegin
 
+-- | Encode a @'T.Text'@ in a flattened format.
 encodeString :: T.Text -> Encoding
 encodeString = Encoding . TkString
 
@@ -157,9 +173,11 @@ encodeBreak = Encoding TkBreak
 encodeTag :: Word -> Encoding
 encodeTag = Encoding . TkTag
 
+-- | Encode an arbitrary 64-bit @'Word64'@ tag in a flattened format.
 encodeTag64 :: Word64 -> Encoding
 encodeTag64 = Encoding . TkTag64
 
+-- | Encode a @'Bool'@ in a flattened format.
 encodeBool :: Bool -> Encoding
 encodeBool b = Encoding (TkBool b)
 
@@ -172,11 +190,14 @@ encodeNull = Encoding TkNull
 encodeSimple :: Word8 -> Encoding
 encodeSimple = Encoding . TkSimple
 
+-- | Encode a small 16-bit @'Float'@ in a flattened format.
 encodeFloat16 :: Float -> Encoding
 encodeFloat16 = Encoding . TkFloat16
 
+-- | Encode a full precision @'Float'@ in a flattened format.
 encodeFloat :: Float -> Encoding
 encodeFloat = Encoding . TkFloat32
 
+-- | Encode a @'Double'@ in a flattened format.
 encodeDouble :: Double -> Encoding
 encodeDouble = Encoding . TkFloat64

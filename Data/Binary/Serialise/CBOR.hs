@@ -85,6 +85,8 @@ serialiseIncremental = CBOR.Write.toBuilder . encode
 deserialiseIncremental :: Serialise a => Bin.Decoder a
 deserialiseIncremental = CBOR.Read.deserialiseIncremental decode
 
+--------------------------------------------------------------------------------
+
 -- $highlevel
 -- The following API exposes a high level interface allowing you to quickly
 -- convert between arbitrary Haskell values (which are an instance of
@@ -146,12 +148,18 @@ deserialiseOrFail = supplyAllInput deserialiseIncremental
 
 -- | Serialise a @'BS.ByteString'@ (via @'serialise'@) and write it directly
 -- to the specified @'Handle'@.
-hPutSerialise :: Serialise a => Handle -> a -> IO ()
+hPutSerialise :: Serialise a
+              => Handle       -- ^ The @'Handle'@ to write to.
+              -> a            -- ^ The value to be serialized and written.
+              -> IO ()
 hPutSerialise hnd x = BS.hPut hnd (serialise x)
 
 -- | Serialise a @'BS.ByteString'@ and write it directly to the
 -- specified file.
-writeFileSerialise :: Serialise a => FilePath -> a -> IO ()
+writeFileSerialise :: Serialise a
+                   => FilePath     -- ^ The file to write to.
+                   -> a            -- ^ The value to be serialized and written.
+                   -> IO ()
 writeFileSerialise fname x =
     withFile fname WriteMode $ \hnd -> hPutSerialise hnd x
 
@@ -161,7 +169,9 @@ writeFileSerialise fname x =
 --
 -- /Throws/: @'DeserialiseFailure'@ iff the file fails to
 -- deserialise properly.
-readFileDeserialise :: Serialise a => FilePath -> IO a
+readFileDeserialise :: Serialise a
+                    => FilePath     -- ^ The file to read from.
+                    -> IO a         -- ^ The deserialized value.
 readFileDeserialise fname =
     withFile fname ReadMode $ \hnd -> do
       input <- BS.hGetContents hnd

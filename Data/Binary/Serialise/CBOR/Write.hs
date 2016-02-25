@@ -14,7 +14,8 @@
 -- Stability   : experimental
 -- Portability : non-portable (GHC extensions)
 --
--- CBOR format support.
+-- Tools for writing out CBOR @'Encoding'@ values in
+-- a variety of forms.
 --
 module Data.Binary.Serialise.CBOR.Write
   ( toBuilder          -- :: Encoding -> B.Builder
@@ -50,21 +51,24 @@ import           Data.Binary.Serialise.CBOR.Encoding
 #error expected WORD_SIZE_IN_BITS to be 32 or 64
 #endif
 
-------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
 -- | Turn an @'Encoding'@ into a lazy @'L.ByteString'@ in CBOR binary
 -- format.
-toLazyByteString :: Encoding -> L.ByteString
+toLazyByteString :: Encoding     -- ^ The @'Encoding'@ of a CBOR value.
+                 -> L.ByteString -- ^ The encoded CBOR value.
 toLazyByteString = B.toLazyByteString . toBuilder
 
 -- | Turn an @'Encoding'@ into a strict @'S.ByteString'@ in CBOR binary
 -- format.
-toStrictByteString :: Encoding -> S.ByteString
+toStrictByteString :: Encoding     -- ^ The @'Encoding'@ of a CBOR value.
+                   -> S.ByteString -- ^ The encoded value.
 toStrictByteString = L.toStrict . B.toLazyByteString . toBuilder
 
 -- | Turn an @'Encoding'@ into a @'L.ByteString'@ @'B.Builder'@ in CBOR
 -- binary format.
-toBuilder :: Encoding -> B.Builder
+toBuilder :: Encoding  -- ^ The @'Encoding'@ of a CBOR value.
+          -> B.Builder -- ^ The encoded value as a @'B.Builder'@.
 toBuilder =
     \(Encoding vs0) -> BI.builder (step (vs0 TkEnd))
   where

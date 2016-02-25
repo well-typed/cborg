@@ -12,7 +12,8 @@
 -- Stability   : experimental
 -- Portability : non-portable (GHC extensions)
 --
--- Lorem ipsum...
+-- An internal module for doing efficient, fiddly, low-level byte buffoonery
+-- and other nonsense.
 --
 module Data.Binary.Serialise.CBOR.ByteOrder where
 

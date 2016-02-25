@@ -9,18 +9,32 @@
 -- Stability   : experimental
 -- Portability : non-portable (GHC extensions)
 --
--- Lorem ipsum...
+-- A simpler form than CBOR for writing out @'Enc.Encoding'@ values that allows
+-- easier verification and testing. While this library primarily focuses
+-- on taking @'Enc.Encoding'@ values (independent of any underlying format)
+-- and serializing them into CBOR format, this module offers an alternative
+-- format called @'FlatTerm'@ for serializing @'Enc.Encoding'@ values.
 --
-module Data.Binary.Serialise.CBOR.FlatTerm (
-    FlatTerm,
-    TermToken(..),
-    toFlatTerm,
-    fromFlatTerm,
+-- The @'FlatTerm'@ form is very simple and internally mirrors the original
+-- @'Encoding'@ type very carefully. The intention here is that once you
+-- have @'Enc.Encoding'@ and @'Dec.Decoding'@ values for your types, you can
+-- round-trip values through @'FlatTerm'@ to catch bugs more easily and with
+-- a smaller amount of code to look through.
+--
+-- For that reason, this module is primarily useful for client libraries,
+-- and even then, only for their test suites to offer a simpler form for
+-- doing encoding tests and catching problems in an encoder and decoder.
+--
+module Data.Binary.Serialise.CBOR.FlatTerm
+  ( -- * Types
+    FlatTerm      -- :: *
+  , TermToken(..) -- :: *
 
-    Valid,
-    Loc(..),
-    validFlatTerm,
-    validateTerm
+    -- * Functions
+  , toFlatTerm    -- :: Encoding -> FlatTerm
+  , fromFlatTerm  -- :: Decoder a -> FlatTerm -> Either String a
+
+  , validFlatTerm -- :: FlatTerm -> Bool
   ) where
 
 import Data.Binary.Serialise.CBOR.Encoding (Encoding(..))
@@ -44,12 +58,16 @@ import Data.ByteString (ByteString)
 #error expected WORD_SIZE_IN_BITS to be 32 or 64
 #endif
 
+--------------------------------------------------------------------------------
 
+-- | A "flat" representation of an @'Enc.Encoding'@ value,
+-- useful for round-tripping and writing tests.
 type FlatTerm = [TermToken]
 
-data TermToken =
-
-      TkInt      {-# UNPACK #-} !Int
+-- | A concrete encoding of @'Enc.Encoding'@ values, one
+-- which mirrors the original @'Enc.Encoding'@ type closely.
+data TermToken
+    = TkInt      {-# UNPACK #-} !Int
     | TkInteger                 !Integer
     | TkBytes    {-# UNPACK #-} !ByteString
     | TkBytesBegin
@@ -68,11 +86,13 @@ data TermToken =
     | TkFloat16  {-# UNPACK #-} !Float
     | TkFloat32  {-# UNPACK #-} !Float
     | TkFloat64  {-# UNPACK #-} !Double
+    deriving (Eq, Ord, Show)
 
-  deriving (Eq, Ord, Show)
+--------------------------------------------------------------------------------
 
-
-toFlatTerm :: Encoding -> FlatTerm
+-- | Convert an arbitrary @'Enc.Encoding'@ into a @'FlatTerm'@.
+toFlatTerm :: Encoding -- ^ The input @'Enc.Encoding'@.
+           -> FlatTerm -- ^ The resulting @'FlatTerm'@.
 toFlatTerm (Encoding tb) = convFlatTerm (tb Enc.TkEnd)
 
 convFlatTerm :: Enc.Tokens -> FlatTerm
@@ -129,7 +149,13 @@ unF#   (F#   f#) = f#
 unD# :: Double -> Double#
 unD#   (D#   f#) = f#
 
-fromFlatTerm :: Decoder a -> FlatTerm -> Either String a
+--------------------------------------------------------------------------------
+
+-- | Given a @'Dec.Decoder'@, decode a @'FlatTerm'@ back into
+-- an ordinary value, or return an error.
+fromFlatTerm :: Decoder a       -- ^ A @'Dec.Decoder'@ for a serialized value.
+             -> FlatTerm        -- ^ The serialized @'FlatTerm'@.
+             -> Either String a -- ^ The deserialized value, or an error.
 fromFlatTerm decoder =
     go (getDecodeAction decoder)
   where
@@ -251,7 +277,21 @@ tokenTypeOf TkFloat16{}     = TypeFloat16
 tokenTypeOf TkFloat32{}     = TypeFloat32
 tokenTypeOf TkFloat64{}     = TypeFloat64
 
+--------------------------------------------------------------------------------
 
+-- | Ensure a @'FlatTerm'@ is internally consistent and was created in a valid
+-- manner.
+validFlatTerm :: FlatTerm -- ^ The input @'FlatTerm'@
+              -> Bool     -- ^ @'True'@ if valid, @'False'@ otherwise.
+validFlatTerm ts =
+   either (const False) (const True) $ do
+     ts' <- validateTerm TopLevelSingle ts
+     case ts' of
+       [] -> return ()
+       _  -> Left "trailing data"
+
+-- | A data type used for tracking the position we're at
+-- as we traverse a @'FlatTerm'@ and make sure it's valid.
 data Loc = TopLevelSingle
          | TopLevelSequence
          | InString   Int     Loc
@@ -265,17 +305,8 @@ data Loc = TopLevelSingle
          | InTagged   Word64  Loc
   deriving Show
 
-validFlatTerm :: FlatTerm -> Bool
-validFlatTerm ts =
-   either (const False) (const True) $ do
-     ts' <- validateTerm TopLevelSingle ts
-     case ts' of
-       [] -> return ()
-       _  -> Left "trailing data"
-
-type Valid a = Either String a
-
-validateTerm :: Loc -> FlatTerm -> Valid FlatTerm
+-- | Validate an arbitrary @'FlatTerm'@ at an arbitrary location.
+validateTerm :: Loc -> FlatTerm -> Either String FlatTerm
 validateTerm _loc (TkInt       _   : ts) = return ts
 validateTerm _loc (TkInteger   _   : ts) = return ts
 validateTerm _loc (TkBytes     _   : ts) = return ts
@@ -301,11 +332,11 @@ validateTerm _loc (TkFloat32 _     : ts) = return ts
 validateTerm _loc (TkFloat64 _     : ts) = return ts
 validateTerm  loc                    []  = unexpectedEof loc
 
-unexpectedToken :: TermToken -> Loc -> Valid a
+unexpectedToken :: TermToken -> Loc -> Either String a
 unexpectedToken tok loc = Left $ "unexpected token " ++ show tok
                               ++ ", in context " ++ show loc
 
-unexpectedEof :: Loc -> Valid a
+unexpectedEof :: Loc -> Either String a
 unexpectedEof loc = Left $ "unexpected end of input in context " ++ show loc
 
 validateBytes :: Loc -> Int -> [TermToken] -> Either String [TermToken]

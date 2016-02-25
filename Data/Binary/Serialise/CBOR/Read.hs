@@ -12,11 +12,12 @@
 -- Stability   : experimental
 -- Portability : non-portable (GHC extensions)
 --
--- CBOR format support.
+-- Tools for reading values in a CBOR-encoded format
+-- back into ordinary values.
 --
-module Data.Binary.Serialise.CBOR.Read (
-    deserialiseFromBytes,
-    deserialiseIncremental,
+module Data.Binary.Serialise.CBOR.Read
+  ( deserialiseFromBytes   -- :: Decoder a -> ByteString -> Either String a
+  , deserialiseIncremental -- :: Decoder a -> Decoder a
   ) where
 
 
