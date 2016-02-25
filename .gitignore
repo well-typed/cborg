@@ -4,3 +4,6 @@
 /cabal.sandbox.config
 *.o
 *.hi
+*.bin
+*00-index.tar.gz
+*.html
