@@ -1,8 +1,11 @@
 # Fast binary serialization for Haskell
 
-[![Build Status](https://travis-ci.org/well-typed/binary-serialise-cbor.png?branch=master)](https://travis-ci.org/well-typed/binary-serialise-cbor)
+[![Linux Build Status](https://img.shields.io/travis/well-typed/binary-serialise-cbor.svg?label=Linux%20build)](https://travis-ci.org/well-typed/binary-serialise-cbor)
+[![Windows Build Status](https://img.shields.io/appveyor/ci/thoughtpolice/binary-serialise-cbor.svg?label=Windows%20build)](https://ci.appveyor.com/project/thoughtpolice/binary-serialise-cbor)
 [![BSD3](http://b.repl.ca/v1/license-BSD-blue.png)](http://en.wikipedia.org/wiki/BSD_License)
 [![Haskell](http://b.repl.ca/v1/language-haskell-lightgrey.png)](http://www.haskell.org)
+[![Hackage version](https://img.shields.io/hackage/v/binary-serialise-cbor.svg?label=Hackage)](https://hackage.haskell.org/package/binary-serialise-cbor)
+[![Stackage version](https://www.stackage.org/package/binary-serialise-cbor/badge/lts?label=Stackage)](https://www.stackage.org/package/binary-serialise-cbor)
 
 This package provides pure, efficient serialization of Haskell values directly
 into `ByteString`s for storage or transmission purposes. By providing a set of
