@@ -34,10 +34,20 @@ module Data.Binary.Serialise.CBOR
 
     -- * The @'Serialise'@ class
     Serialise(..),
+
+    -- * IO operations
+    -- | Convenient utilities for basic @'IO'@ operations.
+
+    -- ** @'FilePath'@ API
+    writeFileSerialise,
+    readFileDeserialise,
+    -- ** @'Handle'@ API
+    hPutSerialise
   ) where
 
-import           Control.Exception                (Exception(..), throw)
+import           System.IO                        (Handle, IOMode (..), withFile)
 import           Data.Typeable                    (Typeable)
+import           Control.Exception                (Exception(..), throw, throwIO)
 
 import qualified Data.Binary.Get                  as Bin
 import qualified Data.ByteString.Builder          as BS
@@ -130,3 +140,31 @@ deserialiseOrFail = supplyAllInput deserialiseIncremental
         BS.Empty           ->  supplyAllInput (k Nothing)      BS.Empty
     supplyAllInput (Bin.Fail _ offset msg) _ =
         Left (DeserialiseFailure offset msg)
+
+--------------------------------------------------------------------------------
+-- File-based API
+
+-- | Serialise a @'BS.ByteString'@ (via @'serialise'@) and write it directly
+-- to the specified @'Handle'@.
+hPutSerialise :: Serialise a => Handle -> a -> IO ()
+hPutSerialise hnd x = BS.hPut hnd (serialise x)
+
+-- | Serialise a @'BS.ByteString'@ and write it directly to the
+-- specified file.
+writeFileSerialise :: Serialise a => FilePath -> a -> IO ()
+writeFileSerialise fname x =
+    withFile fname WriteMode $ \hnd -> hPutSerialise hnd x
+
+-- | Read the specified file (internally, by reading a @'BS.ByteString'@)
+-- and attempt to decode it into a Haskell value using @'deserialise'@
+-- (the type of which is determined by the choice of the result type).
+--
+-- /Throws/: @'DeserialiseFailure'@ iff the file fails to
+-- deserialise properly.
+readFileDeserialise :: Serialise a => FilePath -> IO a
+readFileDeserialise fname =
+    withFile fname ReadMode $ \hnd -> do
+      input <- BS.hGetContents hnd
+      case deserialiseOrFail input of
+        Left  err -> throwIO err
+        Right x   -> return x
