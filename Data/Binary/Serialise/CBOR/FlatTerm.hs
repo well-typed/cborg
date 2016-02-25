@@ -175,12 +175,12 @@ fromFlatTerm decoder =
 
 -- 64bit variants for 32bit machines
 #ifndef ARCH_64bit
-    go (ConsumeWord64 k) =
-    go (ConsumeNegWord64 k) =
-    go (ConsumeInt64 k) =
-    go (ConsumeListLen64 k) =
-    go (ConsumeMapLen64 k) =
-    go (ConsumeTag64 k) =
+    go (ConsumeWord64    _) ts = unexpected "decodeWord64"    ts
+    go (ConsumeNegWord64 _) ts = unexpected "decodeNegWord64" ts
+    go (ConsumeInt64     _) ts = unexpected "decodeInt64"     ts
+    go (ConsumeListLen64 _) ts = unexpected "decodeListLen64" ts
+    go (ConsumeMapLen64  _) ts = unexpected "decodeMapLen64"  ts
+    go (ConsumeTag64     _) ts = unexpected "decodeTag64"     ts
 #endif
 
     go (ConsumeFloat  k) (TkFloat16 f : ts) = go (k (unF# f)) ts
@@ -223,14 +223,6 @@ fromFlatTerm decoder =
     go (ConsumeListLen _) ts = unexpected "decodeListLen" ts
     go (ConsumeMapLen  _) ts = unexpected "decodeMapLen"  ts
     go (ConsumeTag     _) ts = unexpected "decodeTag"     ts
-#ifndef ARCH_64bit
-    go (ConsumeWord64    _) = unexpected "decodeWord64"    ts
-    go (ConsumeNegWord64 _) = unexpected "decodeNegWord64" ts
-    go (ConsumeInt64     _) = unexpected "decodeInt64"     ts
-    go (ConsumeListLen64 _) = unexpected "decodeListLen64" ts
-    go (ConsumeMapLen64  _) = unexpected "decodeMapLen64"  ts
-    go (ConsumeTag64     _) = unexpected "decodeTag64"     ts
-#endif
 
     go (ConsumeFloat  _) ts = unexpected "decodeFloat"  ts
     go (ConsumeDouble _) ts = unexpected "decodeDouble" ts
@@ -248,7 +240,6 @@ fromFlatTerm decoder =
     go (ConsumeListLenOrIndef _) ts = unexpected "decodeListLenOrIndef" ts
     go (ConsumeMapLenOrIndef  _) ts = unexpected "decodeMapLenOrIndef"  ts
     go (ConsumeBreakOr        _) ts = unexpected "decodeBreakOr"        ts
-
 
     unexpected name []      = Left $ name ++ ": unexpected end of input"
     unexpected name (tok:_) = Left $ name ++ ": unexpected token " ++ show tok
@@ -376,4 +367,3 @@ validateMap ploc i ts = do
     ts'  <- validateTerm (InMapKey i ploc) ts
     ts'' <- validateTerm (InMapVal i ploc) ts'
     validateMap ploc (i+1) ts''
-
