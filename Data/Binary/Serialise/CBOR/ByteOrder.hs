@@ -194,7 +194,7 @@ foreign import ccall unsafe "hs_binary_floatToHalf"
 
 -- In this implementation, we're avoiding doing the extra indirection (and
 -- closure allocation) of the runSTRep stuff, but we have to be very careful
--- here, we cannot allow the "constsant" newByteArray# 8# realWorld# to be
+-- here, we cannot allow the "constant" newByteArray# 8# realWorld# to be
 -- floated out and shared and aliased across multiple concurrent calls. So we
 -- do manual worker/wrapper with the worker not being inlined.
 
