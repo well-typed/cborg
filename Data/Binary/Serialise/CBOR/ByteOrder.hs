@@ -43,7 +43,7 @@ import           Foreign.Ptr
 #if !defined(HAVE_BYTESWAP_PRIMOPS) || !defined(MEM_UNALIGNED_OPS)
 import           Data.Bits ((.|.), shiftL)
 #endif
-#if !defined(ARCH_64bit)
+#if defined(ARCH_32bit)
 import           GHC.IntWord64 (wordToWord64#)
 #endif
 import           Data.ByteString (ByteString)
@@ -54,53 +54,57 @@ import           Foreign.ForeignPtr (withForeignPtr)
 import           System.IO.Unsafe (unsafeDupablePerformIO)
 #endif
 
-{-# INLINE grabWord8 #-}
-grabWord8 :: Ptr () -> Word
-grabWord8 (Ptr ip#) =
-    W# (indexWord8OffAddr# ip# 0#)
+--------------------------------------------------------------------------------
 
+-- | Grab a 8-bit @'Word'@ given a @'Ptr'@ to some address.
+grabWord8 :: Ptr () -> Word
+{-# INLINE grabWord8 #-}
+
+-- | Grab a 16-bit @'Word'@ given a @'Ptr'@ to some address.
+grabWord16 :: Ptr () -> Word
+{-# INLINE grabWord16 #-}
+
+-- | Grab a 32-bit @'Word'@ given a @'Ptr'@ to some address.
+grabWord32 :: Ptr () -> Word
+{-# INLINE grabWord32 #-}
+
+-- | Grab a 64-bit @'Word64'@ given a @'Ptr'@ to some address.
+grabWord64 :: Ptr () -> Word64
+{-# INLINE grabWord64 #-}
+
+--
+-- Machine-dependent implementation
+--
+
+-- 8-bit word case is always the same...
+grabWord8 (Ptr ip#) = W# (indexWord8OffAddr# ip# 0#)
+
+-- ... but the remaining cases arent
 #if defined(HAVE_BYTESWAP_PRIMOPS) && \
     defined(MEM_UNALIGNED_OPS) && \
    !defined(WORDS_BIGENDIAN)
+-- On x86 machines with GHC 7.10, we have byteswap primitives
+-- available to make this conversion very fast.
 
-{-# INLINE grabWord16 #-}
-grabWord16 :: Ptr () -> Word
-grabWord16 (Ptr ip#) =
-    W# (byteSwap16# (indexWord16OffAddr# ip# 0#))
-
-{-# INLINE grabWord32 #-}
-grabWord32 :: Ptr () -> Word
-grabWord32 (Ptr ip#) =
-    W# (byteSwap32# (indexWord32OffAddr# ip# 0#))
-
-{-# INLINE grabWord64 #-}
-grabWord64 :: Ptr () -> Word64
-grabWord64 (Ptr ip#) =
-    W64# (byteSwap64# (indexWord64OffAddr# ip# 0#))
+grabWord16 (Ptr ip#) = W#   (byteSwap16# (indexWord16OffAddr# ip# 0#))
+grabWord32 (Ptr ip#) = W#   (byteSwap32# (indexWord32OffAddr# ip# 0#))
+grabWord64 (Ptr ip#) = W64# (byteSwap64# (indexWord64OffAddr# ip# 0#))
 
 #elif defined(MEM_UNALIGNED_OPS) && \
       defined(WORDS_BIGENDIAN)
+-- In some theoretical future-verse where there are unaligned memory
+-- accesses on the machine, but it is also big-endian, we need to be
+-- able to decode these numbers efficiently, still.
 
-{-# INLINE grabWord16 #-}
-grabWord16 :: Ptr () -> Word
-grabWord16 (Ptr ip#) =
-    W# (indexWord16OffAddr# ip# 0#)
-
-{-# INLINE grabWord32 #-}
-grabWord32 :: Ptr () -> Word
-grabWord32 (Ptr ip#) =
-    W# (indexWord32OffAddr# ip# 0#)
-
-{-# INLINE grabWord64 #-}
-grabWord64 :: Ptr () -> Word64
-grabWord64 (Ptr ip#) =
-    W64# (indexWord64OffAddr# ip# 0#)
+grabWord16 (Ptr ip#) = W#   (indexWord16OffAddr# ip# 0#)
+grabWord32 (Ptr ip#) = W#   (indexWord32OffAddr# ip# 0#)
+grabWord64 (Ptr ip#) = W64# (indexWord64OffAddr# ip# 0#)
 
 #else
--- fallback version:
+-- Otherwise, we fall back to the much slower, inefficient case
+-- of writing out each of the 8 bits of the output word at
+-- a time.
 
-{-# INLINE grabWord16 #-}
-grabWord16 :: Ptr () -> Word
 grabWord16 (Ptr ip#) =
     case indexWord8OffAddr# ip# 0# of
      w0# ->
@@ -108,8 +112,6 @@ grabWord16 (Ptr ip#) =
        w1# -> W# w0# `shiftL` 8 .|.
               W# w1#
 
-{-# INLINE grabWord32 #-}
-grabWord32 :: Ptr () -> Word
 grabWord32 (Ptr ip#) =
     case indexWord8OffAddr# ip# 0# of
      w0# ->
@@ -123,8 +125,6 @@ grabWord32 (Ptr ip#) =
                   W# w2# `shiftL`  8 .|.
                   W# w3#
 
-{-# INLINE grabWord64 #-}
-grabWord64 :: Ptr () -> Word64
 grabWord64 (Ptr ip#) =
     case indexWord8OffAddr# ip# 0# of
      w0# ->
@@ -158,7 +158,8 @@ grabWord64 (Ptr ip#) =
 
 #endif
 
-{-# INLINE withBsPtr #-}
+--------------------------------------------------------------------------------
+
 withBsPtr :: (Ptr b -> a) -> ByteString -> a
 withBsPtr f (BS.PS x off _) =
 #if MIN_VERSION_bytestring(0,10,6)
@@ -168,18 +169,18 @@ withBsPtr f (BS.PS x off _) =
     unsafeDupablePerformIO $ withForeignPtr x $
         \(Ptr addr#) -> return $! (f (Ptr addr# `plusPtr` off))
 #endif
+{-# INLINE withBsPtr #-}
 
---
+--------------------------------------------------------------------------------
 -- Half floats
---
 
-{-# INLINE wordToFloat16 #-}
 wordToFloat16 :: Word -> Float
 wordToFloat16 = halfToFloat . fromIntegral
+{-# INLINE wordToFloat16 #-}
 
-{-# INLINE floatToWord16 #-}
 floatToWord16 :: Float -> Word16
 floatToWord16 = fromIntegral . floatToHalf
+{-# INLINE floatToWord16 #-}
 
 foreign import ccall unsafe "hs_binary_halfToFloat"
   halfToFloat :: CUShort -> Float
@@ -187,10 +188,8 @@ foreign import ccall unsafe "hs_binary_halfToFloat"
 foreign import ccall unsafe "hs_binary_floatToHalf"
   floatToHalf :: Float -> CUShort
 
-
---
+--------------------------------------------------------------------------------
 -- Casting words to floats
---
 
 -- We have to go via a word rather than reading directly from memory because of
 -- endian issues. A little endian machine cannot read a big-endian float direct
@@ -205,11 +204,14 @@ foreign import ccall unsafe "hs_binary_floatToHalf"
 -- floated out and shared and aliased across multiple concurrent calls. So we
 -- do manual worker/wrapper with the worker not being inlined.
 
-{-# INLINE wordToFloat32 #-}
 wordToFloat32 :: Word -> Float
 wordToFloat32 (W# w#) = F# (wordToFloat32# w#)
+{-# INLINE wordToFloat32 #-}
 
-{-# NOINLINE wordToFloat32# #-}
+wordToFloat64 :: Word64 -> Double
+wordToFloat64 (W64# w#) = D# (wordToFloat64# w#)
+{-# INLINE wordToFloat64 #-}
+
 wordToFloat32# :: Word# -> Float#
 wordToFloat32# w# =
     case newByteArray# 4# realWorld# of
@@ -218,12 +220,8 @@ wordToFloat32# w# =
           s'' ->
             case readFloatArray# mba# 0# s'' of
               (# _, f# #) -> f#
+{-# NOINLINE wordToFloat32# #-}
 
-{-# INLINE wordToFloat64 #-}
-wordToFloat64 :: Word64 -> Double
-wordToFloat64 (W64# w#) = D# (wordToFloat64# w#)
-
-{-# NOINLINE wordToFloat64# #-}
 #ifdef ARCH_64bit
 wordToFloat64# :: Word# -> Double#
 #else
@@ -236,23 +234,21 @@ wordToFloat64# w# =
           s'' ->
             case readDoubleArray# mba# 0# s'' of
               (# _, f# #) -> f#
-
+{-# NOINLINE wordToFloat64# #-}
 
 
 -- Alternative impl that goes via the FFI
-{-
-{-# INLINE wordToFloat32 #-}
-wordToFloat32 :: Word -> Float
-wordToFloat32 = toFloat
-
-{-# INLINE wordToFloat64 #-}
-wordToFloat64 :: Word64 -> Double
-wordToFloat64 = toFloat
-
-{-# INLINE toFloat #-}
-toFloat :: (Storable word, Storable float) => word -> float
-toFloat w =
-    unsafeDupablePerformIO $ alloca $ \buf -> do
-      poke (castPtr buf) w
-      peek buf
--}
+--
+-- wordToFloat32 :: Word -> Float
+-- wordToFloat32 = toFloat
+-- {-# INLINE wordToFloat32 #-}
+--
+-- wordToFloat64 :: Word64 -> Double
+-- wordToFloat64 = toFloat
+-- {-# INLINE wordToFloat64 #-}
+--
+-- toFloat :: (Storable word, Storable float) => word -> float
+-- toFloat w = unsafeDupablePerformIO $ alloca $ \buf -> do
+--   poke (castPtr buf) w
+--   peek buf
+-- {-# INLINE toFloat #-}
