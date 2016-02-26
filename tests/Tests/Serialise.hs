@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Tests.Serialise
-  ( testTree
+  ( testTree -- :: TestTree
   ) where
 
 import           Data.Typeable
@@ -26,15 +26,17 @@ prop_serialiseRoundTrip _ a = a == (deserialise . serialise) a
 testTree :: TestTree
 testTree =
   testGroup "Serialise class"
-    [ roundTrip (T :: T ())
-    , roundTrip (T :: T Bool)
-    , roundTrip (T :: T Int)
-    , roundTrip (T :: T Word)
-    , roundTrip (T :: T Integer)
-    , roundTrip (T :: T (Maybe Int))
-    , roundTrip (T :: T (Either String Int))
-    , roundTrip (T :: T String)
-    , roundTrip (T :: T [Int])
+    [ testGroup "Full round trip"
+        [ roundTrip (T :: T ())
+        , roundTrip (T :: T Bool)
+        , roundTrip (T :: T Int)
+        , roundTrip (T :: T Word)
+        , roundTrip (T :: T Integer)
+        , roundTrip (T :: T (Maybe Int))
+        , roundTrip (T :: T (Either String Int))
+        , roundTrip (T :: T String)
+        , roundTrip (T :: T [Int])
+        ]
     ]
 
 roundTrip
