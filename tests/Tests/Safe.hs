@@ -1,20 +1,26 @@
 {-# LANGUAGE CPP #-}
 module Tests.Safe
-  ( prop_chunkByte
-  , prop_longData
+  ( testTree -- :: TestTree
   ) where
 
+import           Data.Monoid                         ((<>))
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative                 ((<$>), (<*>))
 #endif
+
+import qualified Data.Text                           as T
+import           Test.Tasty
+import           Test.QuickCheck
+import           Test.Tasty.QuickCheck
+import qualified Data.ByteString                     as BS
+import qualified Data.ByteString.Lazy                as BL
+
 import           Data.Binary.Serialise.CBOR
 import           Data.Binary.Serialise.CBOR.Decoding (decodeListLen, decodeWord)
 import           Data.Binary.Serialise.CBOR.Encoding (encodeListLen, encodeWord)
-import qualified Data.ByteString                     as BS
-import qualified Data.ByteString.Lazy                as BL
-import           Data.Monoid                         ((<>))
-import qualified Data.Text                           as T
-import           Test.QuickCheck
+
+--------------------------------------------------------------------------------
+-- Tests and properties
 
 newtype MyText = MyText T.Text deriving (Show, Eq)
 
@@ -53,3 +59,13 @@ prop_chunkByte v = (deserialise . tokenize . serialise) v == v
 
 prop_longData :: [Value] -> Bool
 prop_longData v = deserialise (serialise v) == v
+
+--------------------------------------------------------------------------------
+-- TestTree API
+
+testTree :: TestTree
+testTree =
+  testGroup "Tests for incorrect lazy access"
+    [ testProperty "from/to 1-byte chunks"  prop_chunkByte
+    , testProperty "from/to long data"      prop_longData
+    ]

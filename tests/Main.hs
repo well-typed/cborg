@@ -1,17 +1,18 @@
-{-# LANGUAGE CPP, ScopedTypeVariables #-}
-module Main where
+{-# LANGUAGE CPP #-}
+module Main
+  ( main -- :: IO ()
+  ) where
 
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
-import Data.Typeable
-import Data.Binary.Serialise.CBOR (Serialise)
 
 import           Tests.Reference (TestCase, specTestVector)
 import qualified Tests.Reference as Ref
 import           Tests.Reference.Implementation
 import           Tests.CBOR
-import           Tests.Safe
+import qualified Tests.Safe        as SafeTests
+import qualified Tests.Serialise   as SerialiseTests
 
 #if __GLASGOW_HASKELL__ < 710
 import Data.Word
@@ -26,7 +27,8 @@ main = do
         testGroup "CBOR tests"
           [ referenceImplTests tcs
           , cborImplTests tcs
-          , safeTests
+          , SafeTests.testTree
+          , SerialiseTests.testTree
           ]
 
 referenceImplTests :: [TestCase] -> TestTree
@@ -87,30 +89,4 @@ cborImplTests testCases =
         , testProperty "encode term matches ref impl 2" prop_encodeTermMatchesRefImpl2
         , testProperty "decoding term matches ref impl" prop_decodeTermMatchesRefImpl
         ]
-    , testGroup "Serialise class"
-        [ cborSerializeRoundTrip (T :: T ())
-        , cborSerializeRoundTrip (T :: T Bool)
-        , cborSerializeRoundTrip (T :: T Int)
-        , cborSerializeRoundTrip (T :: T Word)
-        , cborSerializeRoundTrip (T :: T Integer)
-        , cborSerializeRoundTrip (T :: T (Maybe Int))
-        , cborSerializeRoundTrip (T :: T (Either String Int))
-        , cborSerializeRoundTrip (T :: T String)
-        , cborSerializeRoundTrip (T :: T [Int])
-        ]
     ]
-
-safeTests :: TestTree
-safeTests =
-  testGroup "Tests for incorrect lazy access"
-    [ testProperty "from/to 1-byte chunks"        prop_chunkByte
-    , testProperty "from/to long data"            prop_longData
-    ]
-
-cborSerializeRoundTrip
-    :: forall a. (Arbitrary a, Typeable a, Serialise a, Eq a, Show a)
-    => T a -> TestTree
-cborSerializeRoundTrip t =
-  testProperty
-  (show $ typeOf (undefined :: a))
-  (prop_serialiseRoundTrip t)
