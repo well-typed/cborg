@@ -17,21 +17,21 @@
 --
 module Data.Binary.Serialise.CBOR.ByteOrder
   ( -- * Word utilities
-    grabWord8
-  , grabWord16
-  , grabWord32
-  , grabWord64
+    grabWord8         -- :: Ptr () -> Word
+  , grabWord16        -- :: Ptr () -> Word
+  , grabWord32        -- :: Ptr () -> Word
+  , grabWord64        -- :: Ptr () -> Word64
 
     -- * @'ByteString'@ utilities
-  , withBsPtr
+  , withBsPtr         -- :: (Ptr b -> a) -> ByteString -> a
 
     -- * Half-floats
-  , wordToFloat16
-  , floatToWord16
+  , wordToFloat16     -- :: Word  -> Float
+  , floatToWord16     -- :: Float -> Word16
 
     -- * Float/Word conversion
-  , wordToFloat32
-  , wordToFloat64
+  , wordToFloat32     -- :: Word   -> Float
+  , wordToFloat64     -- :: Word64 -> Double
   ) where
 
 #include "cbor.h"
@@ -159,6 +159,7 @@ grabWord64 (Ptr ip#) =
 #endif
 
 --------------------------------------------------------------------------------
+-- ByteString shennanigans
 
 withBsPtr :: (Ptr b -> a) -> ByteString -> a
 withBsPtr f (BS.PS x off _) =
@@ -194,10 +195,10 @@ foreign import ccall unsafe "hs_binary_floatToHalf"
 -- We have to go via a word rather than reading directly from memory because of
 -- endian issues. A little endian machine cannot read a big-endian float direct
 -- from memory, so we read a word, bswap it and then convert to float.
-
+--
 -- Currently there are no primops for casting word <-> float, see
 -- https://ghc.haskell.org/trac/ghc/ticket/4092
-
+--
 -- In this implementation, we're avoiding doing the extra indirection (and
 -- closure allocation) of the runSTRep stuff, but we have to be very careful
 -- here, we cannot allow the "constant" newByteArray# 8# realWorld# to be
