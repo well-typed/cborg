@@ -14,59 +14,58 @@
 --
 -- Lorem ipsum...
 --
-module Data.Binary.Serialise.CBOR.Decoding (
-
-  -- * Decode primitive operations
-  Decoder,
-  DecodeAction(..),
-  getDecodeAction,
+module Data.Binary.Serialise.CBOR.Decoding
+  ( -- * Decode primitive operations
+    Decoder
+  , DecodeAction(..)
+  , getDecodeAction
 
   -- ** Read input tokens
-  decodeWord,
-  decodeWord64,
-  decodeNegWord,
-  decodeNegWord64,
-  decodeInt,
-  decodeInt64,
-  decodeInteger,
-  decodeFloat,
-  decodeDouble,
-  decodeBytes,
-  decodeBytesIndef,
-  decodeString,
-  decodeStringIndef,
-  decodeListLen,
-  decodeListLenIndef,
-  decodeMapLen,
-  decodeMapLenIndef,
-  decodeTag,
-  decodeTag64,
-  decodeBool,
-  decodeNull,
-  decodeSimple,
+  , decodeWord
+  , decodeWord64
+  , decodeNegWord
+  , decodeNegWord64
+  , decodeInt
+  , decodeInt64
+  , decodeInteger
+  , decodeFloat
+  , decodeDouble
+  , decodeBytes
+  , decodeBytesIndef
+  , decodeString
+  , decodeStringIndef
+  , decodeListLen
+  , decodeListLenIndef
+  , decodeMapLen
+  , decodeMapLenIndef
+  , decodeTag
+  , decodeTag64
+  , decodeBool
+  , decodeNull
+  , decodeSimple
 
   -- ** Specialised Read input token operations
-  decodeWordOf,
-  decodeListLenOf,
+  , decodeWordOf
+  , decodeListLenOf
 
   -- ** Branching operations
---  decodeBytesOrIndef,
---  decodeStringOrIndef,
-  decodeListLenOrIndef,
-  decodeMapLenOrIndef,
-  decodeBreakOr,
+--, decodeBytesOrIndef
+--, decodeStringOrIndef
+  , decodeListLenOrIndef
+  , decodeMapLenOrIndef
+  , decodeBreakOr
 
   -- ** Inspecting the token type
-  peekTokenType,
-  TokenType(..),
+  , peekTokenType
+  , TokenType(..)
 
   -- ** Special operations
---  ignoreTerms,
---  decodeTrace,
+--, ignoreTerms
+--, decodeTrace
 
   -- * Sequence operations
-  decodeSequenceLenIndef,
-  decodeSequenceLenN,
+  , decodeSequenceLenIndef
+  , decodeSequenceLenN
   ) where
 
 #include "cbor.h"

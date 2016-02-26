@@ -13,10 +13,9 @@
 --
 module Data.Binary.Serialise.CBOR.IO
   ( -- * @'FilePath'@ API
-    writeFileSerialise,
-    readFileDeserialise,
-
+    writeFileSerialise
+  , readFileDeserialise
     -- * @'System.IO.Handle'@ API
-    hPutSerialise
+  , hPutSerialise
   ) where
 import Data.Binary.Serialise.CBOR

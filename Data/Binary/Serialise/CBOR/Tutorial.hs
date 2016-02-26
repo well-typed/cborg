@@ -10,19 +10,18 @@
 -- Lorem ipsum...
 --
 module Data.Binary.Serialise.CBOR.Tutorial
-       ( -- * Introduction
-         -- $introduction
+  ( -- * Introduction
+    -- $introduction
 
-         -- ** The CBOR format
-         -- $cborformat
+    -- ** The CBOR format
+    -- $cborformat
 
-         -- ** Encoding terms
-         -- $encoding
+    -- ** Encoding terms
+    -- $encoding
 
-         -- ** Decoding terms
-         -- $decoding
-
-       ) where
+    -- ** Decoding terms
+    -- $decoding
+  ) where
 
 {- $introduction
 

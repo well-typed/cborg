@@ -12,11 +12,11 @@
 --
 -- Lorem ipsum...
 --
-module Data.Binary.Serialise.CBOR.Term (
-    Term(..),
-    encodeTerm,
-    decodeTerm,
-    ignoreTerm,
+module Data.Binary.Serialise.CBOR.Term
+  ( Term(..)
+  , encodeTerm
+  , decodeTerm
+  , ignoreTerm
   ) where
 
 #include "cbor.h"

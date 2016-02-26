@@ -21,29 +21,29 @@
 module Data.Binary.Serialise.CBOR
   ( -- * High level, one-shot API
     -- $highlevel
-    serialise,
-    deserialise,
-    deserialiseOrFail,
+    serialise
+  , deserialise
+  , deserialiseOrFail
 
     -- * Deserialisation exceptions
-    DeserialiseFailure(..),
+  , DeserialiseFailure(..)
 
     -- * Incremental encoding interface
     -- $primitives
-    serialiseIncremental,
-    deserialiseIncremental,
+  , serialiseIncremental
+  , deserialiseIncremental
 
     -- * The @'Serialise'@ class
-    Serialise(..),
+  , Serialise(..)
 
     -- * IO operations
     -- | Convenient utilities for basic @'IO'@ operations.
 
     -- ** @'FilePath'@ API
-    writeFileSerialise,
-    readFileDeserialise,
+  , writeFileSerialise
+  , readFileDeserialise
     -- ** @'Handle'@ API
-    hPutSerialise
+  , hPutSerialise
   ) where
 
 #include "cbor.h"
