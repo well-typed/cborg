@@ -143,6 +143,7 @@ benchmark vs-other-libs
   ghc-options:       -Wall -rtsopts
 
   other-modules:
+    Macro
     Macro.Types
     Macro.Load
     Macro.DeepSeq
@@ -155,6 +156,7 @@ benchmark vs-other-libs
   --Macro.PkgMsgpack
     Macro.CBOR
 
+    Micro
     Micro.Types
     Micro.Load
     Micro.DeepSeq
