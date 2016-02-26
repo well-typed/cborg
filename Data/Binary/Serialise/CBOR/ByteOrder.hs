@@ -19,7 +19,7 @@ module Data.Binary.Serialise.CBOR.ByteOrder where
 
 #include "MachDeps.h"
 
-#if __GLASHOW_HASKELL >= 710
+#if __GLASGOW_HASKELL__ >= 710
 #define HAVE_BYTESWAP_PRIMOPS
 #endif
 
