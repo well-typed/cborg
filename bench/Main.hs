@@ -1,5 +1,7 @@
 {-# OPTIONS_GHC -fno-cse -fno-ignore-asserts #-}
-module Main where
+module Main
+  ( main -- :: IO ()
+  ) where
 
 import qualified Macro.Types     as Types
 import qualified Macro.MemSize
