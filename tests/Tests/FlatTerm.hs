@@ -4,7 +4,7 @@ module Tests.FlatTerm
   ( testTree -- :: TestTree
   ) where
 
-#if __GLASGOW_HASKELL__ < 710
+#if !MIN_VERSION_base(4,8,0)
 import           Data.Word
 #endif
 import           Data.Typeable

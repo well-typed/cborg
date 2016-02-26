@@ -81,7 +81,7 @@ import           Control.Monad (ap)
 import           Test.QuickCheck.Arbitrary
 import           Test.QuickCheck.Gen
 
-#if __GLASGOW_HASKELL__ < 710
+#if !MIN_VERSION_base(4,8,0)
 import           Data.Monoid (Monoid(..))
 import           Control.Applicative
 #endif

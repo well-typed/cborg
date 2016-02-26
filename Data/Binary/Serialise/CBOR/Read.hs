@@ -28,7 +28,7 @@ import Data.Binary.Serialise.CBOR.Decoding
 
 import qualified Data.Binary.Get as Bin (Decoder(..))
 
-#if __GLASGOW_HASKELL__ < 710
+#if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
 #endif
 import           Control.Monad (ap)

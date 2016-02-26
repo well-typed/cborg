@@ -47,7 +47,7 @@ module Data.Binary.Serialise.CBOR.Encoding
 
 import           Data.Int
 import           Data.Word
-#if __GLASGOW_HASKELL__ < 710
+#if !MIN_VERSION_base(4,8,0)
 import           Data.Monoid
 #endif
 

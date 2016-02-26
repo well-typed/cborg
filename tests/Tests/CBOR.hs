@@ -23,7 +23,7 @@ import qualified Tests.Reference.Implementation  as RefImpl
 import qualified Tests.Reference as TestVector
 import           Tests.Reference (TestCase(..))
 
-#if __GLASGOW_HASKELL__ < 710
+#if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
 #endif
 
