@@ -22,8 +22,8 @@ module Data.Binary.Serialise.CBOR.Read
 
 #include "cbor.h"
 
-import Data.Binary.Serialise.CBOR.ByteOrder
-import Data.Binary.Serialise.CBOR.Decoding
+import           Data.Binary.Serialise.CBOR.ByteOrder
+import           Data.Binary.Serialise.CBOR.Decoding
          (Decoder, DecodeAction(..), TokenType(..), getDecodeAction)
 
 import qualified Data.Binary.Get as Bin (Decoder(..))

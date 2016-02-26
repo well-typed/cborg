@@ -39,17 +39,17 @@ module Data.Binary.Serialise.CBOR.FlatTerm
 
 #include "cbor.h"
 
-import Data.Binary.Serialise.CBOR.Encoding (Encoding(..))
+import           Data.Binary.Serialise.CBOR.Encoding (Encoding(..))
 import qualified Data.Binary.Serialise.CBOR.Encoding as Enc
-import Data.Binary.Serialise.CBOR.Decoding as Dec
+import           Data.Binary.Serialise.CBOR.Decoding as Dec
 
-import GHC.Word  (Word(W#), Word8(W8#))
-import GHC.Exts  (Int(I#), Int#, Word#, Float#, Double#)
-import GHC.Float (Float(F#), Double(D#), float2Double)
+import           GHC.Word  (Word(W#), Word8(W8#))
+import           GHC.Exts  (Int(I#), Int#, Word#, Float#, Double#)
+import           GHC.Float (Float(F#), Double(D#), float2Double)
 
-import Data.Word
-import Data.Text (Text)
-import Data.ByteString (ByteString)
+import           Data.Word
+import           Data.Text (Text)
+import           Data.ByteString (ByteString)
 
 --------------------------------------------------------------------------------
 

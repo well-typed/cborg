@@ -21,9 +21,9 @@ module Data.Binary.Serialise.CBOR.Term
 
 #include "cbor.h"
 
-import Data.Binary.Serialise.CBOR.Encoding hiding (Tokens(..))
-import Data.Binary.Serialise.CBOR.Decoding
-import Data.Binary.Serialise.CBOR.Class (Serialise(..))
+import           Data.Binary.Serialise.CBOR.Encoding hiding (Tokens(..))
+import           Data.Binary.Serialise.CBOR.Decoding
+import           Data.Binary.Serialise.CBOR.Class (Serialise(..))
 
 import           Data.Word
 import qualified Data.Text as T
