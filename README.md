@@ -5,7 +5,7 @@
 [![Hackage version](https://img.shields.io/hackage/v/binary-serialise-cbor.svg?label=Hackage)](https://hackage.haskell.org/package/binary-serialise-cbor)
 [![Stackage version](https://www.stackage.org/package/binary-serialise-cbor/badge/lts?label=Stackage)](https://www.stackage.org/package/binary-serialise-cbor)
 [![BSD3](https://img.shields.io/badge/License-BSD-blue.svg)](https://en.wikipedia.org/wiki/BSD_License)
-[![Haskell](https://img.shields.io/badge/Language-Haskell-lightgrey.svg)](https://www.haskell.org)
+[![Haskell](https://img.shields.io/badge/Language-Haskell-yellowgreen.svg)](https://www.haskell.org)
 
 This package provides pure, efficient serialization of Haskell values directly
 into `ByteString`s for storage or transmission purposes. By providing a set of
