@@ -6,7 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 -- |
--- Module      : Data.Binary.Serialise.CBOR.Term
+-- Module      : Data.Binary.Serialise.CBOR.Write
 -- Copyright   : (c) Duncan Coutts 2015
 -- License     : BSD3-style (see LICENSE.txt)
 --
