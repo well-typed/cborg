@@ -27,6 +27,7 @@ description:
 extra-source-files:
   tests/test-vectors/appendix_a.json
   tests/test-vectors/README.md
+  cbits/cbor.h
 
 source-repository head
   type: git
