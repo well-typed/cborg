@@ -4,6 +4,9 @@ module Tests.FlatTerm
   ( testTree -- :: TestTree
   ) where
 
+#if __GLASGOW_HASKELL__ < 710
+import           Data.Word
+#endif
 import           Data.Typeable
 
 import           Test.Tasty

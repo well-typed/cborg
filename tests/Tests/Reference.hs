@@ -1,5 +1,15 @@
 {-# LANGUAGE OverloadedStrings, NamedFieldPuns #-}
-module Tests.Reference where
+module Tests.Reference
+  ( TestCase(..)   -- :: *
+  , termToJson     -- ::
+  , equalJson      -- ::
+  , loadTestCases  -- ::
+  , specTestVector -- ::
+  , testTree       -- :: TestTree
+  ) where
+
+import           Test.Tasty
+import           Test.Tasty.QuickCheck
 
 import qualified Data.ByteString            as BS
 import qualified Data.ByteString.Lazy       as LBS
@@ -16,9 +26,9 @@ import           Control.Monad
 import           Data.Word
 import qualified Numeric.Half as Half
 
-import Test.Tasty.HUnit
+import           Test.Tasty.HUnit
 
-import Tests.Reference.Implementation as CBOR
+import           Tests.Reference.Implementation as CBOR
 
 
 data TestCase = TestCase {
@@ -249,3 +259,36 @@ specTestVector =
 -- bigint using indefinate bytestring encoding
 -- larger than necessary ints, lengths, tags, simple etc
 
+--------------------------------------------------------------------------------
+-- TestTree API
+
+testTree :: [TestCase] -> TestTree
+testTree testCases =
+  testGroup "Reference implementation"
+    [ testCase "external test vector" $
+        mapM_ externalTestCase testCases
+
+    , testCase "internal test vector" $ do
+        sequence_  [ do expectedDiagnosticNotation d e
+                        encodedRoundtrip d e
+                   | (d,e) <- specTestVector ]
+
+    , testGroup "properties"
+        [ testProperty "encoding/decoding initial byte"    prop_InitialByte
+        , testProperty "encoding/decoding additional info" prop_AdditionalInfo
+        , testProperty "encoding/decoding token header"    prop_TokenHeader
+        , testProperty "encoding/decoding token header 2"  prop_TokenHeader2
+        , testProperty "encoding/decoding tokens"          prop_Token
+        , --localOption (QuickCheckTests  1000) $
+          localOption (QuickCheckMaxSize 150) $
+          testProperty "encoding/decoding terms"           prop_Term
+        ]
+
+    , testGroup "internal properties"
+        [ testProperty "Integer to/from bytes" prop_integerToFromBytes
+        , testProperty "Word16 to/from network byte order" prop_word16ToFromNet
+        , testProperty "Word32 to/from network byte order" prop_word32ToFromNet
+        , testProperty "Word64 to/from network byte order" prop_word64ToFromNet
+        , testProperty "Numeric.Half to/from Float"        prop_halfToFromFloat
+        ]
+    ]

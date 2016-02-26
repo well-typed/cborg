@@ -1,6 +1,8 @@
 {-# LANGUAGE CPP, OverloadedStrings, NamedFieldPuns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Tests.CBOR where
+module Tests.CBOR 
+  ( testTree -- :: TestTree
+  ) where
 
 import qualified Data.ByteString      as BS
 import qualified Data.ByteString.Lazy as LBS
@@ -13,8 +15,9 @@ import           Data.Binary.Serialise.CBOR.Term
 import           Data.Binary.Serialise.CBOR.Read
 import           Data.Binary.Serialise.CBOR.Write
 
+import           Test.Tasty
 import           Test.Tasty.HUnit
-import           Test.QuickCheck.Arbitrary
+import           Test.Tasty.QuickCheck
 
 import qualified Tests.Reference.Implementation  as RefImpl
 import qualified Tests.Reference as TestVector
@@ -251,3 +254,34 @@ instance Arbitrary Term where
   shrink (TFloat  f) = [ TFloat  f' | f' <- shrink f ]
   shrink (TDouble f) = [ TDouble f' | f' <- shrink f ]
 
+--------------------------------------------------------------------------------
+-- TestTree API
+
+testTree :: [TestCase] -> TestTree
+testTree testCases =
+  testGroup "Main implementation"
+    [ testCase "external test vector" $
+        mapM_ externalTestCase testCases
+
+    , testCase "internal test vector" $ do
+        sequence_  [ do expectedDiagnosticNotation d e
+                        encodedRoundtrip d e
+                   | (d,e) <- TestVector.specTestVector ]
+
+    , --localOption (QuickCheckTests  5000) $
+      localOption (QuickCheckMaxSize 150) $
+      testGroup "properties"
+        [ testProperty "from/to reference terms"        prop_fromToRefTerm
+        , testProperty "to/from reference terms"        prop_toFromRefTerm
+        , testProperty "rountrip de/encoding terms"     prop_encodeDecodeTermRoundtrip
+          --TODO: need to fix the generation of terms to give better size
+          -- distribution some get far too big for the splits properties.
+        , localOption (QuickCheckMaxSize 30) $
+          testProperty "decoding with all 2-chunks"     prop_encodeDecodeTermRoundtrip_splits2
+        , localOption (QuickCheckMaxSize 20) $
+          testProperty "decoding with all 3-chunks"     prop_encodeDecodeTermRoundtrip_splits3
+        , testProperty "encode term matches ref impl 1" prop_encodeTermMatchesRefImpl
+        , testProperty "encode term matches ref impl 2" prop_encodeTermMatchesRefImpl2
+        , testProperty "decoding term matches ref impl" prop_decodeTermMatchesRefImpl
+        ]
+    ]
