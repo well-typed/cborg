@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Tree.CBOR (serialise, deserialise) where
+module Micro.CBOR (serialise, deserialise) where
 
-import Tree.Types
+import Micro.Types
 
 import Data.Binary.Serialise.CBOR.Class
 import Data.Binary.Serialise.CBOR.Encoding

@@ -1,8 +1,8 @@
 {-# LANGUAGE BangPatterns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Real.CBOR (serialise, deserialise, deserialiseNull) where
+module Macro.CBOR (serialise, deserialise, deserialiseNull) where
 
-import Real.Types
+import Macro.Types
 
 import Data.Binary.Serialise.CBOR.Class
 import Data.Binary.Serialise.CBOR.Encoding hiding (Tokens(..))

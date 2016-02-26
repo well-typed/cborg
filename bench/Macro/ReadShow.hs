@@ -1,8 +1,8 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Real.ReadShow where
+module Macro.ReadShow where
 
-import Real.Types
+import Macro.Types
 import Data.ByteString.Lazy.Char8 as BS
 
 serialise :: [GenericPackageDescription] -> BS.ByteString

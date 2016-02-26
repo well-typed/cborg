@@ -1,8 +1,9 @@
+{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans -fno-warn-name-shadowing #-}
-module Real.Load (readPkgIndex) where
+module Macro.Load (readPkgIndex) where
 
-import Real.Types
-import Real.ReadShow ()
+import Macro.Types
+import Macro.ReadShow ()
 
 import Text.ParserCombinators.ReadP as ReadP hiding (get)
 import qualified Text.ParserCombinators.ReadP as Parse
@@ -14,18 +15,20 @@ import Data.List
 import Data.Function (on)
 import Data.Char as Char (chr, ord, isSpace, isUpper, toLower, isAlphaNum, isDigit)
 import Data.Maybe
-import Data.Monoid hiding ((<>))
 import Data.Tree as Tree (Tree(..), flatten)
 import Data.Array (Array, accumArray, bounds, Ix(inRange), (!))
 import Data.Bits
 import Control.Monad
-import Control.Applicative (Applicative(..))
 import Control.Exception
 import qualified Data.ByteString.Lazy.Char8 as BS
 import System.FilePath (normalise, splitDirectories)
 import qualified Codec.Archive.Tar       as Tar
 import qualified Codec.Archive.Tar.Entry as Tar
 
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative (Applicative(..))
+import Data.Monoid hiding ((<>))
+#endif
 
 readPkgIndex :: BS.ByteString -> Either String [GenericPackageDescription]
 readPkgIndex = fmap extractCabalFiles . readTarIndex
@@ -524,7 +527,7 @@ ifelse (f:fs) = do fs' <- ifelse fs
 
 ------------------------------------------------------------------------------
 
--- |parse a module Real.name
+-- |parse a module Macro.name
 parseModuleNameQ :: ReadP ModuleName
 parseModuleNameQ = parseQuoted parse <++ parse
 

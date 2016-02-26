@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
-module Real.Types (module Real.Types, Version(..)) where
+module Macro.Types (module Macro.Types, Version(..)) where
 
 import GHC.Generics
 
@@ -296,7 +296,7 @@ data BuildInfo = BuildInfo {
         pkgconfigDepends  :: [Dependency], -- ^ pkg-config packages that are used
         frameworks        :: [String], -- ^support frameworks for Mac OS X
         cSources          :: [FilePath],
-        hsSourceDirs      :: [FilePath], -- ^ where to look for the haskell module Real.hierarchy
+        hsSourceDirs      :: [FilePath], -- ^ where to look for the haskell module Macro.hierarchy
         otherModules      :: [ModuleName], -- ^ non-exposed or non-main modules
 
         defaultLanguage   :: Maybe Language,-- ^ language used when not explicitly specified

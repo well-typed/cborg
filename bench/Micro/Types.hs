@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
-module Tree.Types (Tree(..)) where
+module Micro.Types (Tree(..)) where
 
 import GHC.Generics
 

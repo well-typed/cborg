@@ -1,8 +1,8 @@
 {-# LANGUAGE TemplateHaskell, StandaloneDeriving, GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Real.PkgMsgpack where
+module Macro.PkgMsgpack where
 
-import Real.Types
+import Macro.Types
 import qualified Data.MessagePack as MsgPack
 import Data.MessagePack (deriveObject, Packable(..), Unpackable(..), get)
 import Data.ByteString.Lazy as BS

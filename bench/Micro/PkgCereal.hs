@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans -fsimpl-tick-factor=500 #-}
-module Tree.PkgCereal (serialise, deserialise) where
+module Micro.PkgCereal (serialise, deserialise) where
 
-import Tree.Types
+import Micro.Types
 import Data.Serialize as Cereal
 import Data.ByteString.Lazy as BS
 

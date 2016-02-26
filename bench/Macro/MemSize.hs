@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
-module Real.MemSize where
+module Macro.MemSize where
 
-import Real.Types
+import Macro.Types
 
 class MemSize a where
   memSize :: a -> Int -> Int

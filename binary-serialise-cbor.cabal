@@ -143,29 +143,29 @@ benchmark vs-other-libs
   ghc-options:       -Wall -rtsopts
 
   other-modules:
-    Real.Types
-    Real.Load
-    Real.DeepSeq
-    Real.MemSize
-    Real.ReadShow
-    Real.PkgAesonGeneric
-    Real.PkgAesonTH
-    Real.PkgBinary
-    Real.PkgCereal
-  --Real.PkgMsgpack
-    Real.CBOR
+    Macro.Types
+    Macro.Load
+    Macro.DeepSeq
+    Macro.MemSize
+    Macro.ReadShow
+    Macro.PkgAesonGeneric
+    Macro.PkgAesonTH
+    Macro.PkgBinary
+    Macro.PkgCereal
+  --Macro.PkgMsgpack
+    Macro.CBOR
 
-    Tree.Types
-    Tree.Load
-    Tree.DeepSeq
-    Tree.MemSize
-    Tree.ReadShow
-    Tree.PkgAesonGeneric
-    Tree.PkgAesonTH
-    Tree.PkgBinary
-    Tree.PkgCereal
-  --Tree.PkgMsgpack
-    Tree.CBOR
+    Micro.Types
+    Micro.Load
+    Micro.DeepSeq
+    Micro.MemSize
+    Micro.ReadShow
+    Micro.PkgAesonGeneric
+    Micro.PkgAesonTH
+    Micro.PkgBinary
+    Micro.PkgCereal
+  --Micro.PkgMsgpack
+    Micro.CBOR
 
   build-depends:
     base                >= 4.6     && < 5.0,

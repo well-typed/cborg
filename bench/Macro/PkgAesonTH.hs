@@ -1,8 +1,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Real.PkgAesonTH where
+module Macro.PkgAesonTH where
 
-import Real.Types
+import Macro.Types
 import Data.Aeson as Aeson
 import Data.Aeson.TH as Aeson
 import Data.ByteString.Lazy as BS

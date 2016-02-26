@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Tree.DeepSeq where
+module Micro.DeepSeq where
 
-import Tree.Types
+import Micro.Types
 
 import Control.DeepSeq
 

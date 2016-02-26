@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans -fsimpl-tick-factor=500 #-}
-module Real.PkgCereal where
+module Macro.PkgCereal where
 
-import Real.Types
+import Macro.Types
 import Data.Serialize as Cereal
 import Data.ByteString.Lazy as BS
 

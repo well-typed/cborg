@@ -1,8 +1,8 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Tree.ReadShow where
+module Micro.ReadShow where
 
-import Tree.Types
+import Micro.Types
 import Data.ByteString.Lazy.Char8 as BS
 
 serialise :: Tree -> BS.ByteString

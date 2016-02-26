@@ -1,30 +1,30 @@
 {-# OPTIONS_GHC -fno-cse -fno-ignore-asserts #-}
 module Main where
 
-import qualified Real.Types     as Types
-import qualified Real.MemSize
-import           Real.DeepSeq ()
-import qualified Real.Load as Load
+import qualified Macro.Types     as Types
+import qualified Macro.MemSize
+import           Macro.DeepSeq ()
+import qualified Macro.Load as Load
 
-import qualified Real.ReadShow  as ReadShow
-import qualified Real.PkgBinary as PkgBinary
-import qualified Real.PkgCereal as PkgCereal
-import qualified Real.PkgAesonGeneric as PkgAesonGeneric
-import qualified Real.PkgAesonTH as PkgAesonTH
---import qualified Real.PkgMsgpack as PkgMsgpack
-import qualified Real.CBOR as CBOR
+import qualified Macro.ReadShow  as ReadShow
+import qualified Macro.PkgBinary as PkgBinary
+import qualified Macro.PkgCereal as PkgCereal
+import qualified Macro.PkgAesonGeneric as PkgAesonGeneric
+import qualified Macro.PkgAesonTH as PkgAesonTH
+--import qualified Macro.PkgMsgpack as PkgMsgpack
+import qualified Macro.CBOR as CBOR
 
-import qualified Tree.MemSize
-import           Tree.DeepSeq ()
-import qualified Tree.Load      as Micro.Load
-import qualified Tree.Types     as Micro.Types ()
-import qualified Tree.ReadShow  as Micro.ReadShow
-import qualified Tree.PkgBinary as Micro.PkgBinary
-import qualified Tree.PkgCereal as Micro.PkgCereal
-import qualified Tree.PkgAesonGeneric as Micro.PkgAesonGeneric
-import qualified Tree.PkgAesonTH as Micro.PkgAesonTH
---import qualified Real.PkgMsgpack as PkgMsgpack
-import qualified Tree.CBOR as Micro.CBOR
+import qualified Micro.MemSize
+import           Micro.DeepSeq ()
+import qualified Micro.Load      as Micro.Load
+import qualified Micro.Types     as Micro.Types ()
+import qualified Micro.ReadShow  as Micro.ReadShow
+import qualified Micro.PkgBinary as Micro.PkgBinary
+import qualified Micro.PkgCereal as Micro.PkgCereal
+import qualified Micro.PkgAesonGeneric as Micro.PkgAesonGeneric
+import qualified Micro.PkgAesonTH as Micro.PkgAesonTH
+--import qualified Macro.PkgMsgpack as PkgMsgpack
+import qualified Micro.CBOR as Micro.CBOR
 
 import Criterion.Main
 
@@ -121,7 +121,7 @@ macrobenchmarks =
   [ env readBigTestData $ \tstdata ->
     bgroup "reference"
       [ bench "deepseq" (whnf rnf tstdata)
-      , bench "memSize" (whnf (flip Real.MemSize.memSize 0) tstdata)
+      , bench "memSize" (whnf (flip Macro.MemSize.memSize 0) tstdata)
       ]
 
   , env readBigTestData $ \tstdata ->
@@ -233,7 +233,7 @@ microbenchmarks = do
     defaultMain
       [ bgroup "reference"
           [ bench "deepseq" (whnf rnf tstdata)
-          , bench "memSize" (whnf (flip Tree.MemSize.memSize 0) tstdata)
+          , bench "memSize" (whnf (flip Micro.MemSize.memSize 0) tstdata)
           ]
       , bgroup "encoding" $ deepseq tstdata
           [ bench "binary"        (whnf perfEncodeBinary       tstdata)

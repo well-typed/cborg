@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Real.PkgAesonGeneric where
+module Macro.PkgAesonGeneric where
 
-import Real.Types
+import Macro.Types
 import Data.Aeson as Aeson
 import Data.ByteString.Lazy as BS
 import Data.Maybe

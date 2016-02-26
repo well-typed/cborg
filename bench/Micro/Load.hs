@@ -1,8 +1,8 @@
 {-# LANGUAGE BangPatterns #-}
-module Tree.Load (mkBigTree, mkBigTrees) where
+module Micro.Load (mkBigTree, mkBigTrees) where
 
-import Tree.Types
-import Tree.ReadShow ()
+import Micro.Types
+import Micro.ReadShow ()
 
 
 mkBigTrees :: Int -> Int -> [Tree]

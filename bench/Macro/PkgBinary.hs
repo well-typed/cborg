@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans -fsimpl-tick-factor=500 #-}
-module Real.PkgBinary where
+module Macro.PkgBinary where
 
-import Real.Types
+import Macro.Types
 import Data.Binary as Binary
 import Data.Binary.Get as Binary
 import Data.ByteString.Lazy as BS

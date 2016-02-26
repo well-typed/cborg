@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
-module Tree.MemSize where
+module Micro.MemSize where
 
-import Tree.Types
+import Micro.Types
 
 class MemSize a where
   memSize :: a -> Int -> Int

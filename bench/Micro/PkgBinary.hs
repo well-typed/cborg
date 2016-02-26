@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans -fsimpl-tick-factor=500 #-}
-module Tree.PkgBinary (serialise, deserialise) where
+module Micro.PkgBinary (serialise, deserialise) where
 
-import Tree.Types
+import Micro.Types
 import Data.Binary as Binary
 import Data.ByteString.Lazy as BS
 
