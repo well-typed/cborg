@@ -13,6 +13,7 @@ import           Tests.Reference.Implementation
 import           Tests.CBOR
 import qualified Tests.Safe        as SafeTests
 import qualified Tests.Serialise   as SerialiseTests
+import qualified Tests.FlatTerm    as FlatTermTests
 
 #if __GLASGOW_HASKELL__ < 710
 import Data.Word
@@ -29,6 +30,7 @@ main = do
           , cborImplTests tcs
           , SafeTests.testTree
           , SerialiseTests.testTree
+          , FlatTermTests.testTree
           ]
 
 referenceImplTests :: [TestCase] -> TestTree
