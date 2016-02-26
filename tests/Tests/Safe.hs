@@ -1,8 +1,8 @@
 {-# LANGUAGE CPP #-}
-module SafeTests (
-    prop_chunkByte
+module Tests.Safe
+  ( prop_chunkByte
   , prop_longData
-) where
+  ) where
 
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative                 ((<$>), (<*>))

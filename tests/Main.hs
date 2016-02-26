@@ -6,11 +6,12 @@ import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 import Data.Typeable
 import Data.Binary.Serialise.CBOR (Serialise)
-import ReferenceTests (TestCase, specTestVector)
-import qualified ReferenceTests as Ref
-import ReferenceImpl
-import CBORTests
-import SafeTests
+
+import           Tests.Reference (TestCase, specTestVector)
+import qualified Tests.Reference as Ref
+import           Tests.Reference.Implementation
+import           Tests.CBOR
+import           Tests.Safe
 
 #if __GLASGOW_HASKELL__ < 710
 import Data.Word

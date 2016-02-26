@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP, OverloadedStrings, NamedFieldPuns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module CBORTests where
+module Tests.CBOR where
 
 import qualified Data.ByteString      as BS
 import qualified Data.ByteString.Lazy as LBS
@@ -18,9 +18,9 @@ import qualified Data.Binary.Serialise.CBOR as CBOR (serialise,deserialise)
 import           Test.Tasty.HUnit
 import           Test.QuickCheck.Arbitrary
 
-import qualified ReferenceImpl  as RefImpl
-import qualified ReferenceTests as TestVector
-import           ReferenceTests (TestCase(..))
+import qualified Tests.Reference.Implementation  as RefImpl
+import qualified Tests.Reference as TestVector
+import           Tests.Reference (TestCase(..))
 
 #if __GLASGOW_HASKELL__ < 710
 import           Control.Applicative

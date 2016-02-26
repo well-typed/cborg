@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings, NamedFieldPuns #-}
-module ReferenceTests where
+module Tests.Reference where
 
 import qualified Data.ByteString            as BS
 import qualified Data.ByteString.Lazy       as LBS
@@ -18,7 +18,7 @@ import qualified Numeric.Half as Half
 
 import Test.Tasty.HUnit
 
-import ReferenceImpl as CBOR
+import Tests.Reference.Implementation as CBOR
 
 
 data TestCase = TestCase {

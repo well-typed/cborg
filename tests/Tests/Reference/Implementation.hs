@@ -15,7 +15,7 @@
 --
 -----------------------------------------------------------------------------
 
-module ReferenceImpl (
+module Tests.Reference.Implementation (
     serialise,
     deserialise,
 

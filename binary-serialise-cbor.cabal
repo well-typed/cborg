@@ -101,9 +101,10 @@ test-suite tests
   ghc-options:       -Wall
 
   other-modules:
-    ReferenceImpl,
-    ReferenceTests,
-    CBORTests
+    Tests.CBOR
+    Tests.Safe
+    Tests.Reference
+    Tests.Reference.Implementation
 
   build-depends:
     base                >= 4.6     && < 5.0,
@@ -140,28 +141,28 @@ benchmark vs-other-libs
   ghc-options:       -Wall -rtsopts
 
   other-modules:
-    Real.Types,
-    Real.Load,
-    Real.DeepSeq,
-    Real.MemSize,
-    Real.ReadShow,
-    Real.PkgAesonGeneric,
-    Real.PkgAesonTH,
-    Real.PkgBinary,
-    Real.PkgCereal,
-  --Real.PkgMsgpack,
-    Real.CBOR,
+    Real.Types
+    Real.Load
+    Real.DeepSeq
+    Real.MemSize
+    Real.ReadShow
+    Real.PkgAesonGeneric
+    Real.PkgAesonTH
+    Real.PkgBinary
+    Real.PkgCereal
+  --Real.PkgMsgpack
+    Real.CBOR
 
-    Tree.Types,
-    Tree.Load,
-    Tree.DeepSeq,
-    Tree.MemSize,
-    Tree.ReadShow,
-    Tree.PkgAesonGeneric,
-    Tree.PkgAesonTH,
-    Tree.PkgBinary,
-    Tree.PkgCereal,
-  --Tree.PkgMsgpack,
+    Tree.Types
+    Tree.Load
+    Tree.DeepSeq
+    Tree.MemSize
+    Tree.ReadShow
+    Tree.PkgAesonGeneric
+    Tree.PkgAesonTH
+    Tree.PkgBinary
+    Tree.PkgCereal
+  --Tree.PkgMsgpack
     Tree.CBOR
 
   build-depends:
