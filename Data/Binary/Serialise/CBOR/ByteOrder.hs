@@ -15,7 +15,24 @@
 -- An internal module for doing efficient, fiddly, low-level byte buffoonery
 -- and other nonsense.
 --
-module Data.Binary.Serialise.CBOR.ByteOrder where
+module Data.Binary.Serialise.CBOR.ByteOrder
+  ( -- * Word utilities
+    grabWord8
+  , grabWord16
+  , grabWord32
+  , grabWord64
+
+    -- * @'ByteString'@ utilities
+  , withBsPtr
+
+    -- * Half-floats
+  , wordToFloat16
+  , floatToWord16
+
+    -- * Float/Word conversion
+  , wordToFloat32
+  , wordToFloat64
+  ) where
 
 #include "cbor.h"
 
