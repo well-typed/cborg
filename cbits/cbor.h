@@ -10,7 +10,7 @@
 #endif
 
 /*
-** On Intel 32/64 bit machines, memory access to unaligned daddresses
+** On Intel 32/64 bit machines, memory access to unaligned addresses
 ** is permitted (and generally efficient, too). With this in mind,
 ** some operations can be implemented more efficiently.
 */
