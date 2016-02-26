@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP          #-}
 {-# LANGUAGE BangPatterns #-}
 
 -- |
@@ -17,6 +18,8 @@ module Data.Binary.Serialise.CBOR.Term (
     decodeTerm,
     ignoreTerm,
   ) where
+
+#include "cbor.h"
 
 import Data.Binary.Serialise.CBOR.Encoding hiding (Tokens(..))
 import Data.Binary.Serialise.CBOR.Decoding

@@ -1,7 +1,7 @@
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE CPP          #-}
+{-# LANGUAGE MagicHash    #-}
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RankNTypes   #-}
 
 -- |
 -- Module      : Data.Binary.Serialise.CBOR.Decoding
@@ -69,6 +69,7 @@ module Data.Binary.Serialise.CBOR.Decoding (
   decodeSequenceLenN,
   ) where
 
+#include "cbor.h"
 
 import           GHC.Exts
 import           GHC.Word
@@ -79,14 +80,8 @@ import           Control.Applicative
 
 import           Prelude hiding (decodeFloat)
 
-#include "MachDeps.h"
-
-#if WORD_SIZE_IN_BITS == 64
-#define ARCH_64bit
-#elif WORD_SIZE_IN_BITS == 32
+#if defined(ARCH_32bit)
 import           GHC.IntWord64 (wordToWord64#)
-#else
-#error expected WORD_SIZE_IN_BITS to be 32 or 64
 #endif
 
 

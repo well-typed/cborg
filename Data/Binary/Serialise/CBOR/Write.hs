@@ -1,9 +1,9 @@
-{-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE MagicHash           #-}
 {-# LANGUAGE RankNTypes          #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE UnboxedTuples       #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- |
 -- Module      : Data.Binary.Serialise.CBOR.Term
@@ -22,6 +22,8 @@ module Data.Binary.Serialise.CBOR.Write
   , toLazyByteString   -- :: Encoding -> L.ByteString
   , toStrictByteString -- :: Encoding -> S.ByteString
   ) where
+
+#include "cbor.h"
 
 import           Data.Bits
 import           Data.Int

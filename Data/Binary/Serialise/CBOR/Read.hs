@@ -1,7 +1,7 @@
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE CPP          #-}
+{-# LANGUAGE MagicHash    #-}
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RankNTypes   #-}
 
 -- |
 -- Module      : Data.Binary.Serialise.CBOR.Read
@@ -20,6 +20,7 @@ module Data.Binary.Serialise.CBOR.Read
   , deserialiseIncremental -- :: Decoder a -> Decoder a
   ) where
 
+#include "cbor.h"
 
 import Data.Binary.Serialise.CBOR.ByteOrder
 import Data.Binary.Serialise.CBOR.Decoding

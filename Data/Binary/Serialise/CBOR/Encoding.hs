@@ -43,6 +43,8 @@ module Data.Binary.Serialise.CBOR.Encoding
   , encodeDouble             -- :: Double -> Encoding
   ) where
 
+#include "cbor.h"
+
 import           Data.Int
 import           Data.Word
 #if __GLASGOW_HASKELL__ < 710

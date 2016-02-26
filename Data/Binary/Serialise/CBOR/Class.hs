@@ -1,5 +1,5 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP          #-}
+{-# LANGUAGE BangPatterns #-}
 
 -- |
 -- Module      : Data.Binary.Serialise.CBOR.Class
@@ -17,6 +17,8 @@ module Data.Binary.Serialise.CBOR.Class
   ( -- * The Serialise class
     Serialise(..)
   ) where
+
+#include "cbor.h"
 
 import           Data.Int
 import           Data.Monoid

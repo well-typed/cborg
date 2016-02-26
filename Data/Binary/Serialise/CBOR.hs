@@ -1,4 +1,5 @@
-{-# LANGUAGE CPP, DeriveDataTypeable #-}
+{-# LANGUAGE CPP                #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 -- |
 -- Module      : Data.Binary.Serialise.CBOR
@@ -44,6 +45,8 @@ module Data.Binary.Serialise.CBOR
     -- ** @'Handle'@ API
     hPutSerialise
   ) where
+
+#include "cbor.h"
 
 import           System.IO                        (Handle, IOMode (..), withFile)
 import           Data.Typeable                    (Typeable)

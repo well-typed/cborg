@@ -1,4 +1,5 @@
-{-# LANGUAGE CPP, MagicHash #-}
+{-# LANGUAGE CPP       #-}
+{-# LANGUAGE MagicHash #-}
 
 -- |
 -- Module      : Data.Binary.Serialise.CBOR.FlatTerm
@@ -33,9 +34,10 @@ module Data.Binary.Serialise.CBOR.FlatTerm
     -- * Functions
   , toFlatTerm    -- :: Encoding -> FlatTerm
   , fromFlatTerm  -- :: Decoder a -> FlatTerm -> Either String a
-
   , validFlatTerm -- :: FlatTerm -> Bool
   ) where
+
+#include "cbor.h"
 
 import Data.Binary.Serialise.CBOR.Encoding (Encoding(..))
 import qualified Data.Binary.Serialise.CBOR.Encoding as Enc
@@ -48,15 +50,6 @@ import GHC.Float (Float(F#), Double(D#), float2Double)
 import Data.Word
 import Data.Text (Text)
 import Data.ByteString (ByteString)
-
-#include "MachDeps.h"
-
-#if WORD_SIZE_IN_BITS == 64
-#define ARCH_64bit
-#elif WORD_SIZE_IN_BITS == 32
-#else
-#error expected WORD_SIZE_IN_BITS to be 32 or 64
-#endif
 
 --------------------------------------------------------------------------------
 
