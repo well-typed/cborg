@@ -40,16 +40,20 @@ import           GHC.Exts
 import           GHC.Word
 import           Foreign.C.Types
 import           Foreign.Ptr
-#if !defined(HAVE_BYTESWAP_PRIMOPS) || !defined(MEM_UNALIGNED_OPS)
-import           Data.Bits ((.|.), shiftL)
-#endif
-#if defined(ARCH_32bit)
-import           GHC.IntWord64 (wordToWord64#)
-#endif
+
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Internal as BS
 
 import           Foreign.ForeignPtr (withForeignPtr)
+
+#if !defined(HAVE_BYTESWAP_PRIMOPS) || !defined(MEM_UNALIGNED_OPS)
+import           Data.Bits ((.|.), shiftL)
+#endif
+
+#if defined(ARCH_32bit)
+import           GHC.IntWord64 (wordToWord64#)
+#endif
+
 #if !MIN_VERSION_bytestring(0,10,6)
 import           System.IO.Unsafe (unsafeDupablePerformIO)
 #endif
