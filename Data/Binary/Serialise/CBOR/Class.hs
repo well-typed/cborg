@@ -19,12 +19,13 @@ module Data.Binary.Serialise.CBOR.Class
   ) where
 
 #include "cbor.h"
-
+import           Control.Monad
+import           Data.Hashable
 import           Data.Int
 import           Data.Monoid
 import           Data.Version
 import           Data.Word
-
+import qualified Data.Foldable                       as Foldable
 import qualified Data.ByteString                     as BS
 import qualified Data.Text                           as Text
 
@@ -32,9 +33,13 @@ import qualified Data.Text                           as Text
 --import qualified Data.Array                          as Array
 --import qualified Data.Array.Unboxed                  as UArray
 --import qualified Data.ByteString                     as BS.Lazy
---import qualified Data.Map                            as Map
---import qualified Data.Sequence                       as Sequence
---import qualified Data.Set                            as Set
+import qualified Data.Map                            as Map
+import qualified Data.Sequence                       as Sequence
+import qualified Data.Set                            as Set
+import qualified Data.IntSet                         as IntSet
+import qualified Data.IntMap                         as IntMap
+import qualified Data.HashSet                        as HashSet
+import qualified Data.HashMap.Strict                 as HashMap
 --import qualified Data.Text.Lazy                      as Text.Lazy
 
 import           Data.Time                           (UTCTime (..))
@@ -205,6 +210,103 @@ instance (Serialise a, Serialise b) => Serialise (Either a b) where
                   1 -> do !x <- decode
                           return (Right x)
                   _ -> fail "unknown tag"
+
+
+
+encodeContainerSkel :: (Word -> Encoding)
+                    -> (container -> Int)
+                    -> (accumFunc -> Encoding -> container -> Encoding)
+                    -> accumFunc
+                    -> container
+                    -> Encoding
+encodeContainerSkel encodeLen size foldl' f  c =
+  encodeLen (fromIntegral (size c)) <> (foldl' f (mempty) c)
+
+decodeContainerSkel :: Decoder Int
+                    -> ([a] -> container)
+                    -> container
+                    -> Decoder a
+                    -> Decoder container
+decodeContainerSkel decodeLen fromList empty decodeItem = do
+  n <- decodeLen
+  case compare n 0 of
+    EQ -> return empty
+    LT -> fail "negative size"
+    GT -> fmap fromList (replicateM n decodeItem)
+
+instance (Serialise a) => Serialise (Sequence.Seq a) where
+  encode = encodeContainerSkel
+             encodeListLen
+             Sequence.length
+             Foldable.foldl'
+             (\b a -> b <> encode a)
+  decode = decodeContainerSkel
+             decodeListLen
+             Sequence.fromList
+             Sequence.empty
+             decode
+
+encodeSetSkel :: Serialise a
+              => (s -> Int)
+              -> ((Encoding -> a -> Encoding) -> Encoding -> s -> Encoding)
+              -> s
+              -> Encoding
+encodeSetSkel size foldl' =
+  encodeContainerSkel encodeListLen size foldl' (\b a -> b <> encode a)
+
+decodeSetSkel :: Serialise a
+              => ([a] -> s) -> s -> Decoder s
+decodeSetSkel fromList empty =
+  decodeContainerSkel decodeListLen fromList empty decode
+
+instance (Ord a, Serialise a) => Serialise (Set.Set a) where
+  encode = encodeSetSkel Set.size Set.foldl'
+  decode = decodeSetSkel Set.fromList Set.empty
+
+instance Serialise IntSet.IntSet where
+  encode = encodeSetSkel IntSet.size IntSet.foldl'
+  decode = decodeSetSkel IntSet.fromList IntSet.empty
+
+instance (Serialise a, Hashable a, Eq a) => Serialise (HashSet.HashSet a) where
+  encode = encodeSetSkel HashSet.size HashSet.foldl'
+  decode = decodeSetSkel HashSet.fromList HashSet.empty
+
+
+encodeMapSkel :: (Serialise k, Serialise v)
+              => (m -> Int)
+              -> ((Encoding -> k -> v -> Encoding) -> Encoding -> m -> Encoding)
+              -> m
+              -> Encoding
+encodeMapSkel size foldlWithKey' =
+  encodeContainerSkel
+    encodeMapLen
+    size
+    foldlWithKey'
+    (\b k v -> b <> encode k <> encode v)
+
+decodeMapSkel :: (Serialise k, Serialise v)
+              => ([(k,v)] -> m)
+              -> m
+              -> Decoder m
+decodeMapSkel fromList empty =
+  decodeContainerSkel
+    decodeMapLen
+    fromList
+    empty
+    (do { !k <- decode; !v <- decode; return (k, v); })
+
+instance (Ord k, Serialise k, Serialise v) => Serialise (Map.Map k v) where
+  encode = encodeMapSkel Map.size Map.foldlWithKey'
+  decode = decodeMapSkel Map.fromList Map.empty
+
+instance (Serialise a) => Serialise (IntMap.IntMap a) where
+  encode = encodeMapSkel IntMap.size IntMap.foldlWithKey'
+  decode = decodeMapSkel IntMap.fromList IntMap.empty
+
+instance (Serialise k, Hashable k, Eq k, Serialise v) =>
+  Serialise (HashMap.HashMap k v) where
+  encode = encodeMapSkel HashMap.size HashMap.foldlWithKey'
+  decode = decodeMapSkel HashMap.fromList HashMap.empty
 
 --------------------------------------------------------------------------------
 -- Misc base package instances

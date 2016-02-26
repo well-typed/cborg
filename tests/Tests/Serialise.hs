@@ -10,13 +10,14 @@ import           Data.Time
 import           Data.Word
 import           GHC.Float (float2Double)
 import           Data.Version
+
 import           Data.Typeable
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
 #endif
 
-import           Test.Tasty
 import           Test.QuickCheck
+import           Test.Tasty
 import           Test.Tasty.QuickCheck
 import           Test.QuickCheck.Instances ()
 
@@ -26,6 +27,13 @@ import           Data.Binary.Serialise.CBOR
 import           Data.Binary.Serialise.CBOR.Decoding
 import           Data.Binary.Serialise.CBOR.FlatTerm
 
+import qualified Data.HashMap.Strict        as HashMap
+import qualified Data.HashSet               as HashSet
+import qualified Data.IntMap                as IntMap
+import qualified Data.IntSet                as IntSet
+import qualified Data.Map                   as Map
+import qualified Data.Sequence              as Sequence
+import qualified Data.Set                   as Set
 --------------------------------------------------------------------------------
 -- Tests and properties
 
@@ -97,6 +105,13 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T [Int])
       , mkTest (T :: T UTCTime)
       , mkTest (T :: T Version)
+      , mkTest (T :: T (Map.Map Int String))
+      , mkTest (T :: T (Sequence.Seq Int))
+      , mkTest (T :: T (Set.Set Int))
+      , mkTest (T :: T IntSet.IntSet)
+      , mkTest (T :: T (IntMap.IntMap String))
+      , mkTest (T :: T (HashMap.HashMap Int String))
+      , mkTest (T :: T (HashSet.HashSet Int))
       ]
   ]
 
