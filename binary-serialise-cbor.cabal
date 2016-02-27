@@ -143,6 +143,10 @@ benchmark vs-other-libs
   ghc-options:       -Wall -rtsopts
 
   other-modules:
+    Misc
+
+    Instances
+
     Macro
     Macro.Types
     Macro.Load
