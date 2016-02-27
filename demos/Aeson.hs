@@ -4,6 +4,7 @@ module Main
   ( main -- :: IO ()
   ) where
 import           Data.Monoid
+import           Control.Monad (when)
 import           System.FilePath
 import           System.Environment
 
@@ -98,6 +99,11 @@ decodeObject n0 = do
 -- | Convert an arbitrary JSON file into CBOR format.
 jsonToCbor :: FilePath -> IO ()
 jsonToCbor file = do
+  -- Ensure the extension is sane, so that dropExtension doesn't
+  -- end up making some weird file.
+  when (takeExtension file /= ".json") $ do
+    fail "Input file expected to have .json extension; exiting"
+
   bs <- LB.readFile file
   case (Aeson.decode bs) of
     Nothing -> fail "invalid JSON file!"
@@ -110,6 +116,10 @@ jsonToCbor file = do
 -- | Convert a CBOR file to JSON, and echo it to @stdout@.
 cborToJson :: FilePath -> IO ()
 cborToJson file = do
+  -- Ensure the extension is sane
+  when (takeExtension file /= ".cbor") $ do
+    fail "Input file expected to have .cbor extension; exiting"
+
   bs <- LB.readFile file
   case (CBOR.Read.deserialiseFromBytes decodeValue bs) of
     Left err -> fail $ "deserialization error: " ++ err
@@ -119,8 +129,20 @@ cborToJson file = do
 -- | Main entry point.
 main :: IO ()
 main = do
+  let help = fail $ unlines
+        [ "usage: demo-aeson [encode <file>.json | decode <file>.cbor]"
+        , ""
+        , "  encode <file>.json"
+        , "    Read <file>.json and encode it as CBOR, into <file>.cbor"
+        , ""
+        , "  decode <file>.cbor"
+        , "    Read <file>.cbor and decode it into JSON, to stdout"
+        ]
+
+  -- Dispatch; note the pattern matching to ensure we have at least
+  -- two args
   args <- getArgs
   case args of
     ("encode":file:_) -> jsonToCbor file
     ("decode":file:_) -> cborToJson file
-    _ -> fail "invalid args: use 'encode <file>.json' or 'decode <file>.cbor'"
+    _                 -> help
