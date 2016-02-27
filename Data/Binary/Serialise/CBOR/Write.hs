@@ -44,15 +44,6 @@ import qualified Data.Text.Encoding                    as T
 import           Data.Binary.Serialise.CBOR.ByteOrder
 import           Data.Binary.Serialise.CBOR.Encoding
 
-#include "MachDeps.h"
-
-#if WORD_SIZE_IN_BITS == 64
-#define ARCH_64bit
-#elif WORD_SIZE_IN_BITS == 32
-#else
-#error expected WORD_SIZE_IN_BITS to be 32 or 64
-#endif
-
 --------------------------------------------------------------------------------
 
 -- | Turn an @'Encoding'@ into a lazy @'L.ByteString'@ in CBOR binary
