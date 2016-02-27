@@ -103,7 +103,6 @@ test-suite tests
   other-modules:
     Tests.CBOR
     Tests.Safe
-    Tests.FlatTerm
     Tests.Serialise
     Tests.Reference
     Tests.Reference.Implementation
