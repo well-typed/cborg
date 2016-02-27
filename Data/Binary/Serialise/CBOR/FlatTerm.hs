@@ -43,6 +43,11 @@ import           Data.Binary.Serialise.CBOR.Encoding (Encoding(..))
 import qualified Data.Binary.Serialise.CBOR.Encoding as Enc
 import           Data.Binary.Serialise.CBOR.Decoding as Dec
 
+#if defined(ARCH_32bit)
+import           GHC.Int   (Int64(I64#))
+import           GHC.Word  (Word64(W64#))
+import           GHC.Exts  (Word64#, Int64#)
+#endif
 import           GHC.Word  (Word(W#), Word8(W8#))
 import           GHC.Exts  (Int(I#), Int#, Word#, Float#, Double#)
 import           GHC.Float (Float(F#), Double(D#), float2Double)
@@ -149,14 +154,26 @@ fromFlatTerm decoder ft = go (getDecodeAction decoder) ft
     go (ConsumeTag     k) (TkTag     n : ts)
         | n <= maxWord                       = go (k (unW# (fromIntegral n))) ts
 
--- 64bit variants for 32bit machines
 #if defined(ARCH_32bit)
-    go (ConsumeWord64    _) ts = unexpected "decodeWord64"    ts
-    go (ConsumeNegWord64 _) ts = unexpected "decodeNegWord64" ts
-    go (ConsumeInt64     _) ts = unexpected "decodeInt64"     ts
-    go (ConsumeListLen64 _) ts = unexpected "decodeListLen64" ts
-    go (ConsumeMapLen64  _) ts = unexpected "decodeMapLen64"  ts
-    go (ConsumeTag64     _) ts = unexpected "decodeTag64"     ts
+    -- 64bit variants for 32bit machines
+    go (ConsumeWord64    k) (TkInt       n : ts)
+      | n >= 0                                   = go (k (unW64# (fromIntegral n))) ts
+    go (ConsumeWord64    k) (TkInteger   n : ts)
+      | n >= 0                                   = go (k (unW64# (fromIntegral n))) ts
+    go (ConsumeNegWord64 k) (TkInt       n : ts)
+      | n < 0                                    = go (k (unW64# (fromIntegral (-1-n)))) ts
+    go (ConsumeNegWord64 k) (TkInteger   n : ts)
+      | n < 0                                    = go (k (unW64# (fromIntegral (-1-n)))) ts
+
+    go (ConsumeInt64     k) (TkInt       n : ts) = go (k (unI64# (fromIntegral n))) ts
+    go (ConsumeInt64     k) (TkInteger   n : ts) = go (k (unI64# (fromIntegral n))) ts
+
+    go (ConsumeTag64     k) (TkTag       n : ts) = go (k (unW64# n)) ts
+
+    -- TODO FIXME (aseipp/dcoutts) - are these going to be utilized?
+    -- see fallthrough case below if/when fixed.
+    go (ConsumeListLen64 _) ts                   = unexpected "decodeListLen64" ts
+    go (ConsumeMapLen64  _) ts                   = unexpected "decodeMapLen64"  ts
 #endif
 
     go (ConsumeFloat  k) (TkFloat16 f : ts) = go (k (unF# f)) ts
@@ -209,6 +226,16 @@ fromFlatTerm decoder ft = go (getDecodeAction decoder) ft
     go (ConsumeString _) ts = unexpected "decodeString" ts
     go (ConsumeBool   _) ts = unexpected "decodeBool"   ts
     go (ConsumeSimple _) ts = unexpected "decodeSimple" ts
+
+#if defined(ARCH_32bit)
+    -- 64bit variants for 32bit machines
+    go (ConsumeWord64    _) ts = unexpected "decodeWord64"    ts
+    go (ConsumeNegWord64 _) ts = unexpected "decodeNegWord64" ts
+    go (ConsumeInt64     _) ts = unexpected "decodeInt64"     ts
+    go (ConsumeTag64     _) ts = unexpected "decodeTag64"     ts
+  --go (ConsumeListLen64 _) ts = unexpected "decodeListLen64" ts
+  --go (ConsumeMapLen64  _) ts = unexpected "decodeMapLen64"  ts
+#endif
 
     go (ConsumeBytesIndef   _) ts = unexpected "decodeBytesIndef"   ts
     go (ConsumeStringIndef  _) ts = unexpected "decodeStringIndef"  ts
@@ -369,3 +396,11 @@ unF#   (F#   f#) = f#
 
 unD# :: Double -> Double#
 unD#   (D#   f#) = f#
+
+#if defined(ARCH_32bit)
+unW64# :: Word64 -> Word64#
+unW64# (W64# w#) = w#
+
+unI64# :: Int64 -> Int64#
+unI64# (I64# i#) = i#
+#endif
