@@ -23,6 +23,9 @@ import qualified Data.Vector                         as Vec
 import qualified Data.HashMap.Lazy                   as HashMap
 import qualified Data.ByteString.Lazy                as LB
 
+import qualified Data.Text.Lazy.IO                   as T
+import qualified Data.Text.Lazy.Builder              as T
+
 import qualified Data.Binary.Serialise.CBOR.Read     as CBOR.Read
 import qualified Data.Binary.Serialise.CBOR.Write    as CBOR.Write
 import           Data.Binary.Serialise.CBOR.Encoding
@@ -123,8 +126,9 @@ cborToJson file = do
   bs <- LB.readFile file
   case (CBOR.Read.deserialiseFromBytes decodeValue bs) of
     Left err -> fail $ "deserialization error: " ++ err
-    -- TODO FIXME: encoding nonsense
-    Right v  -> LB.putStrLn (Aeson.Pretty.encodePretty v)
+    Right v  -> do
+      let builder = Aeson.Pretty.encodePrettyToTextBuilder v
+      T.putStrLn (T.toLazyText builder)
 
 -- | Main entry point.
 main :: IO ()
