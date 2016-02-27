@@ -1,19 +1,23 @@
+{-# LANGUAGE CPP          #-}
 {-# LANGUAGE BangPatterns #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-module Data.Binary.Serialise.CBOR.Aeson () where
+module Main
+  ( main -- :: IO ()
+  ) where
 
-import Data.Aeson
-import Data.Scientific
+import           Data.Aeson
+import           Data.Scientific
 import qualified Data.Vector as Vec
 import qualified Data.HashMap.Lazy as HashMap
 
-import Data.Binary.Serialise.CBOR.Encoding
-import Data.Binary.Serialise.CBOR.Decoding
-import Data.Binary.Serialise.CBOR
+import           Data.Binary.Serialise.CBOR.Encoding
+import           Data.Binary.Serialise.CBOR.Decoding
+import           Data.Binary.Serialise.CBOR
 
-import Data.Monoid
+import           Data.Monoid
+
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative
-
+#endif
 
 instance Serialise Value where
   encode = encodeValue
@@ -79,3 +83,9 @@ decodeObject n0 = do
                   v <- decodeValue
                   go (n-1) ((k, v) : acc)
 
+--------------------------------------------------------------------------------
+-- Driver program
+
+main :: IO ()
+main = do
+  return ()
