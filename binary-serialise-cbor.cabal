@@ -138,8 +138,9 @@ test-suite tests
 
   other-modules:
     Tests.CBOR
-    Tests.Safe
     Tests.Serialise
+    Tests.Regress
+    Tests.Regress.Issue13
     Tests.Reference
     Tests.Reference.Implementation
 

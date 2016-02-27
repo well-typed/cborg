@@ -1,5 +1,8 @@
 {-# LANGUAGE CPP #-}
-module Tests.Safe
+
+-- Issue #13: unsafe usage of a ForeignPtr leads to undefined behavior,
+-- as we get handed a stale pointer.
+module Tests.Regress.Issue13
   ( testTree -- :: TestTree
   ) where
 
@@ -65,7 +68,7 @@ prop_longData v = deserialise (serialise v) == v
 
 testTree :: TestTree
 testTree =
-  testGroup "Tests for incorrect lazy access"
+  testGroup "Issue 13 - tests for incorrect lazy access"
     [ testProperty "from/to 1-byte chunks"  prop_chunkByte
     , testProperty "from/to long data"      prop_longData
     ]

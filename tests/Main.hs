@@ -4,15 +4,15 @@ module Main
 import           Test.Tasty (defaultMain, testGroup)
 
 import qualified Tests.CBOR        as CBORTests
-import qualified Tests.Safe        as SafeTests
-import qualified Tests.Serialise   as SerialiseTests
+import qualified Tests.Regress     as RegressTests
 import qualified Tests.Reference   as ReferenceTests
+import qualified Tests.Serialise   as SerialiseTests
 
 main :: IO ()
 main = ReferenceTests.loadTestCases >>= \tcs -> defaultMain $
   testGroup "CBOR tests"
-    [ ReferenceTests.testTree tcs
-    , CBORTests.testTree tcs
-    , SafeTests.testTree
+    [ CBORTests.testTree tcs
+    , ReferenceTests.testTree tcs
     , SerialiseTests.testTree
+    , RegressTests.testTree
     ]
