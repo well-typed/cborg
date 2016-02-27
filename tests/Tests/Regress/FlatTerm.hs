@@ -1,6 +1,4 @@
 {-# LANGUAGE CPP                  #-}
-{-# LANGUAGE ConstraintKinds      #-}
-{-# LANGUAGE ScopedTypeVariables  #-}
 module Tests.Regress.FlatTerm
   ( testTree -- :: TestTree
   ) where

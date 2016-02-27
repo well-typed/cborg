@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings, NamedFieldPuns #-}
+{-# LANGUAGE NamedFieldPuns     #-}
+{-# LANGUAGE OverloadedStrings  #-}
 module Tests.Reference
   ( TestCase(..)   -- :: *
   , termToJson     -- ::

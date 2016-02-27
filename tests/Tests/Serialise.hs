@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                  #-}
 {-# LANGUAGE ConstraintKinds      #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
 module Tests.Serialise
@@ -67,7 +66,7 @@ type BasicType a = (Arbitrary a, Typeable a, Serialise a, Eq a, Show a)
 
 mkTest :: forall a. BasicType a => T a -> TestTree
 mkTest t = testGroup ("type: " ++ show (typeOf (undefined :: a)))
-  [ testProperty "cbor roundtrip" (prop_serialiseId   t)
-  , testProperty "flat roundtrip" (prop_flatTermId    t)
+  [ testProperty "cbor roundtrip"      (prop_serialiseId   t)
+  , testProperty "flat roundtrip"      (prop_flatTermId    t)
   , testProperty "flat term is valid"  (prop_validFlatTerm t)
   ]

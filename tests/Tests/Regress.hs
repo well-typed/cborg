@@ -1,6 +1,3 @@
-{-# LANGUAGE CPP                  #-}
-{-# LANGUAGE ConstraintKinds      #-}
-{-# LANGUAGE ScopedTypeVariables  #-}
 module Tests.Regress
   ( testTree -- :: TestTree
   ) where

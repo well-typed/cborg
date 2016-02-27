@@ -1,4 +1,6 @@
-{-# LANGUAGE CPP, OverloadedStrings, NamedFieldPuns #-}
+{-# LANGUAGE CPP               #-}
+{-# LANGUAGE NamedFieldPuns    #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Tests.CBOR 
   ( testTree -- :: TestTree
