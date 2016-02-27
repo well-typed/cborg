@@ -11,7 +11,11 @@ import           System.Environment
 import           Control.Applicative
 #endif
 
+#if MIN_VERSION_aeson(0,10,0)
+import           Data.Aeson                          as Aeson hiding (Encoding)
+#else
 import           Data.Aeson                          as Aeson
+#endif
 import           Data.Aeson.Encode.Pretty            as Aeson.Pretty
 import           Data.Scientific
 import qualified Data.Vector                         as Vec
