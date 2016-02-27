@@ -122,26 +122,6 @@ convFlatTerm (Enc.TkFloat64  f  ts) = TkFloat64   f : convFlatTerm ts
 convFlatTerm (Enc.TkBreak       ts) = TkBreak       : convFlatTerm ts
 convFlatTerm  Enc.TkEnd             = []
 
-maxInt, minInt, maxWord :: Num n => n
-maxInt    = fromIntegral (maxBound :: Int)
-minInt    = fromIntegral (minBound :: Int)
-maxWord   = fromIntegral (maxBound :: Word)
-
-unI# :: Int -> Int#
-unI#   (I#   i#) = i#
-
-unW# :: Word -> Word#
-unW#   (W#  w#) = w#
-
-unW8# :: Word8 -> Word#
-unW8#  (W8# w#) = w#
-
-unF# :: Float -> Float#
-unF#   (F#   f#) = f#
-
-unD# :: Double -> Double#
-unD#   (D#   f#) = f#
-
 --------------------------------------------------------------------------------
 
 -- | Given a @'Dec.Decoder'@, decode a @'FlatTerm'@ back into
@@ -149,8 +129,7 @@ unD#   (D#   f#) = f#
 fromFlatTerm :: Decoder a       -- ^ A @'Dec.Decoder'@ for a serialized value.
              -> FlatTerm        -- ^ The serialized @'FlatTerm'@.
              -> Either String a -- ^ The deserialized value, or an error.
-fromFlatTerm decoder =
-    go (getDecodeAction decoder)
+fromFlatTerm decoder ft = go (getDecodeAction decoder) ft
   where
     go (ConsumeWord k)    (TkInt     n : ts)
         | n >= 0                             = go (k (unW# (fromIntegral n))) ts
@@ -207,6 +186,9 @@ fromFlatTerm decoder =
     go (Fail msg) _  = Left msg
     go (Done x)   [] = Right x
     go (Done _)   ts = Left ("trailing tokens: " ++ show (take 5 ts))
+
+    ----------------------------------------------------------------------------
+    -- Fallthrough cases: unhandled token/DecodeAction combinations
 
     go (ConsumeWord    _) ts = unexpected "decodeWord"    ts
     go (ConsumeNegWord _) ts = unexpected "decodeNegWord" ts
@@ -360,3 +342,26 @@ validateMap ploc i ts = do
     ts'  <- validateTerm (InMapKey i ploc) ts
     ts'' <- validateTerm (InMapVal i ploc) ts'
     validateMap ploc (i+1) ts''
+
+--------------------------------------------------------------------------------
+-- Utilities
+
+maxInt, minInt, maxWord :: Num n => n
+maxInt    = fromIntegral (maxBound :: Int)
+minInt    = fromIntegral (minBound :: Int)
+maxWord   = fromIntegral (maxBound :: Word)
+
+unI# :: Int -> Int#
+unI#   (I#   i#) = i#
+
+unW# :: Word -> Word#
+unW#   (W#  w#) = w#
+
+unW8# :: Word8 -> Word#
+unW8#  (W8# w#) = w#
+
+unF# :: Float -> Float#
+unF#   (F#   f#) = f#
+
+unD# :: Double -> Double#
+unD#   (D#   f#) = f#
