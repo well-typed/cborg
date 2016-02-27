@@ -43,6 +43,7 @@ flag newtime15
   description: Use the new time 1.5 library
 
 flag examples
+  -- TODO FIXME (aseipp): turn off before release
   default: True
   manual: True
   description: Build example programs
