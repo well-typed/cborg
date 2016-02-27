@@ -78,12 +78,12 @@ library
     RankNTypes
 
   build-depends:
-    base                    >= 4.6     && < 5.0,
-    ghc-prim                >= 0.3     && < 0.6,
-    text                    >= 1.1     && < 1.3,
-    bytestring              >= 0.10.4  && < 0.11,
     array                   >= 0.4     && < 0.6,
-    binary                  >= 0.7     && < 0.9
+    base                    >= 4.6     && < 5.0,
+    binary                  >= 0.7     && < 0.9,
+    bytestring              >= 0.10.4  && < 0.11,
+    ghc-prim                >= 0.3     && < 0.6,
+    text                    >= 1.1     && < 1.3
 
   if flag(newtime15)
     build-depends:
@@ -113,14 +113,14 @@ executable demo-aeson
     buildable: False
 
   build-depends:
-    base                    >= 4.6     && < 5.0,
-    ghc-prim                >= 0.3     && < 0.6,
-    text                    >= 1.1     && < 1.3,
-    bytestring              >= 0.10.4  && < 0.11,
     aeson                   >= 0.7     && < 0.12,
-    scientific,
-    vector,
-    unordered-containers,
+    base                    >= 4.6     && < 5.0,
+    bytestring              >= 0.10.4  && < 0.11,
+    ghc-prim                >= 0.3     && < 0.6,
+    scientific              >= 0.3     && < 0.4,
+    text                    >= 1.1     && < 1.3,
+    unordered-containers    >= 0.2     && < 0.3,
+    vector                  >= 0.10    && < 0.12,
     binary-serialise-cbor
 
 --------------------------------------------------------------------------------
@@ -142,26 +142,26 @@ test-suite tests
     Tests.Reference.Implementation
 
   build-depends:
+    array                   >= 0.4     && < 0.6,
     base                    >= 4.6     && < 5.0,
+    binary                  >= 0.7     && < 0.9,
+    bytestring              >= 0.10.4  && < 0.11,
     ghc-prim                >= 0.3     && < 0.6,
     text                    >= 1.1     && < 1.3,
-    bytestring              >= 0.10.4  && < 0.11,
-    array                   >= 0.4     && < 0.6,
-    binary                  >= 0.7     && < 0.9,
     binary-serialise-cbor,
 
-    deepseq,
-    base64-bytestring,
-    base16-bytestring,
-    scientific,
-    vector,
     aeson                   >= 0.7     && < 0.12,
-    half,
+    base64-bytestring       >= 1.0     && < 1.1,
+    base16-bytestring       >= 0.1     && < 0.2,
+    deepseq                 >= 1.0     && < 1.5,
+    half                    >= 0.2     && < 0.3,
   --msgpack,
-    tasty,
-    tasty-hunit,
-    tasty-quickcheck,
-    QuickCheck              >= 2
+    QuickCheck              >= 2.0     && < 2.9,
+    scientific              >= 0.3     && < 0.4,
+    tasty                   >= 0.11    && < 0.12,
+    tasty-hunit             >= 0.9     && < 0.10,
+    tasty-quickcheck        >= 0.8     && < 0.9,
+    vector
 
 
 --------------------------------------------------------------------------------
@@ -207,27 +207,27 @@ benchmark vs-other-libs
     Micro.CBOR
 
   build-depends:
+    array                   >= 0.4     && < 0.6,
     base                    >= 4.6     && < 5.0,
+    binary                  >= 0.7     && < 0.9,
+    bytestring              >= 0.10.4  && < 0.11,
     ghc-prim                >= 0.3     && < 0.6,
     text                    >= 1.1     && < 1.3,
-    bytestring              >= 0.10.4  && < 0.11,
-    array                   >= 0.4     && < 0.6,
-    binary                  >= 0.7     && < 0.9,
     binary-serialise-cbor,
 
     filepath,
     containers              >= 0.5     && < 0.6,
-    deepseq,
+    deepseq                 >= 1.0     && < 1.5,
     aeson                   >= 0.7     && < 0.12,
     cereal                  >= 0.4     && < 0.6,
-  --msgpack                 == 0.7.*,
+  --msgpack                 >= 0.7     && < 0.8,
   --blaze-builder,
   --attoparsec,
-    half,
+    half                    >= 0.2     && < 0.3,
     tar                     >= 0.4     && < 0.6,
     zlib                    >= 0.5     && < 0.7,
-    pretty,
-    criterion
+    pretty                  >= 1.0     && < 1.2,
+    criterion               >= 1.0     && < 1.2
 
   if flag(newtime15)
     build-depends:
