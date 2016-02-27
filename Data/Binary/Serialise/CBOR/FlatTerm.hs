@@ -102,7 +102,7 @@ convFlatTerm (Enc.TkWord64   w  ts)
   | otherwise                       = TkInteger (fromIntegral w) : convFlatTerm ts
 convFlatTerm (Enc.TkInt      n  ts) = TkInt       n : convFlatTerm ts
 convFlatTerm (Enc.TkInt64    n  ts)
-  | n <= maxInt                     = TkInt     (fromIntegral n) : convFlatTerm ts
+  | n <= maxInt && n >= minInt      = TkInt     (fromIntegral n) : convFlatTerm ts
   | otherwise                       = TkInteger (fromIntegral n) : convFlatTerm ts
 convFlatTerm (Enc.TkInteger  n  ts)
   | n <= maxInt && n >= minInt      = TkInt (fromIntegral n) : convFlatTerm ts
