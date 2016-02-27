@@ -133,7 +133,11 @@ fromFlatTerm decoder ft = go (getDecodeAction decoder) ft
   where
     go (ConsumeWord k)    (TkInt     n : ts)
         | n >= 0                             = go (k (unW# (fromIntegral n))) ts
+    go (ConsumeWord k)    (TkInteger n : ts)
+        | n >= 0                             = go (k (unW# (fromIntegral n))) ts
     go (ConsumeNegWord k) (TkInt     n : ts)
+        | n <  0                             = go (k (unW# (fromIntegral (-1-n)))) ts
+    go (ConsumeNegWord k) (TkInteger n : ts)
         | n <  0                             = go (k (unW# (fromIntegral (-1-n)))) ts
     go (ConsumeInt k)     (TkInt     n : ts) = go (k (unI# n)) ts
     go (ConsumeInteger k) (TkInt     n : ts) = go (k (fromIntegral n)) ts

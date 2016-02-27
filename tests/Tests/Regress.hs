@@ -8,11 +8,13 @@ module Tests.Regress
 import           Test.Tasty
 
 import qualified Tests.Regress.Issue13  as Issue13
+import qualified Tests.Regress.FlatTerm as FlatTerm
 
 --------------------------------------------------------------------------------
 -- Tests and properties
 
 testTree :: TestTree
 testTree = testGroup "Regression tests"
-  [ Issue13.testTree
+  [ FlatTerm.testTree
+  , Issue13.testTree
   ]
