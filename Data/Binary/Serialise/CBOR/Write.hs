@@ -522,4 +522,3 @@ integerToBytes n0
 
     narrow :: Integer -> Word8
     narrow = fromIntegral
-
