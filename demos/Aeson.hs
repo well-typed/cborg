@@ -16,7 +16,7 @@ import           Data.Binary.Serialise.CBOR
 import           Data.Monoid
 
 #if !MIN_VERSION_base(4,8,0)
-import Control.Applicative
+import           Control.Applicative
 #endif
 
 instance Serialise Value where
