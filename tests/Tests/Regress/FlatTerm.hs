@@ -5,6 +5,8 @@ module Tests.Regress.FlatTerm
   ( testTree -- :: TestTree
   ) where
 
+import           Data.Word
+
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
