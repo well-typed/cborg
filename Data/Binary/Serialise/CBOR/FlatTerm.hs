@@ -170,7 +170,7 @@ fromFlatTerm decoder ft = go (getDecodeAction decoder) ft
 
     go (ConsumeTag64     k) (TkTag       n : ts) = go (k (unW64# n)) ts
 
-    -- TODO FIXME (aseipp/dcoutts) - are these going to be utilized?
+    -- TODO FIXME (aseipp/dcoutts): are these going to be utilized?
     -- see fallthrough case below if/when fixed.
     go (ConsumeListLen64 _) ts                   = unexpected "decodeListLen64" ts
     go (ConsumeMapLen64  _) ts                   = unexpected "decodeMapLen64"  ts
