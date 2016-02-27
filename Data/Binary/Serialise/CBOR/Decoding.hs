@@ -79,12 +79,6 @@ import           Control.Applicative
 
 import           Prelude hiding (decodeFloat)
 
-#if defined(ARCH_32bit)
-import           GHC.IntWord64 (wordToWord64#)
-#endif
-
-
-
 data Decoder a = Decoder {
        runDecoder :: forall r. (a -> DecodeAction r) -> DecodeAction r
      }
