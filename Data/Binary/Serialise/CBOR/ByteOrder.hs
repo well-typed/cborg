@@ -154,7 +154,7 @@ grabWord64 (Ptr ip#) =
                           w w6# `shiftL`  8 .|.
                           w w7#
   where
-#ifdef ARCH_64bit
+#if defined(ARCH_64bit)
     w w# = W64# w#
 #else
     w w# = W64# (wordToWord64# w#)
@@ -227,7 +227,7 @@ wordToFloat32# w# =
               (# _, f# #) -> f#
 {-# NOINLINE wordToFloat32# #-}
 
-#ifdef ARCH_64bit
+#if defined(ARCH_64bit)
 wordToFloat64# :: Word# -> Double#
 #else
 wordToFloat64# :: Word64# -> Double#

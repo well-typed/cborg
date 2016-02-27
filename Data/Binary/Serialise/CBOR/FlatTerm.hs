@@ -167,7 +167,7 @@ fromFlatTerm decoder =
         | n <= maxWord                       = go (k (unW# (fromIntegral n))) ts
 
 -- 64bit variants for 32bit machines
-#ifndef ARCH_64bit
+#if defined(ARCH_32bit)
     go (ConsumeWord64    _) ts = unexpected "decodeWord64"    ts
     go (ConsumeNegWord64 _) ts = unexpected "decodeNegWord64" ts
     go (ConsumeInt64     _) ts = unexpected "decodeInt64"     ts

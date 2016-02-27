@@ -196,7 +196,7 @@ go_fast da@(ConsumeTag k) !bs =
       DecodedToken sz (W# w#) -> go_fast (k w#) (BS.unsafeDrop sz bs)
 
 -- 64bit variants for 32bit machines
-#ifndef ARCH_64bit
+#if defined(ARCH_32bit)
 --go_fast da@(ConsumeWord64 k) !bs =
 --go_fast da@(ConsumeInt64 k) !bs =
 --go_fast da@(ConsumeListLen64 k) !bs =
@@ -355,7 +355,7 @@ go_fast_end (ConsumeTag k) !bs =
       DecodedToken sz (W# w#) -> go_fast_end (k w#) (BS.unsafeDrop sz bs)
 
 -- 64bit variants for 32bit machines
-#ifndef ARCH_64bit
+#if defined(ARCH_32bit)
 --go_fast_end (ConsumeWord64 k) !bs =
 --go_fast_end (ConsumeNegWord64 k) !bs =
 --go_fast_end (ConsumeInt64 k) !bs =

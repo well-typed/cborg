@@ -165,7 +165,7 @@ wordMP =
     condB (<= 0x17)       (fromIntegral >$< header) $
     condB (<= 0xff)       (fromIntegral >$< withConstHeader 24 P.word8) $
     condB (<= 0xffff)     (fromIntegral >$< withConstHeader 25 P.word16BE) $
-#ifdef ARCH_64bit
+#if defined(ARCH_64bit)
     condB (<= 0xffffffff) (fromIntegral >$< withConstHeader 26 P.word32BE) $
                           (fromIntegral >$< withConstHeader 27 P.word64BE)
 #else
@@ -234,7 +234,7 @@ intMP =
       condB ((<= 0x17)       . snd) (encIntSmall >$< header) $
       condB ((<= 0xff)       . snd) (encInt8  >$< withHeader P.word8) $
       condB ((<= 0xffff)     . snd) (encInt16 >$< withHeader P.word16BE) $
-#ifdef ARCH_64bit
+#if defined(ARCH_64bit)
       condB ((<= 0xffffffff) . snd) (encInt32 >$< withHeader P.word32BE)
                                     (encInt64 >$< withHeader P.word64BE)
 #else
@@ -264,7 +264,7 @@ intMP =
     encInt8     (mt, ui) = (mt + 24, fromIntegral ui)
     encInt16    (mt, ui) = (mt + 25, fromIntegral ui)
     encInt32    (mt, ui) = (mt + 26, fromIntegral ui)
-#ifdef ARCH_64bit
+#if defined(ARCH_64bit)
     encInt64    (mt, ui) = (mt + 27, fromIntegral ui)
 #endif
 
@@ -431,7 +431,7 @@ tagMP =
     condB (<= 0x17)       (fromIntegral . (0xc0 +) >$< header) $
     condB (<= 0xff)       (fromIntegral >$< withConstHeader 0xd8 P.word8) $
     condB (<= 0xffff)     (fromIntegral >$< withConstHeader 0xd9 P.word16BE) $
-#ifdef ARCH_64bit
+#if defined(ARCH_64bit)
     condB (<= 0xffffffff) (fromIntegral >$< withConstHeader 0xda P.word32BE) $
                           (fromIntegral >$< withConstHeader 0xdb P.word64BE)
 #else

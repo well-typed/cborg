@@ -98,7 +98,7 @@ data DecodeAction a
     | ConsumeTag     (Word# -> DecodeAction a)
 
 -- 64bit variants for 32bit machines
-#ifndef ARCH_64bit
+#if defined(ARCH_32bit)
     | ConsumeWord64    (Word64# -> DecodeAction a)
     | ConsumeNegWord64 (Word64# -> DecodeAction a)
     | ConsumeInt64     (Int64#  -> DecodeAction a)
@@ -197,7 +197,7 @@ decodeWord = Decoder (\k -> ConsumeWord (\w# -> k (W# w#)))
 {-# INLINE decodeWord64 #-}
 decodeWord64 :: Decoder Word64
 decodeWord64 =
-#ifdef ARCH_64bit
+#if defined(ARCH_64bit)
   Decoder (\k -> ConsumeWord (\w# -> k (W64# w#)))
 #else
   Decoder (\k -> ConsumeWord64 (\w64# -> k (W64# w64#)))
@@ -210,7 +210,7 @@ decodeNegWord = Decoder (\k -> ConsumeNegWord (\w# -> k (W# w#)))
 {-# INLINE decodeNegWord64 #-}
 decodeNegWord64 :: Decoder Word64
 decodeNegWord64 =
-#ifdef ARCH_64bit
+#if defined(ARCH_64bit)
   Decoder (\k -> ConsumeNegWord (\w# -> k (W64# w#)))
 #else
   Decoder (\k -> ConsumeNegWord64 (\w64# -> k (W64# w64#)))
@@ -224,7 +224,7 @@ decodeInt = Decoder (\k -> ConsumeInt (\n# -> k (I# n#)))
 {-# INLINE decodeInt64 #-}
 decodeInt64 :: Decoder Int64
 decodeInt64 =
-#ifdef ARCH_64bit
+#if defined(ARCH_64bit)
   Decoder (\k -> ConsumeInt (\n# -> k (I64# n#)))
 #else
   Decoder (\k -> ConsumeInt64 (\n64# -> k (I64# n64#)))
@@ -281,7 +281,7 @@ decodeTag = Decoder (\k -> ConsumeTag (\w# -> k (W# w#)))
 {-# INLINE decodeTag64 #-}
 decodeTag64 :: Decoder Word64
 decodeTag64 =
-#ifdef ARCH_64bit
+#if defined(ARCH_64bit)
   Decoder (\k -> ConsumeTag (\w# -> k (W64# w#)))
 #else
   Decoder (\k -> ConsumeTag64 (\w64# -> k (W64# w64#)))
