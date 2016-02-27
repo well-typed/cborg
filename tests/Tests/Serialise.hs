@@ -5,9 +5,8 @@ module Tests.Serialise
   ( testTree -- :: TestTree
   ) where
 
-#if !MIN_VERSION_base(4,8,0)
+import           Data.Int
 import           Data.Word
-#endif
 import           Data.Typeable
 
 import           Test.Tasty
@@ -50,7 +49,9 @@ testTree = testGroup "Serialise class"
   [ mkTest (T :: T ())
   , mkTest (T :: T Bool)
   , mkTest (T :: T Int)
+  , mkTest (T :: T Int64)
   , mkTest (T :: T Word)
+  , mkTest (T :: T Word64)
   , mkTest (T :: T Integer)
   , mkTest (T :: T (Maybe Int))
   , mkTest (T :: T (Either String Int))
