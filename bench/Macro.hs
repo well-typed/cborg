@@ -1,7 +1,12 @@
-{-# OPTIONS_GHC -fno-cse -fno-ignore-asserts #-}
 module Macro
-  ( benchmarks -- :: IO ()
+  ( benchmarks -- :: [Benchmark]
   ) where
+import           Data.Int
+
+import           Criterion.Main
+import           Control.DeepSeq
+import qualified Data.ByteString.Lazy   as BS
+import qualified Codec.Compression.GZip as GZip
 
 import qualified Macro.Types     as Types
 import qualified Macro.MemSize
@@ -16,25 +21,15 @@ import qualified Macro.PkgAesonTH as PkgAesonTH
 --import qualified Macro.PkgMsgpack as PkgMsgpack
 import qualified Macro.CBOR as CBOR
 
-import Criterion.Main
-
-import Data.Int
-import qualified Data.ByteString.Lazy   as BS
-import qualified Codec.Compression.GZip as GZip
-import Control.DeepSeq
-
-benchmarks :: IO ()
-benchmarks = defaultMain macrobenchmarks
-
 readBigTestData :: IO [Types.GenericPackageDescription]
 readBigTestData = do
     Right pkgs_ <- fmap (Load.readPkgIndex . GZip.decompress)
-                        (BS.readFile "bench/00-index.tar.gz")
+                        (BS.readFile "bench/data/00-index.tar.gz")
     let tstdata  = take 100 pkgs_
     return tstdata
 
-macrobenchmarks :: [Benchmark]
-macrobenchmarks =
+benchmarks :: [Benchmark]
+benchmarks =
   [ env readBigTestData $ \tstdata ->
     bgroup "reference"
       [ bench "deepseq" (whnf rnf tstdata)

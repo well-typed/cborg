@@ -177,26 +177,15 @@ benchmark vs-other-libs
   main-is:           Main.hs
 
   default-language:  Haskell2010
-  ghc-options:       -Wall -rtsopts
+  ghc-options:       -Wall -rtsopts -fno-cse -fno-ignore-asserts
 
   other-modules:
-    Misc
+    Utils
 
+    -- Suite #1
     Instances
 
-    Macro
-    Macro.Types
-    Macro.Load
-    Macro.DeepSeq
-    Macro.MemSize
-    Macro.ReadShow
-    Macro.PkgAesonGeneric
-    Macro.PkgAesonTH
-    Macro.PkgBinary
-    Macro.PkgCereal
-  --Macro.PkgMsgpack
-    Macro.CBOR
-
+    -- Suite #2
     Micro
     Micro.Types
     Micro.Load
@@ -210,11 +199,29 @@ benchmark vs-other-libs
   --Micro.PkgMsgpack
     Micro.CBOR
 
+    -- Suite #3
+    Mini
+
+    -- Suite #4
+    Macro
+    Macro.Types
+    Macro.Load
+    Macro.DeepSeq
+    Macro.MemSize
+    Macro.ReadShow
+    Macro.PkgAesonGeneric
+    Macro.PkgAesonTH
+    Macro.PkgBinary
+    Macro.PkgCereal
+  --Macro.PkgMsgpack
+    Macro.CBOR
+
   build-depends:
     array                   >= 0.4     && < 0.6,
     base                    >= 4.6     && < 5.0,
     binary                  >= 0.7     && < 0.9,
     bytestring              >= 0.10.4  && < 0.11,
+    directory               >= 1.0     && < 1.3,
     ghc-prim                >= 0.3     && < 0.6,
     text                    >= 1.1     && < 1.3,
     binary-serialise-cbor,

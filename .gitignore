@@ -3,6 +3,7 @@
 /.cabal-sandbox
 /cabal.sandbox.config
 /.stack-work
+/bench/data
 *.o
 *.hi
 *.bin

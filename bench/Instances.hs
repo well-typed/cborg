@@ -1,7 +1,10 @@
-{-# OPTIONS_GHC -fno-cse -fno-ignore-asserts #-}
 module Instances
-  ( benchmarks -- :: IO ()
+  ( benchmarks -- :: [Benchmark]
   ) where
 
-benchmarks :: IO ()
-benchmarks = fail "Not Invented Here (yet)" -- issue #27
+import           Criterion.Main
+
+benchmarks :: [Benchmark]
+benchmarks =
+  [
+  ]
