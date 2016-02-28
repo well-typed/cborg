@@ -3,6 +3,7 @@ module Main
   ) where
 import           Test.Tasty (defaultMain, testGroup)
 
+import qualified Tests.IO        as IO
 import qualified Tests.CBOR      as CBOR
 import qualified Tests.Regress   as Regress
 import qualified Tests.Reference as Reference
@@ -16,5 +17,6 @@ main = Reference.loadTestCases >>= \tcs -> defaultMain $
     , Reference.testTree tcs
     , Serialise.testTree
     , Negative.testTree
+    , IO.testTree
     , Regress.testTree
     ]
