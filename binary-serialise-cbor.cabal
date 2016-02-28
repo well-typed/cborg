@@ -134,7 +134,7 @@ test-suite tests
   main-is:           Main.hs
 
   default-language:  Haskell2010
-  ghc-options:       -Wall
+  ghc-options:       -Wall -fno-warn-orphans
 
   other-modules:
     Tests.CBOR
@@ -165,7 +165,16 @@ test-suite tests
     tasty                   >= 0.11    && < 0.12,
     tasty-hunit             >= 0.9     && < 0.10,
     tasty-quickcheck        >= 0.8     && < 0.9,
+    quickcheck-instances    >= 0.3     && < 0.4,
     vector
+
+  if flag(newtime15)
+    build-depends:
+      time                  >= 1.5     && < 1.7
+  else
+    build-depends:
+      time                  >= 1.4     && < 1.5,
+      old-locale
 
 
 --------------------------------------------------------------------------------

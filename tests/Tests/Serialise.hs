@@ -5,12 +5,17 @@ module Tests.Serialise
   ) where
 
 import           Data.Int
+import           Data.Time
 import           Data.Word
+import           Data.Version
 import           Data.Typeable
 
 import           Test.Tasty
 import           Test.QuickCheck
 import           Test.Tasty.QuickCheck
+import           Test.QuickCheck.Instances ()
+
+import qualified Data.ByteString as BS
 
 import           Data.Binary.Serialise.CBOR
 import           Data.Binary.Serialise.CBOR.Decoding
@@ -41,6 +46,12 @@ prop_validFlatTerm :: (Serialise a, Eq a, Show a) => T a -> a -> Bool
 prop_validFlatTerm _ = validFlatTerm . toFlatTerm . encode
 
 --------------------------------------------------------------------------------
+-- Extra orphan instances
+
+instance Arbitrary Version where
+  arbitrary = Version <$> listOf1 (choose (1, 15)) <*> pure []
+
+--------------------------------------------------------------------------------
 -- TestTree API
 
 testTree :: TestTree
@@ -60,7 +71,10 @@ testTree = testGroup "Serialise class"
   , mkTest (T :: T (Maybe Int))
   , mkTest (T :: T (Either String Int))
   , mkTest (T :: T String)
+  , mkTest (T :: T BS.ByteString)
   , mkTest (T :: T [Int])
+  , mkTest (T :: T UTCTime)
+  , mkTest (T :: T Version)
   ]
 
 --------------------------------------------------------------------------------
