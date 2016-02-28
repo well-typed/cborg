@@ -25,6 +25,9 @@ module Data.Binary.Serialise.CBOR.Class
 
 #include "cbor.h"
 
+#if ! MIN_VERSION_base(4,8,0)
+import Control.Applicative
+#endif
 import Control.Monad
 import           Data.Int
 import           Data.Monoid

@@ -9,6 +9,8 @@ module Tests.Serialise
   , testFormat -- :: TestTree
   ) where
 
+import           Control.Applicative
+
 import           Data.Int
 import           Data.Time
 import           Data.Word
