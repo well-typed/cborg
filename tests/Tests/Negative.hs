@@ -50,7 +50,6 @@ testTree = testGroup "Negative tests"
   , testCase "decoding invalid Version" testInvalidVersion
   ]
 
-
 --------------------------------------------------------------------------------
 -- Utilities
 
