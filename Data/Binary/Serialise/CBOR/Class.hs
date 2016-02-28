@@ -40,6 +40,7 @@ import qualified Data.IntSet                         as IntSet
 import qualified Data.IntMap                         as IntMap
 import qualified Data.HashSet                        as HashSet
 import qualified Data.HashMap.Strict                 as HashMap
+import qualified Data.Vector                         as Vector
 --import qualified Data.Text.Lazy                      as Text.Lazy
 
 import           Data.Time                           (UTCTime (..))
@@ -244,6 +245,18 @@ instance (Serialise a) => Serialise (Sequence.Seq a) where
              decodeListLen
              Sequence.fromList
              Sequence.empty
+             decode
+
+instance (Serialise a) => Serialise (Vector.Vector a) where
+  encode = encodeContainerSkel
+             encodeListLen
+             Vector.length
+             Foldable.foldl'
+             (\b a -> b <> encode a)
+  decode = decodeContainerSkel
+             decodeListLen
+             Vector.fromList
+             Vector.empty
              decode
 
 encodeSetSkel :: Serialise a

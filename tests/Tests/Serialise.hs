@@ -34,6 +34,7 @@ import qualified Data.IntSet                as IntSet
 import qualified Data.Map                   as Map
 import qualified Data.Sequence              as Sequence
 import qualified Data.Set                   as Set
+import qualified Data.Vector                as Vector
 --------------------------------------------------------------------------------
 -- Tests and properties
 
@@ -112,6 +113,7 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T (IntMap.IntMap String))
       , mkTest (T :: T (HashMap.HashMap Int String))
       , mkTest (T :: T (HashSet.HashSet Int))
+      , mkTest (T :: T (Vector.Vector Int))
       ]
   ]
 
