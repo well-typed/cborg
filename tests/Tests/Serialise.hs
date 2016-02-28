@@ -9,6 +9,9 @@ import           Data.Time
 import           Data.Word
 import           Data.Version
 import           Data.Typeable
+#if !MIN_VERSION_base(4,8,0)
+import           Control.Applicative
+#endif
 
 import           Test.Tasty
 import           Test.QuickCheck
