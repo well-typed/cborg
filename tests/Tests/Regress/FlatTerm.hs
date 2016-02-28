@@ -18,12 +18,6 @@ import           Data.Binary.Serialise.CBOR.FlatTerm
 --------------------------------------------------------------------------------
 -- Tests and properties
 
-testTree :: TestTree
-testTree = testGroup "FlatTerm regressions"
-  [ testCase "Decoding of large-ish words" (Right largeWord  @=? largeWordTest)
-  , testCase "Encoding of Int64s on 32bit" (Right smallInt64 @=? smallInt64Test)
-  ]
-
 -- | Test an edge case in the FlatTerm implementation: when encoding a word
 -- larger than @'maxBound' :: 'Int'@, we store it as an @'Integer'@, and
 -- need to remember to handle this case when we decode.
@@ -42,3 +36,12 @@ smallInt64Test = fromFlatTerm decodeInt64 $ toFlatTerm (encodeInt64 smallInt64)
 
 smallInt64 :: Int64
 smallInt64 = fromIntegral (minBound :: Int) - 1
+
+--------------------------------------------------------------------------------
+-- TestTree API
+
+testTree :: TestTree
+testTree = testGroup "FlatTerm regressions"
+  [ testCase "Decoding of large-ish words" (Right largeWord  @=? largeWordTest)
+  , testCase "Encoding of Int64s on 32bit" (Right smallInt64 @=? smallInt64Test)
+  ]
