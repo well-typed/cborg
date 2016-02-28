@@ -297,21 +297,34 @@ instance GSerialize a => GSerialize (M1 i c a) where
 -- Constructor field (Could only appear in one-field & one-constructor
 -- data types). In all other cases we go through GSerialize{Sum,Prod}
 instance Serialise a => GSerialize (K1 i a) where
-    gencode = encode . unK1
-    gdecode = K1 <$> decode
+    gencode (K1 a) = encodeListLen 2
+                  <> encodeWord 0
+                  <> encode a
+    gdecode = do
+      n <- decodeListLen
+      when (n /= 2) $
+        fail "expect list of length 2"
+      tag <- decodeWord
+      when (tag /= 0) $
+        fail "unexpected tag. Expects 0"
+      K1 <$> decode
 
--- Products are serialized as N-tuples
+-- Products are serialized as N-tuples with 0 constructor tag
 instance (GSerializeProd f, GSerializeProd g) => GSerialize (f :*: g) where
     gencode a@(f :*: g)
-        = encodeListLen (nFields a)
+        = encodeListLen (nFields a + 1)
+       <> encodeWord 0
        <> encodeSeq f
        <> encodeSeq g
     gdecode = do
       let nF = nFields (undefined :: (f :*: g) ())
       n <- decodeListLen
       -- FIXME: signedness of list length
-      when (fromIntegral n /= nF) $
+      when (fromIntegral n /= nF + 1) $
         fail $ "Wrong number of fields: expected="++show nF++" got="++show n
+      tag <- decodeWord
+      when (tag /= 0) $
+        fail $ "unexpect tag (expect 0)"
       !f <- gdecodeSeq
       !g <- gdecodeSeq
       return $ f :*: g
@@ -423,4 +436,3 @@ instance (i ~ C, GSerializeProd f) => GSerializeSum (M1 i c f) where
     fieldsForCon _ _ = fail "Bad constructor number"
     decodeSum      0 = M1 <$> gdecodeSeq
     decodeSum      _ = fail "bad constructor number"
-
