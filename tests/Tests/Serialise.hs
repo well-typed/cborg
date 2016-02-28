@@ -8,6 +8,7 @@ module Tests.Serialise
 import           Data.Int
 import           Data.Time
 import           Data.Word
+import           GHC.Float (float2Double)
 import           Data.Version
 import           Data.Typeable
 #if !MIN_VERSION_base(4,8,0)
@@ -50,6 +51,19 @@ prop_validFlatTerm :: (Serialise a, Eq a, Show a) => T a -> a -> Bool
 prop_validFlatTerm _ = validFlatTerm . toFlatTerm . encode
 
 --------------------------------------------------------------------------------
+-- Corner case or specific properties to test
+
+-- | Ensure that when we encode a Float but decode as a Double, we get the same
+-- value.
+prop_encodeFloatToDouble :: Float -> Bool
+prop_encodeFloatToDouble x = Right dbl == fromFlatTerm dec ft
+  where
+    dbl = float2Double x
+
+    dec = decode :: Decoder Double
+    ft  = toFlatTerm (encode x)
+
+--------------------------------------------------------------------------------
 -- Extra orphan instances
 
 instance Arbitrary Version where
@@ -60,25 +74,30 @@ instance Arbitrary Version where
 
 testTree :: TestTree
 testTree = testGroup "Serialise class"
-  [ mkTest (T :: T ())
-  , mkTest (T :: T Bool)
-  , mkTest (T :: T Int)
-  , mkTest (T :: T Int64)
-  , mkTest (T :: T Word)
-  , mkTest (T :: T Word64)
-  , mkTest (T :: T Integer)
-  , mkTest (T :: T Float)
-  , mkTest (T :: T Double)
-  , mkTest (T :: T Char)
-  , mkTest (T :: T (Int, Char))
-  , mkTest (T :: T (Int, Char, Bool))
-  , mkTest (T :: T (Maybe Int))
-  , mkTest (T :: T (Either String Int))
-  , mkTest (T :: T String)
-  , mkTest (T :: T BS.ByteString)
-  , mkTest (T :: T [Int])
-  , mkTest (T :: T UTCTime)
-  , mkTest (T :: T Version)
+  [ testGroup "Corner cases"
+      [ testProperty "decode float to double"      prop_encodeFloatToDouble
+      ]
+  , testGroup "Simple instance invariants"
+      [ mkTest (T :: T ())
+      , mkTest (T :: T Bool)
+      , mkTest (T :: T Int)
+      , mkTest (T :: T Int64)
+      , mkTest (T :: T Word)
+      , mkTest (T :: T Word64)
+      , mkTest (T :: T Integer)
+      , mkTest (T :: T Float)
+      , mkTest (T :: T Double)
+      , mkTest (T :: T Char)
+      , mkTest (T :: T (Int, Char))
+      , mkTest (T :: T (Int, Char, Bool))
+      , mkTest (T :: T (Maybe Int))
+      , mkTest (T :: T (Either String Int))
+      , mkTest (T :: T String)
+      , mkTest (T :: T BS.ByteString)
+      , mkTest (T :: T [Int])
+      , mkTest (T :: T UTCTime)
+      , mkTest (T :: T Version)
+      ]
   ]
 
 --------------------------------------------------------------------------------

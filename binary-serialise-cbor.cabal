@@ -59,6 +59,7 @@ library
 
   exposed-modules:
     Data.Binary.Serialise.CBOR
+    Data.Binary.Serialise.CBOR.ByteOrder
     Data.Binary.Serialise.CBOR.Class
     Data.Binary.Serialise.CBOR.Decoding
     Data.Binary.Serialise.CBOR.Encoding
@@ -68,9 +69,6 @@ library
     Data.Binary.Serialise.CBOR.Write
     Data.Binary.Serialise.CBOR.Term
     Data.Binary.Serialise.CBOR.Tutorial
-
-  other-modules:
-    Data.Binary.Serialise.CBOR.ByteOrder
 
   other-extensions:
     CPP, ForeignFunctionInterface, MagicHash,
