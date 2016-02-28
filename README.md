@@ -1,7 +1,7 @@
 # Fast binary serialization for Haskell
 
 [![Linux Build Status](https://img.shields.io/travis/well-typed/binary-serialise-cbor.svg?label=Linux%20build)](https://travis-ci.org/well-typed/binary-serialise-cbor)
-[![Windows Build Status](https://img.shields.io/appveyor/ci/thoughtpolice/binary-serialise-cbor.svg?label=Windows%20build)](https://ci.appveyor.com/project/thoughtpolice/binary-serialise-cbor)
+[![Windows Build Status](https://img.shields.io/appveyor/ci/thoughtpolice/binary-serialise-cbor/master.svg?label=Windows%20build)](https://ci.appveyor.com/project/thoughtpolice/binary-serialise-cbor/branch/master)
 [![Hackage version](https://img.shields.io/hackage/v/binary-serialise-cbor.svg?label=Hackage)](https://hackage.haskell.org/package/binary-serialise-cbor)
 [![Stackage version](https://www.stackage.org/package/binary-serialise-cbor/badge/lts?label=Stackage)](https://www.stackage.org/package/binary-serialise-cbor)
 [![BSD3](https://img.shields.io/badge/License-BSD-blue.svg)](https://en.wikipedia.org/wiki/BSD_License)
