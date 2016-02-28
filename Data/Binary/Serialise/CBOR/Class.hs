@@ -225,15 +225,11 @@ encodeContainerSkel encodeLen size foldl' f  c =
 
 decodeContainerSkel :: Decoder Int
                     -> ([a] -> container)
-                    -> container
                     -> Decoder a
                     -> Decoder container
-decodeContainerSkel decodeLen fromList empty decodeItem = do
+decodeContainerSkel decodeLen fromList decodeItem = do
   n <- decodeLen
-  case compare n 0 of
-    EQ -> return empty
-    LT -> fail "negative size"
-    GT -> fmap fromList (replicateM n decodeItem)
+  fmap fromList (replicateM n decodeItem)
 
 instance (Serialise a) => Serialise (Sequence.Seq a) where
   encode = encodeContainerSkel
@@ -244,7 +240,6 @@ instance (Serialise a) => Serialise (Sequence.Seq a) where
   decode = decodeContainerSkel
              decodeListLen
              Sequence.fromList
-             Sequence.empty
              decode
 
 instance (Serialise a) => Serialise (Vector.Vector a) where
@@ -256,7 +251,6 @@ instance (Serialise a) => Serialise (Vector.Vector a) where
   decode = decodeContainerSkel
              decodeListLen
              Vector.fromList
-             Vector.empty
              decode
 
 encodeSetSkel :: Serialise a
@@ -268,21 +262,21 @@ encodeSetSkel size foldl' =
   encodeContainerSkel encodeListLen size foldl' (\b a -> b <> encode a)
 
 decodeSetSkel :: Serialise a
-              => ([a] -> s) -> s -> Decoder s
-decodeSetSkel fromList empty =
-  decodeContainerSkel decodeListLen fromList empty decode
+              => ([a] -> s) -> Decoder s
+decodeSetSkel fromList =
+  decodeContainerSkel decodeListLen fromList decode
 
 instance (Ord a, Serialise a) => Serialise (Set.Set a) where
   encode = encodeSetSkel Set.size Set.foldl'
-  decode = decodeSetSkel Set.fromList Set.empty
+  decode = decodeSetSkel Set.fromList
 
 instance Serialise IntSet.IntSet where
   encode = encodeSetSkel IntSet.size IntSet.foldl'
-  decode = decodeSetSkel IntSet.fromList IntSet.empty
+  decode = decodeSetSkel IntSet.fromList
 
 instance (Serialise a, Hashable a, Eq a) => Serialise (HashSet.HashSet a) where
   encode = encodeSetSkel HashSet.size HashSet.foldl'
-  decode = decodeSetSkel HashSet.fromList HashSet.empty
+  decode = decodeSetSkel HashSet.fromList
 
 
 encodeMapSkel :: (Serialise k, Serialise v)
@@ -299,27 +293,25 @@ encodeMapSkel size foldlWithKey' =
 
 decodeMapSkel :: (Serialise k, Serialise v)
               => ([(k,v)] -> m)
-              -> m
               -> Decoder m
-decodeMapSkel fromList empty =
+decodeMapSkel fromList =
   decodeContainerSkel
     decodeMapLen
     fromList
-    empty
     (do { !k <- decode; !v <- decode; return (k, v); })
 
 instance (Ord k, Serialise k, Serialise v) => Serialise (Map.Map k v) where
   encode = encodeMapSkel Map.size Map.foldlWithKey'
-  decode = decodeMapSkel Map.fromList Map.empty
+  decode = decodeMapSkel Map.fromList
 
 instance (Serialise a) => Serialise (IntMap.IntMap a) where
   encode = encodeMapSkel IntMap.size IntMap.foldlWithKey'
-  decode = decodeMapSkel IntMap.fromList IntMap.empty
+  decode = decodeMapSkel IntMap.fromList
 
 instance (Serialise k, Hashable k, Eq k, Serialise v) =>
   Serialise (HashMap.HashMap k v) where
   encode = encodeMapSkel HashMap.size HashMap.foldlWithKey'
-  decode = decodeMapSkel HashMap.fromList HashMap.empty
+  decode = decodeMapSkel HashMap.fromList
 
 --------------------------------------------------------------------------------
 -- Misc base package instances
