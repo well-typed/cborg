@@ -279,6 +279,8 @@ class GSerialize f where
     gencode  :: f a -> Encoding
     gdecode  :: Decoder (f a)
 
+data Proxy (f :: * -> *) = P
+
 -- Data types without constructors are still serialized as null value
 instance GSerialize V1 where
     gencode _ = encodeNull
@@ -316,13 +318,13 @@ instance Serialise a => GSerialize (K1 i a) where
 
 -- Products are serialized as N-tuples with 0 constructor tag
 instance (GSerializeProd f, GSerializeProd g) => GSerialize (f :*: g) where
-    gencode a@(f :*: g)
-        = encodeListLen (nFields a + 1)
+    gencode (f :*: g)
+        = encodeListLen (nFields (P :: Proxy (f :*: g)) + 1)
        <> encodeWord 0
        <> encodeSeq f
        <> encodeSeq g
     gdecode = do
-      let nF = nFields (undefined :: (f :*: g) ())
+      let nF = nFields (P :: Proxy (f :*: g))
       n <- decodeListLen
       -- FIXME: signedness of list length
       when (fromIntegral n /= nF + 1) $
@@ -347,7 +349,7 @@ instance (GSerializeSum f, GSerializeSum g) => GSerialize (f :+: g) where
         when (n == 0) $
           fail "Empty list encountered for sum type"
         nCon  <- decodeWord
-        trueN <- fieldsForCon (undefined :: (f :+: g) ()) nCon
+        trueN <- fieldsForCon (P :: Proxy (f :+: g)) nCon
         when (n-1 /= fromIntegral trueN ) $
           fail $ "Number of fields mismatch: expected="++show trueN++" got="++show n
         decodeSum nCon
@@ -356,14 +358,14 @@ instance (GSerializeSum f, GSerializeSum g) => GSerialize (f :+: g) where
 -- | Serialization of product types
 class GSerializeProd f where
     -- | Number of fields in product type
-    nFields   :: f a -> Word
+    nFields   :: Proxy f -> Word
     -- | Encode fields sequentially without writing header
     encodeSeq :: f a -> Encoding
     -- | Decode fields sequentially without reading header
     gdecodeSeq :: Decoder (f a)
 
 instance (GSerializeProd f, GSerializeProd g) => GSerializeProd (f :*: g) where
-    nFields _ = nFields (undefined :: f ()) + nFields (undefined :: g ())
+    nFields _ = nFields (P :: Proxy f) + nFields (P :: Proxy g)
     encodeSeq (f :*: g) = encodeSeq f <> encodeSeq g
     gdecodeSeq = do !f <- gdecodeSeq
                     !g <- gdecodeSeq
@@ -394,22 +396,22 @@ class GSerializeSum f where
     -- | Number of constructor of given value
     conNumber   :: f a -> Word
     -- | Number of fields of given value
-    numOfFields  :: f a -> Word
+    numOfFields :: f a -> Word
     -- | Encode field
     encodeSum   :: f a  -> Encoding
 
     -- | Decode field
-    decodeSum   :: Word -> Decoder (f a)
+    decodeSum     :: Word -> Decoder (f a)
     -- | Number of constructors
-    nConstructors       :: f a -> Word
+    nConstructors :: Proxy f -> Word
     -- | Number of fields for given constructor number
-    fieldsForCon :: f a -> Word -> Decoder Word
+    fieldsForCon  :: Proxy f -> Word -> Decoder Word
 
 
 instance (GSerializeSum f, GSerializeSum g) => GSerializeSum (f :+: g) where
     conNumber x = case x of
       L1 f -> conNumber f
-      R1 g -> conNumber g + nConstructors (undefined :: f ())
+      R1 g -> conNumber g + nConstructors (P :: Proxy f)
     numOfFields x = case x of
       L1 f -> numOfFields f
       R1 g -> numOfFields g
@@ -417,27 +419,27 @@ instance (GSerializeSum f, GSerializeSum g) => GSerializeSum (f :+: g) where
       L1 f -> encodeSum f
       R1 g -> encodeSum g
 
-    nConstructors _ = nConstructors (undefined :: f ())
-                    + nConstructors (undefined :: g ())
+    nConstructors _ = nConstructors (P :: Proxy f)
+                    + nConstructors (P :: Proxy g)
 
-    fieldsForCon _ n | n < nL    = fieldsForCon (undefined :: f ()) n
-                     | otherwise = fieldsForCon (undefined :: g ()) (n - nL)
+    fieldsForCon _ n | n < nL    = fieldsForCon (P :: Proxy f) n
+                     | otherwise = fieldsForCon (P :: Proxy g) (n - nL)
       where
-        nL = nConstructors (undefined :: f ())
+        nL = nConstructors (P :: Proxy f)
 
     decodeSum nCon | nCon < nL = L1 <$> decodeSum nCon
                    | otherwise = R1 <$> decodeSum (nCon - nL)
       where
-        nL = nConstructors (undefined :: f ())
+        nL = nConstructors (P :: Proxy f)
 
 
 instance (i ~ C, GSerializeProd f) => GSerializeSum (M1 i c f) where
     conNumber    _     = 0
-    numOfFields (M1 f) = nFields f
+    numOfFields  _     = nFields (P :: Proxy f)
     encodeSum   (M1 f) = encodeSeq f
 
     nConstructors  _ = 1
-    fieldsForCon _ 0 = return $ nFields (undefined :: f ())
+    fieldsForCon _ 0 = return $ nFields (P :: Proxy f)
     fieldsForCon _ _ = fail "Bad constructor number"
     decodeSum      0 = M1 <$> gdecodeSeq
     decodeSum      _ = fail "bad constructor number"
