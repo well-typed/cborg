@@ -126,6 +126,9 @@ testTree = testGroup "Serialise class"
 testFormat :: TestTree
 testFormat = testGroup "Encoding format"
   [ format
+      Unit
+      (TkListLen 1 $ TkWord 0 $ TkEnd)
+  , format
       (P1 12)
       (TkListLen 2 $ TkWord 0 $ TkInt 12 $ TkEnd)
   , format

@@ -286,8 +286,13 @@ instance GSerialize V1 where
 
 -- Constructors without fields are serialized as null value
 instance GSerialize U1 where
-    gencode _ = encodeNull
-    gdecode   = U1 <$ decodeNull
+    gencode _ = encodeListLen 1 <> encodeWord 0
+    gdecode   = do
+      n <- decodeListLen
+      when (n /= 1) $ fail "expect list of length 1"
+      tag <- decodeWord
+      when (tag /= 0) $ fail "unexpected tag. Expect 0"
+      return U1
 
 -- Metadata (constructor name, etc) is skipped
 instance GSerialize a => GSerialize (M1 i c a) where
