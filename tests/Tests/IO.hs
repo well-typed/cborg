@@ -2,10 +2,6 @@
 module Tests.IO
   ( testTree -- :: TestTree
   ) where
-#if !MIN_VERSION_base(4,8,0)
-import           Data.Monoid
-import           Control.Applicative
-#endif
 import           System.FilePath
 import           System.Directory  (removeFile)
 import           Control.Exception (bracket)
