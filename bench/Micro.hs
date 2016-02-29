@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP          #-}
+{-# LANGUAGE BangPatterns #-}
 module Micro
   ( benchmarks -- :: [Benchmark]
   ) where
@@ -5,6 +7,10 @@ module Micro
 import           Criterion.Main
 import           Control.DeepSeq
 import qualified Data.ByteString.Lazy   as BS
+
+import           Foreign
+
+import           Data.Binary.Serialise.CBOR.ByteOrder
 
 import           Macro.DeepSeq ()
 import qualified Micro.MemSize
@@ -58,6 +64,12 @@ benchmarks =
 --    , bench "new msgpack"   (nf perfDecodeNewMsgPack   tstdataN)
       , bench "cbor"          (nf perfDecodeCBOR         tstdataR)
       ]
+  , env lowlevelPtrEnv $ \ptr ->
+    bgroup "lowlevel"
+      [ bench "grabWord16"    (nf grabWord16 ptr)
+      , bench "grabWord32"    (nf grabWord32 ptr)
+      , bench "grabWord64"    (nf grabWord64 ptr)
+      ]
   ]
   where
     -- Input data
@@ -89,3 +101,18 @@ benchmarks =
 --  perfDecodeMsgpack      = PkgMsgpack.deserialise
 --  perfDecodeNewMsgPack   = Micro.NewMsgpack.deserialise
     perfDecodeCBOR         = Micro.CBOR.deserialise
+
+    -- | Allocate an 8-byte pointer, write a 64-bit word into
+    -- it, and return a @'Ptr' ()@ to be used by the low-level routines.
+    lowlevelPtrEnv :: IO (Ptr ())
+    lowlevelPtrEnv = do
+      ptr <- mallocBytes 8
+      poke ptr (0xDEADBEEFCAFEBABE :: Word64)
+      return (castPtr ptr)
+
+--------------------------------------------------------------------------------
+
+-- An NFData instance for Ptr is in deepseq HEAD/1.4.2, but it's not released.
+#if !MIN_VERSION_deepseq(1,4,2)
+instance NFData (Ptr a) where rnf !_ = ()
+#endif
