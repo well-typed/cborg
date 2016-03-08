@@ -1,9 +1,15 @@
 {-# LANGUAGE CPP                  #-}
-{-# LANGUAGE ConstraintKinds      #-}
-{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE ConstraintKinds     #-}
+{-# LANGUAGE DeriveDataTypeable  #-}
+{-# LANGUAGE DeriveGeneric       #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Tests.Serialise
-  ( testTree -- :: TestTree
+  ( testTree   -- :: TestTree
+  , testFormat -- :: TestTree
   ) where
+
+import           Control.Applicative
 
 import           Data.Int
 import           Data.Time
@@ -20,12 +26,14 @@ import           Test.QuickCheck
 import           Test.Tasty
 import           Test.Tasty.QuickCheck
 import           Test.QuickCheck.Instances ()
-
+import           Test.Tasty.HUnit
+import           GHC.Generics  (Generic)
 import qualified Data.ByteString as BS
 
 import           Data.Binary.Serialise.CBOR
+import           Data.Binary.Serialise.CBOR.Encoding
 import           Data.Binary.Serialise.CBOR.Decoding
-import           Data.Binary.Serialise.CBOR.FlatTerm
+import           Data.Binary.Serialise.CBOR.FlatTerm (toFlatTerm,fromFlatTerm,validFlatTerm)
 
 import qualified Data.HashMap.Strict        as HashMap
 import qualified Data.HashSet               as HashSet
@@ -58,6 +66,14 @@ prop_flatTermId _ a = Right a == (fromFlat . toFlat) a
 -- valid @'FlatTerm'@ back.
 prop_validFlatTerm :: (Serialise a, Eq a, Show a) => T a -> a -> Bool
 prop_validFlatTerm _ = validFlatTerm . toFlatTerm . encode
+
+format :: (Typeable a, Show a, Serialise a) => a -> Tokens -> TestTree
+format a toks
+  = testCase (show (typeOf a) ++ ": " ++ show a)
+  $ toks @=? toks' 
+  where
+    Encoding f = encode a
+    toks'      = f TkEnd
 
 --------------------------------------------------------------------------------
 -- Corner case or specific properties to test
@@ -114,7 +130,42 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T (HashMap.HashMap Int String))
       , mkTest (T :: T (HashSet.HashSet Int))
       , mkTest (T :: T (Vector.Vector Int))
+      -- generics:
+      , mkTest (T :: T Unit)
+      , mkTest (T :: T P1)
+      , mkTest (T :: T P2)
+      , mkTest (T :: T P3)
+      , mkTest (T :: T C4)
+      , mkTest (T :: T (List Int))
       ]
+  ]
+
+testFormat :: TestTree
+testFormat = testGroup "Encoding format"
+  [ format
+      Unit
+      (TkListLen 1 $ TkWord 0 $ TkEnd)
+  , format
+      (P1 12)
+      (TkListLen 2 $ TkWord 0 $ TkInt 12 $ TkEnd)
+  , format
+      (P2 12 0.5)
+      (TkListLen 3 $ TkWord 0 $ TkInt 12 $ TkFloat32 0.5 $ TkEnd)
+  , format
+      (P3 12 0.5 "asdf")
+      (TkListLen 4 $ TkWord 0 $ TkInt 12 $ TkFloat32 0.5 $ TkString "asdf" $ TkEnd)
+  , format
+      (C1 12)
+      (TkListLen 2 $ TkWord 0 $ TkInt 12 $ TkEnd)
+  , format
+      (C2 12 0.5)
+      (TkListLen 3 $ TkWord 1 $ TkInt 12 $ TkFloat32 0.5 $ TkEnd)
+  , format
+      (C3 12 0.5 "asdf")
+      (TkListLen 4 $ TkWord 2 $ TkInt 12 $ TkFloat32 0.5 $ TkString "asdf" $ TkEnd)
+  , format
+       C4
+      (TkListLen 1 $ TkWord 3 $ TkEnd)
   ]
 
 --------------------------------------------------------------------------------
@@ -129,3 +180,57 @@ mkTest t = testGroup ("type: " ++ show (typeOf (undefined :: a)))
   , testProperty "flat roundtrip"      (prop_flatTermId    t)
   , testProperty "flat term is valid"  (prop_validFlatTerm t)
   ]
+
+
+--------------------------------------------------------------------------------
+-- Generic data types
+
+data Unit = Unit
+          deriving (Show,Eq,Typeable,Generic)
+data P1 = P1 Int
+          deriving (Show,Eq,Typeable,Generic)
+data P2 = P2 Int Float
+          deriving (Show,Eq,Typeable,Generic)
+data P3 = P3 Int Float String
+          deriving (Show,Eq,Typeable,Generic)
+
+data C4 = C1 Int
+        | C2 Int Float
+        | C3 Int Float String
+        | C4
+        deriving (Show,Eq,Typeable,Generic)
+
+data List a = Cons a (List a)
+            | Nil
+            deriving (Show,Eq,Typeable,Generic)
+
+instance Serialise Unit
+instance Serialise P1
+instance Serialise P2
+instance Serialise P3
+instance Serialise C4
+instance Serialise a => Serialise (List a)
+
+
+instance Arbitrary Unit where
+    arbitrary = pure Unit
+
+instance Arbitrary P1 where
+    arbitrary = P1 <$> arbitrary
+instance Arbitrary P2 where
+    arbitrary = P2 <$> arbitrary <*> arbitrary
+instance Arbitrary P3 where
+    arbitrary = P3 <$> arbitrary <*> arbitrary <*> arbitrary
+
+instance Arbitrary C4 where
+    arbitrary = oneof [ C1 <$> arbitrary
+                      , C2 <$> arbitrary <*> arbitrary
+                      , C3 <$> arbitrary <*> arbitrary <*> arbitrary
+                      , pure C4
+                      ]
+
+instance Arbitrary a => Arbitrary (List a) where
+    arbitrary = cnv <$> arbitrary
+      where
+        cnv :: [a] -> List a
+        cnv = foldr Cons Nil
