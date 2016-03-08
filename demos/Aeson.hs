@@ -3,7 +3,6 @@
 module Main
   ( main -- :: IO ()
   ) where
-import           Data.Monoid
 import           Control.Monad (when)
 import           System.FilePath
 import           System.Environment
@@ -12,15 +11,10 @@ import           System.Environment
 import           Control.Applicative
 #endif
 
-#if MIN_VERSION_aeson(0,10,0)
-import           Data.Aeson                          as Aeson hiding (Encoding)
-#else
-import           Data.Aeson                          as Aeson
-#endif
+import           Data.Aeson (Value(..))
+import qualified Data.Aeson                          as Aeson
 import           Data.Aeson.Encode.Pretty            as Aeson.Pretty
 import           Data.Scientific
-import qualified Data.Vector                         as Vec
-import qualified Data.HashMap.Lazy                   as HashMap
 import qualified Data.ByteString.Lazy                as LB
 
 import qualified Data.Text.Lazy.IO                   as T
@@ -31,21 +25,25 @@ import qualified Data.Binary.Serialise.CBOR.Write    as CBOR.Write
 import           Data.Binary.Serialise.CBOR.Encoding
 import           Data.Binary.Serialise.CBOR.Decoding
 
+import           Data.Binary.Serialise.CBOR.Class
+
 --------------------------------------------------------------------------------
 -- Encoder from JSON values to CBOR values
 
-encodeValue :: Value -> Encoding
-encodeValue (Object vs) = encodeMapLen (fromIntegral $ HashMap.size vs)
-                       <> mconcat [ encodeString k <> encodeValue v
-                                  | (k,v) <- HashMap.toList vs ]
-encodeValue (Array  vs) = encodeListLen (fromIntegral $ Vec.length vs)
-                       <> mconcat [ encodeValue v | v <- Vec.toList vs ]
 
-encodeValue (String s)  = encodeString s
+instance Serialise Value where
+  encode = encodeValue
+  decode = decodeValue
+
+encodeValue :: Value -> Encoding
+encodeValue (Object vs) = encode vs
+encodeValue (Array  vs) = encode vs
+
+encodeValue (String s)  = encode s
 encodeValue (Number n)  = case floatingOrInteger n of
-                            Left  d -> encodeDouble d
-                            Right i -> encodeInteger i
-encodeValue (Bool   b)  = encodeBool b
+                            Left  d -> encode (d::Double)
+                            Right i -> encode (i::Integer)
+encodeValue (Bool   b)  = encode b
 encodeValue  Null       = encodeNull
 
 --------------------------------------------------------------------------------
@@ -62,9 +60,9 @@ decodeValue = do
       TypeInteger -> decodeNumberIntegral
       TypeFloat64 -> decodeNumberFloating
 
-      TypeString  -> String <$> decodeString
-      TypeListLen -> decodeListLen >>= decodeArray
-      TypeMapLen  -> decodeMapLen  >>= decodeObject
+      TypeString  -> String <$> decode
+      TypeListLen -> Array  <$> decode
+      TypeMapLen  -> Object <$> decode
 
       TypeBool    -> Bool   <$> decodeBool
       TypeNull    -> Null   <$  decodeNull
@@ -72,29 +70,11 @@ decodeValue = do
                          ++ show tkty
 
 decodeNumberIntegral :: Decoder Value
-decodeNumberIntegral = Number . fromInteger <$> decodeInteger
+decodeNumberIntegral = Number . fromInteger <$> decode
 
 decodeNumberFloating :: Decoder Value
-decodeNumberFloating = Number . fromFloatDigits <$> decodeDouble
+decodeNumberFloating = Number . fromFloatDigits <$> (decode :: Decoder Double)
 
-decodeArray :: Int -> Decoder Value
-decodeArray n0 = do
-    vs <- go n0 []
-    return $! Array (Vec.fromListN n0 (reverse vs))
-  where
-    go 0 acc = return acc
-    go n acc = do t <- decodeValue
-                  go (n-1) (t : acc)
-
-decodeObject :: Int -> Decoder Value
-decodeObject n0 = do
-    kvs <- go n0 []
-    return $! Object (HashMap.fromList kvs)
-  where
-    go 0 acc = return acc
-    go n acc = do k <- decodeString
-                  v <- decodeValue
-                  go (n-1) ((k, v) : acc)
 
 --------------------------------------------------------------------------------
 -- Driver program
