@@ -240,14 +240,16 @@ encodeContainerSkel :: (Word -> Encoding)
                     -> Encoding
 encodeContainerSkel encodeLen size foldr f  c =
     encodeLen (fromIntegral (size c)) <> foldr f mempty c
+{-# INLINE encodeContainerSkel #-}
 
 decodeContainerSkel :: Decoder Int
-                    -> ([a] -> container)
+                    -> (Int -> [a] -> container)
                     -> Decoder a
                     -> Decoder container
 decodeContainerSkel decodeLen fromList decodeItem = do
     n <- decodeLen
-    fmap fromList (replicateM n decodeItem)
+    fmap (fromList n) (replicateM n decodeItem)
+{-# INLINE decodeContainerSkel #-}
 
 instance (Serialise a) => Serialise (Sequence.Seq a) where
   encode = encodeContainerSkel
@@ -257,7 +259,7 @@ instance (Serialise a) => Serialise (Sequence.Seq a) where
              (\a b -> encode a <> b)
   decode = decodeContainerSkel
              decodeListLen
-             Sequence.fromList
+             (\_len -> Sequence.fromList)
              decode
 
 instance (Serialise a) => Serialise (Vector.Vector a) where
@@ -268,7 +270,7 @@ instance (Serialise a) => Serialise (Vector.Vector a) where
              (\a b -> encode a <> b)
   decode = decodeContainerSkel
              decodeListLen
-             Vector.fromList
+             Vector.fromListN
              decode
 
 --TODO: we really ought to be able to do better than going via lists,
@@ -282,7 +284,7 @@ instance (Serialise a, Vector.Unboxed.Unbox a) =>
              (\a b -> encode a <> b)
   decode = decodeContainerSkel
              decodeListLen
-             Vector.Unboxed.fromList
+             Vector.Unboxed.fromListN
              decode
 
 
@@ -293,11 +295,13 @@ encodeSetSkel :: Serialise a
               -> Encoding
 encodeSetSkel size foldr =
     encodeContainerSkel encodeListLen size foldr (\a b -> encode a <> b)
+{-# INLINE encodeSetSkel #-}
 
 decodeSetSkel :: Serialise a
               => ([a] -> s) -> Decoder s
 decodeSetSkel fromList =
-  decodeContainerSkel decodeListLen fromList decode
+  decodeContainerSkel decodeListLen (\_len -> fromList) decode
+{-# INLINE decodeSetSkel #-}
 
 instance (Ord a, Serialise a) => Serialise (Set.Set a) where
   encode = encodeSetSkel Set.size Set.foldr
@@ -322,6 +326,7 @@ encodeMapSkel size foldrWithKey =
     size
     foldrWithKey
     (\k v b -> encode k <> encode v <> b)
+{-# INLINE encodeMapSkel #-}
 
 decodeMapSkel :: (Serialise k, Serialise v)
               => ([(k,v)] -> m)
@@ -329,8 +334,9 @@ decodeMapSkel :: (Serialise k, Serialise v)
 decodeMapSkel fromList =
   decodeContainerSkel
     decodeMapLen
-    fromList
+    (\_len -> fromList)
     (do { !k <- decode; !v <- decode; return (k, v); })
+{-# INLINE decodeMapSkel #-}
 
 instance (Ord k, Serialise k, Serialise v) => Serialise (Map.Map k v) where
   encode = encodeMapSkel Map.size Map.foldrWithKey
