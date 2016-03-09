@@ -50,6 +50,7 @@ import qualified Data.IntMap                         as IntMap
 import qualified Data.HashSet                        as HashSet
 import qualified Data.HashMap.Strict                 as HashMap
 import qualified Data.Vector                         as Vector
+import qualified Data.Vector.Unboxed                 as Vector.Unboxed
 --import qualified Data.Text.Lazy                      as Text.Lazy
 
 import           Data.Time                           (UTCTime (..))
@@ -269,6 +270,21 @@ instance (Serialise a) => Serialise (Vector.Vector a) where
              decodeListLen
              Vector.fromList
              decode
+
+--TODO: we really ought to be able to do better than going via lists,
+-- especially for unboxed vectors
+instance (Serialise a, Vector.Unboxed.Unbox a) =>
+         Serialise (Vector.Unboxed.Vector a) where
+  encode = encodeContainerSkel
+             encodeListLen
+             Vector.Unboxed.length
+             Vector.Unboxed.foldr
+             (\a b -> encode a <> b)
+  decode = decodeContainerSkel
+             decodeListLen
+             Vector.Unboxed.fromList
+             decode
+
 
 encodeSetSkel :: Serialise a
               => (s -> Int)

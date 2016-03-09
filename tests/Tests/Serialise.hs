@@ -43,6 +43,9 @@ import qualified Data.Map                   as Map
 import qualified Data.Sequence              as Sequence
 import qualified Data.Set                   as Set
 import qualified Data.Vector                as Vector
+import qualified Data.Vector.Unboxed        as Vector.Unboxed
+
+
 --------------------------------------------------------------------------------
 -- Tests and properties
 
@@ -130,6 +133,7 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T (HashMap.HashMap Int String))
       , mkTest (T :: T (HashSet.HashSet Int))
       , mkTest (T :: T (Vector.Vector Int))
+      , mkTest (T :: T (Vector.Unboxed.Vector (Int,Bool)))
       -- generics:
       , mkTest (T :: T Unit)
       , mkTest (T :: T P1)
