@@ -43,6 +43,7 @@ import           Data.Binary.Serialise.CBOR.Encoding (Encoding(..))
 import qualified Data.Binary.Serialise.CBOR.Encoding as Enc
 import           Data.Binary.Serialise.CBOR.Decoding as Dec
 
+import           Data.Int
 #if defined(ARCH_32bit)
 import           GHC.Int   (Int64(I64#))
 import           GHC.Word  (Word64(W64#))
@@ -140,11 +141,37 @@ fromFlatTerm decoder ft = go (getDecodeAction decoder) ft
         | n >= 0                             = go (k (unW# (fromIntegral n))) ts
     go (ConsumeWord k)    (TkInteger n : ts)
         | n >= 0                             = go (k (unW# (fromIntegral n))) ts
+    go (ConsumeWord8 k)   (TkInt     n : ts)
+        | n >= 0 && n <= maxWord8            = go (k (unW# (fromIntegral n))) ts
+    go (ConsumeWord8 k)   (TkInteger n : ts)
+        | n >= 0 && n <= maxWord8            = go (k (unW# (fromIntegral n))) ts
+    go (ConsumeWord16 k)   (TkInt     n : ts)
+        | n >= 0 && n <= maxWord16           = go (k (unW# (fromIntegral n))) ts
+    go (ConsumeWord16 k)   (TkInteger n : ts)
+        | n >= 0 && n <= maxWord16           = go (k (unW# (fromIntegral n))) ts
+    go (ConsumeWord32 k)   (TkInt     n : ts)
+        | n >= 0 && n <= maxWord32           = go (k (unW# (fromIntegral n))) ts
+    go (ConsumeWord32 k)   (TkInteger n : ts)
+        | n >= 0 && n <= maxWord32           = go (k (unW# (fromIntegral n))) ts
     go (ConsumeNegWord k) (TkInt     n : ts)
         | n <  0                             = go (k (unW# (fromIntegral (-1-n)))) ts
     go (ConsumeNegWord k) (TkInteger n : ts)
         | n <  0                             = go (k (unW# (fromIntegral (-1-n)))) ts
     go (ConsumeInt k)     (TkInt     n : ts) = go (k (unI# n)) ts
+    go (ConsumeInt k)     (TkInteger n : ts)
+        | n <= maxInt                        = go (k (unI# (fromIntegral n))) ts
+    go (ConsumeInt8 k)    (TkInt     n : ts)
+        | n >= minInt8 && n <= maxInt8       = go (k (unI# n)) ts
+    go (ConsumeInt8 k)    (TkInteger n : ts)
+        | n >= minInt8 && n <= maxInt8       = go (k (unI# (fromIntegral n))) ts
+    go (ConsumeInt16 k)   (TkInt     n : ts)
+        | n >= minInt16 && n <= maxInt16     = go (k (unI# n)) ts
+    go (ConsumeInt16 k)    (TkInteger n : ts)
+        | n >= minInt16 && n <= maxInt16     = go (k (unI# (fromIntegral n))) ts
+    go (ConsumeInt32 k)    (TkInt     n : ts)
+        | n >= minInt32 && n <= maxInt32     = go (k (unI# n)) ts
+    go (ConsumeInt32 k)    (TkInteger n : ts)
+        | n >= minInt32 && n <= maxInt32     = go (k (unI# (fromIntegral n))) ts
     go (ConsumeInteger k) (TkInt     n : ts) = go (k (fromIntegral n)) ts
     go (ConsumeInteger k) (TkInteger n : ts) = go (k n) ts
     go (ConsumeListLen k) (TkListLen n : ts)
@@ -212,8 +239,14 @@ fromFlatTerm decoder ft = go (getDecodeAction decoder) ft
     -- Fallthrough cases: unhandled token/DecodeAction combinations
 
     go (ConsumeWord    _) ts = unexpected "decodeWord"    ts
+    go (ConsumeWord8   _) ts = unexpected "decodeWord8"   ts
+    go (ConsumeWord16  _) ts = unexpected "decodeWord16"  ts
+    go (ConsumeWord32  _) ts = unexpected "decodeWord32"  ts
     go (ConsumeNegWord _) ts = unexpected "decodeNegWord" ts
     go (ConsumeInt     _) ts = unexpected "decodeInt"     ts
+    go (ConsumeInt8    _) ts = unexpected "decodeInt8"    ts
+    go (ConsumeInt16   _) ts = unexpected "decodeInt16"   ts
+    go (ConsumeInt32   _) ts = unexpected "decodeInt32"   ts
     go (ConsumeInteger _) ts = unexpected "decodeInteger" ts
 
     go (ConsumeListLen _) ts = unexpected "decodeListLen" ts
@@ -381,6 +414,21 @@ maxInt, minInt, maxWord :: Num n => n
 maxInt    = fromIntegral (maxBound :: Int)
 minInt    = fromIntegral (minBound :: Int)
 maxWord   = fromIntegral (maxBound :: Word)
+
+maxInt8, minInt8, maxWord8 :: Num n => n
+maxInt8    = fromIntegral (maxBound :: Int8)
+minInt8    = fromIntegral (minBound :: Int8)
+maxWord8   = fromIntegral (maxBound :: Word8)
+
+maxInt16, minInt16, maxWord16 :: Num n => n
+maxInt16    = fromIntegral (maxBound :: Int16)
+minInt16    = fromIntegral (minBound :: Int16)
+maxWord16   = fromIntegral (maxBound :: Word16)
+
+maxInt32, minInt32, maxWord32 :: Num n => n
+maxInt32    = fromIntegral (maxBound :: Int32)
+minInt32    = fromIntegral (minBound :: Int32)
+maxWord32   = fromIntegral (maxBound :: Word32)
 
 unI# :: Int -> Int#
 unI#   (I#   i#) = i#

@@ -135,6 +135,18 @@ instance Serialise Int where
     encode = encodeInt
     decode = decodeInt
 
+instance Serialise Int8 where
+    encode = encodeInt8
+    decode = decodeInt8
+
+instance Serialise Int16 where
+    encode = encodeInt16
+    decode = decodeInt16
+
+instance Serialise Int32 where
+    encode = encodeInt32
+    decode = decodeInt32
+
 instance Serialise Int64 where
     encode = encodeInt64
     decode = decodeInt64
@@ -142,6 +154,18 @@ instance Serialise Int64 where
 instance Serialise Word where
     encode = encodeWord
     decode = decodeWord
+
+instance Serialise Word8 where
+    encode = encodeWord8
+    decode = decodeWord8
+
+instance Serialise Word16 where
+    encode = encodeWord16
+    decode = decodeWord16
+
+instance Serialise Word32 where
+    encode = encodeWord32
+    decode = decodeWord32
 
 instance Serialise Word64 where
     encode = encodeWord64

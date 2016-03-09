@@ -170,6 +170,34 @@ go_fast da@(ConsumeWord k) !bs =
       DecodeFailure           -> go_fast_end da bs
       DecodedToken sz (W# w#) -> go_fast (k w#) (BS.unsafeDrop sz bs)
 
+go_fast da@(ConsumeWord8 k) !bs =
+    case tryConsumeWord (BS.unsafeHead bs) bs of
+      DecodeFailure           -> go_fast_end da bs
+      DecodedToken sz (W# w#) ->
+        case gtWord# w# 0xff## of
+          0#                  -> go_fast (k w#) (BS.unsafeDrop sz bs)
+          _                   -> go_fast_end da bs
+
+go_fast da@(ConsumeWord16 k) !bs =
+    case tryConsumeWord (BS.unsafeHead bs) bs of
+      DecodeFailure           -> go_fast_end da bs
+      DecodedToken sz (W# w#) ->
+        case gtWord# w# 0xffff## of
+          0#                  -> go_fast (k w#) (BS.unsafeDrop sz bs)
+          _                   -> go_fast_end da bs
+
+go_fast da@(ConsumeWord32 k) !bs =
+    case tryConsumeWord (BS.unsafeHead bs) bs of
+      DecodeFailure           -> go_fast_end da bs
+      DecodedToken sz (W# w#) ->
+#if defined(ARCH_32bit)
+                                 go_fast (k w#) (BS.unsafeDrop sz bs)
+#else
+        case gtWord# w# 0xffffffff## of
+          0#                  -> go_fast (k w#) (BS.unsafeDrop sz bs)
+          _                   -> go_fast_end da bs
+#endif
+
 go_fast da@(ConsumeNegWord k) !bs =
     case tryConsumeNegWord (BS.unsafeHead bs) bs of
       DecodeFailure           -> go_fast_end da bs
@@ -179,6 +207,34 @@ go_fast da@(ConsumeInt k) !bs =
     case tryConsumeInt (BS.unsafeHead bs) bs of
       DecodeFailure           -> go_fast_end da bs
       DecodedToken sz (I# n#) -> go_fast (k n#) (BS.unsafeDrop sz bs)
+
+go_fast da@(ConsumeInt8 k) !bs =
+    case tryConsumeInt (BS.unsafeHead bs) bs of
+      DecodeFailure           -> go_fast_end da bs
+      DecodedToken sz (I# n#) ->
+        case (n# ># 0x7f#) `orI#` (n# <# -0x80#) of
+          0#                  -> go_fast (k n#) (BS.unsafeDrop sz bs)
+          _                   -> go_fast_end da bs
+
+go_fast da@(ConsumeInt16 k) !bs =
+    case tryConsumeInt (BS.unsafeHead bs) bs of
+      DecodeFailure           -> go_fast_end da bs
+      DecodedToken sz (I# n#) ->
+        case (n# ># 0x7fff#) `orI#` (n# <# -0x8000#) of
+          0#                  -> go_fast (k n#) (BS.unsafeDrop sz bs)
+          _                   -> go_fast_end da bs
+
+go_fast da@(ConsumeInt32 k) !bs =
+    case tryConsumeInt (BS.unsafeHead bs) bs of
+      DecodeFailure           -> go_fast_end da bs
+      DecodedToken sz (I# n#) ->
+#if defined(ARCH_32bit)
+                                 go_fast (k n#) (BS.unsafeDrop sz bs)
+#else
+        case (n# ># 0x7fffffff#) `orI#` (n# <# -0x80000000#) of
+          0#                  -> go_fast (k n#) (BS.unsafeDrop sz bs)
+          _                   -> go_fast_end da bs
+#endif
 
 go_fast da@(ConsumeListLen k) !bs =
     case tryConsumeListLen (BS.unsafeHead bs) bs of
@@ -329,6 +385,34 @@ go_fast_end (ConsumeWord k) !bs =
       DecodeFailure           -> SlowFail bs "expected word"
       DecodedToken sz (W# w#) -> go_fast_end (k w#) (BS.unsafeDrop sz bs)
 
+go_fast_end (ConsumeWord8 k) !bs =
+    case tryConsumeWord (BS.unsafeHead bs) bs of
+      DecodeFailure           -> SlowFail bs "expected word8"
+      DecodedToken sz (W# w#) ->
+        case gtWord# w# 0xff## of
+          0#                  -> go_fast_end (k w#) (BS.unsafeDrop sz bs)
+          _                   -> SlowFail bs "expected word8"
+
+go_fast_end (ConsumeWord16 k) !bs =
+    case tryConsumeWord (BS.unsafeHead bs) bs of
+      DecodeFailure           -> SlowFail bs "expected word16"
+      DecodedToken sz (W# w#) ->
+        case gtWord# w# 0xffff## of
+          0#                  -> go_fast_end (k w#) (BS.unsafeDrop sz bs)
+          _                   -> SlowFail bs "expected word16"
+
+go_fast_end (ConsumeWord32 k) !bs =
+    case tryConsumeWord (BS.unsafeHead bs) bs of
+      DecodeFailure           -> SlowFail bs "expected word32"
+      DecodedToken sz (W# w#) ->
+#if defined(ARCH_32bit)
+                                 go_fast_end (k w#) (BS.unsafeDrop sz bs)
+#else
+        case gtWord# w# 0xffffffff## of
+          0#                  -> go_fast_end (k w#) (BS.unsafeDrop sz bs)
+          _                   -> SlowFail bs "expected word32"
+#endif
+
 go_fast_end (ConsumeNegWord k) !bs =
     case tryConsumeNegWord (BS.unsafeHead bs) bs of
       DecodeFailure           -> SlowFail bs "expected negative int"
@@ -338,6 +422,34 @@ go_fast_end (ConsumeInt k) !bs =
     case tryConsumeInt (BS.unsafeHead bs) bs of
       DecodeFailure           -> SlowFail bs "expected int"
       DecodedToken sz (I# n#) -> go_fast_end (k n#) (BS.unsafeDrop sz bs)
+
+go_fast_end (ConsumeInt8 k) !bs =
+    case tryConsumeInt (BS.unsafeHead bs) bs of
+      DecodeFailure           -> SlowFail bs "expected int8"
+      DecodedToken sz (I# n#) ->
+        case (n# ># 0x7f#) `orI#` (n# <# -0x80#) of
+          0#                  -> go_fast_end (k n#) (BS.unsafeDrop sz bs)
+          _                   -> SlowFail bs "expected int8"
+
+go_fast_end (ConsumeInt16 k) !bs =
+    case tryConsumeInt (BS.unsafeHead bs) bs of
+      DecodeFailure           -> SlowFail bs "expected int16"
+      DecodedToken sz (I# n#) ->
+        case (n# ># 0x7fff#) `orI#` (n# <# -0x8000#) of
+          0#                  -> go_fast_end (k n#) (BS.unsafeDrop sz bs)
+          _                   -> SlowFail bs "expected int16"
+
+go_fast_end (ConsumeInt32 k) !bs =
+    case tryConsumeInt (BS.unsafeHead bs) bs of
+      DecodeFailure           -> SlowFail bs "expected int32"
+      DecodedToken sz (I# n#) ->
+#if defined(ARCH_32bit)
+                                 go_fast_end (k n#) (BS.unsafeDrop sz bs)
+#else
+        case (n# ># 0x7fffffff#) `orI#` (n# <# -0x80000000#) of
+          0#                  -> go_fast_end (k n#) (BS.unsafeDrop sz bs)
+          _                   -> SlowFail bs "expected int32"
+#endif
 
 go_fast_end (ConsumeListLen k) !bs =
     case tryConsumeListLen (BS.unsafeHead bs) bs of

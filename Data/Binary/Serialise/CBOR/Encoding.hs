@@ -19,8 +19,14 @@ module Data.Binary.Serialise.CBOR.Encoding
 
     -- * @'Encoding'@ API for serialisation
   , encodeWord               -- :: Word -> Encoding
+  , encodeWord8              -- :: Word8 -> Encoding
+  , encodeWord16             -- :: Word16 -> Encoding
+  , encodeWord32             -- :: Word32 -> Encoding
   , encodeWord64             -- :: Word64 -> Encoding
   , encodeInt                -- :: Int -> Encoding
+  , encodeInt8               -- :: Int8 -> Encoding
+  , encodeInt16              -- :: Int16 -> Encoding
+  , encodeInt32              -- :: Int32 -> Encoding
   , encodeInt64              -- :: Int64 -> Encoding
   , encodeInteger            -- :: Integer -> Encoding
   , encodeBytes              -- :: B.ByteString -> Encoding
@@ -125,6 +131,18 @@ instance Monoid Encoding where
 encodeWord :: Word -> Encoding
 encodeWord = Encoding . TkWord
 
+-- | Encode a @'Word8'@ in a flattened format.
+encodeWord8 :: Word8 -> Encoding
+encodeWord8 = Encoding . TkWord . fromIntegral
+
+-- | Encode a @'Word16'@ in a flattened format.
+encodeWord16 :: Word16 -> Encoding
+encodeWord16 = Encoding . TkWord . fromIntegral
+
+-- | Encode a @'Word32'@ in a flattened format.
+encodeWord32 :: Word32 -> Encoding
+encodeWord32 = Encoding . TkWord . fromIntegral
+
 -- | Encode a @'Word64'@ in a flattened format.
 encodeWord64 :: Word64 -> Encoding
 encodeWord64 = Encoding . TkWord64
@@ -132,6 +150,18 @@ encodeWord64 = Encoding . TkWord64
 -- | Encode an @'Int'@ in a flattened format.
 encodeInt :: Int -> Encoding
 encodeInt = Encoding . TkInt
+
+-- | Encode an @'Int8'@ in a flattened format.
+encodeInt8 :: Int8 -> Encoding
+encodeInt8 = Encoding . TkInt . fromIntegral
+
+-- | Encode an @'Int16'@ in a flattened format.
+encodeInt16 :: Int16 -> Encoding
+encodeInt16 = Encoding . TkInt . fromIntegral
+
+-- | Encode an @'Int32'@ in a flattened format.
+encodeInt32 :: Int32 -> Encoding
+encodeInt32 = Encoding . TkInt . fromIntegral
 
 -- | Encode an @'Int64' in a flattened format.
 encodeInt64 :: Int64 -> Encoding

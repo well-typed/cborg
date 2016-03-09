@@ -22,10 +22,16 @@ module Data.Binary.Serialise.CBOR.Decoding
 
   -- ** Read input tokens
   , decodeWord
+  , decodeWord8
+  , decodeWord16
+  , decodeWord32
   , decodeWord64
   , decodeNegWord
   , decodeNegWord64
   , decodeInt
+  , decodeInt8
+  , decodeInt16
+  , decodeInt32
   , decodeInt64
   , decodeInteger
   , decodeFloat
@@ -85,8 +91,14 @@ data Decoder a = Decoder {
 
 data DecodeAction a
     = ConsumeWord    (Word# -> DecodeAction a)
+    | ConsumeWord8   (Word# -> DecodeAction a)
+    | ConsumeWord16  (Word# -> DecodeAction a)
+    | ConsumeWord32  (Word# -> DecodeAction a)
     | ConsumeNegWord (Word# -> DecodeAction a)
     | ConsumeInt     (Int#  -> DecodeAction a)
+    | ConsumeInt8    (Int#  -> DecodeAction a)
+    | ConsumeInt16   (Int#  -> DecodeAction a)
+    | ConsumeInt32   (Int#  -> DecodeAction a)
     | ConsumeListLen (Int#  -> DecodeAction a)
     | ConsumeMapLen  (Int#  -> DecodeAction a)
     | ConsumeTag     (Word# -> DecodeAction a)
@@ -188,6 +200,18 @@ getDecodeAction (Decoder k) = k (\x -> Done x)
 decodeWord :: Decoder Word
 decodeWord = Decoder (\k -> ConsumeWord (\w# -> k (W# w#)))
 
+{-# INLINE decodeWord8 #-}
+decodeWord8 :: Decoder Word8
+decodeWord8 = Decoder (\k -> ConsumeWord8 (\w# -> k (W8# w#)))
+
+{-# INLINE decodeWord16 #-}
+decodeWord16 :: Decoder Word16
+decodeWord16 = Decoder (\k -> ConsumeWord16 (\w# -> k (W16# w#)))
+
+{-# INLINE decodeWord32 #-}
+decodeWord32 :: Decoder Word32
+decodeWord32 = Decoder (\k -> ConsumeWord32 (\w# -> k (W32# w#)))
+
 {-# INLINE decodeWord64 #-}
 decodeWord64 :: Decoder Word64
 decodeWord64 =
@@ -214,6 +238,18 @@ decodeNegWord64 =
 {-# INLINE decodeInt #-}
 decodeInt :: Decoder Int
 decodeInt = Decoder (\k -> ConsumeInt (\n# -> k (I# n#)))
+
+{-# INLINE decodeInt8 #-}
+decodeInt8 :: Decoder Int8
+decodeInt8 = Decoder (\k -> ConsumeInt8 (\w# -> k (I8# w#)))
+
+{-# INLINE decodeInt16 #-}
+decodeInt16 :: Decoder Int16
+decodeInt16 = Decoder (\k -> ConsumeInt16 (\w# -> k (I16# w#)))
+
+{-# INLINE decodeInt32 #-}
+decodeInt32 :: Decoder Int32
+decodeInt32 = Decoder (\k -> ConsumeInt32 (\w# -> k (I32# w#)))
 
 {-# INLINE decodeInt64 #-}
 decodeInt64 :: Decoder Int64
