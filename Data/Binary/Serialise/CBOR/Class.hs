@@ -61,12 +61,13 @@ import           Data.Time.Format                    (formatTime, parseTime)
 import           System.Locale                       (defaultTimeLocale)
 #endif
 
-import           Prelude                             hiding (decodeFloat,
-                                                      encodeFloat)
+import           Prelude hiding (decodeFloat, encodeFloat, foldr)
+import qualified Prelude
 import           GHC.Generics
 
 import           Data.Binary.Serialise.CBOR.Decoding
 import           Data.Binary.Serialise.CBOR.Encoding
+
 
 --------------------------------------------------------------------------------
 -- The Serialise class
@@ -108,7 +109,7 @@ instance Serialise a => Serialise [a] where
 defaultEncodeList :: Serialise a => [a] -> Encoding
 defaultEncodeList [] = encodeListLen 0
 defaultEncodeList xs = encodeListLenIndef
-                    <> foldr (\x r -> encode x <> r) encodeBreak xs
+                    <> Prelude.foldr (\x r -> encode x <> r) encodeBreak xs
 
 defaultDecodeList :: Serialise a => Decoder [a]
 defaultDecodeList = do
@@ -227,6 +228,8 @@ instance (Serialise a, Serialise b) => Serialise (Either a b) where
                   _ -> fail "unknown tag"
 
 
+--------------------------------------------------------------------------------
+-- Container instances
 
 encodeContainerSkel :: (Word -> Encoding)
                     -> (container -> Int)
@@ -234,23 +237,23 @@ encodeContainerSkel :: (Word -> Encoding)
                     -> accumFunc
                     -> container
                     -> Encoding
-encodeContainerSkel encodeLen size foldl' f  c =
-  encodeLen (fromIntegral (size c)) <> (foldl' f (mempty) c)
+encodeContainerSkel encodeLen size foldr f  c =
+    encodeLen (fromIntegral (size c)) <> foldr f mempty c
 
 decodeContainerSkel :: Decoder Int
                     -> ([a] -> container)
                     -> Decoder a
                     -> Decoder container
 decodeContainerSkel decodeLen fromList decodeItem = do
-  n <- decodeLen
-  fmap fromList (replicateM n decodeItem)
+    n <- decodeLen
+    fmap fromList (replicateM n decodeItem)
 
 instance (Serialise a) => Serialise (Sequence.Seq a) where
   encode = encodeContainerSkel
              encodeListLen
              Sequence.length
-             Foldable.foldl'
-             (\b a -> b <> encode a)
+             Foldable.foldr
+             (\a b -> encode a <> b)
   decode = decodeContainerSkel
              decodeListLen
              Sequence.fromList
@@ -260,8 +263,8 @@ instance (Serialise a) => Serialise (Vector.Vector a) where
   encode = encodeContainerSkel
              encodeListLen
              Vector.length
-             Foldable.foldl'
-             (\b a -> b <> encode a)
+             Vector.foldr
+             (\a b -> encode a <> b)
   decode = decodeContainerSkel
              decodeListLen
              Vector.fromList
@@ -269,11 +272,11 @@ instance (Serialise a) => Serialise (Vector.Vector a) where
 
 encodeSetSkel :: Serialise a
               => (s -> Int)
-              -> ((Encoding -> a -> Encoding) -> Encoding -> s -> Encoding)
+              -> ((a -> Encoding -> Encoding) -> Encoding -> s -> Encoding)
               -> s
               -> Encoding
-encodeSetSkel size foldl' =
-  encodeContainerSkel encodeListLen size foldl' (\b a -> b <> encode a)
+encodeSetSkel size foldr =
+    encodeContainerSkel encodeListLen size foldr (\a b -> encode a <> b)
 
 decodeSetSkel :: Serialise a
               => ([a] -> s) -> Decoder s
@@ -281,29 +284,28 @@ decodeSetSkel fromList =
   decodeContainerSkel decodeListLen fromList decode
 
 instance (Ord a, Serialise a) => Serialise (Set.Set a) where
-  encode = encodeSetSkel Set.size Set.foldl'
+  encode = encodeSetSkel Set.size Set.foldr
   decode = decodeSetSkel Set.fromList
 
 instance Serialise IntSet.IntSet where
-  encode = encodeSetSkel IntSet.size IntSet.foldl'
+  encode = encodeSetSkel IntSet.size IntSet.foldr
   decode = decodeSetSkel IntSet.fromList
 
 instance (Serialise a, Hashable a, Eq a) => Serialise (HashSet.HashSet a) where
-  encode = encodeSetSkel HashSet.size HashSet.foldl'
+  encode = encodeSetSkel HashSet.size HashSet.foldr
   decode = decodeSetSkel HashSet.fromList
-
 
 encodeMapSkel :: (Serialise k, Serialise v)
               => (m -> Int)
-              -> ((Encoding -> k -> v -> Encoding) -> Encoding -> m -> Encoding)
+              -> ((k -> v -> Encoding -> Encoding) -> Encoding -> m -> Encoding)
               -> m
               -> Encoding
-encodeMapSkel size foldlWithKey' =
+encodeMapSkel size foldrWithKey =
   encodeContainerSkel
     encodeMapLen
     size
-    foldlWithKey'
-    (\b k v -> b <> encode k <> encode v)
+    foldrWithKey
+    (\k v b -> encode k <> encode v <> b)
 
 decodeMapSkel :: (Serialise k, Serialise v)
               => ([(k,v)] -> m)
@@ -315,17 +317,18 @@ decodeMapSkel fromList =
     (do { !k <- decode; !v <- decode; return (k, v); })
 
 instance (Ord k, Serialise k, Serialise v) => Serialise (Map.Map k v) where
-  encode = encodeMapSkel Map.size Map.foldlWithKey'
+  encode = encodeMapSkel Map.size Map.foldrWithKey
   decode = decodeMapSkel Map.fromList
 
 instance (Serialise a) => Serialise (IntMap.IntMap a) where
-  encode = encodeMapSkel IntMap.size IntMap.foldlWithKey'
+  encode = encodeMapSkel IntMap.size IntMap.foldrWithKey
   decode = decodeMapSkel IntMap.fromList
 
 instance (Serialise k, Hashable k, Eq k, Serialise v) =>
   Serialise (HashMap.HashMap k v) where
-  encode = encodeMapSkel HashMap.size HashMap.foldlWithKey'
+  encode = encodeMapSkel HashMap.size HashMap.foldrWithKey
   decode = decodeMapSkel HashMap.fromList
+
 
 --------------------------------------------------------------------------------
 -- Misc base package instances
