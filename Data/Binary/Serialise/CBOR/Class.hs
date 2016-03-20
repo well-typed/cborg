@@ -563,14 +563,36 @@ encodeContainerSkel encodeLen size foldr f  c =
     encodeLen (fromIntegral (size c)) <> foldr f mempty c
 {-# INLINE encodeContainerSkel #-}
 
-decodeContainerSkel :: Decoder Int
-                    -> (Int -> [a] -> container)
-                    -> Decoder a
-                    -> Decoder container
-decodeContainerSkel decodeLen fromList decodeItem = do
-    n <- decodeLen
-    fmap (fromList n) (replicateM n decodeItem)
-{-# INLINE decodeContainerSkel #-}
+decodeContainerSkelWithReplicate
+  :: (Serialise a)
+  => Decoder Int
+     -- ^ How to get the size of the container
+  -> (Int -> Decoder a -> Decoder container)
+     -- ^ replicateM for the container
+  -> ([container] -> container)
+     -- ^ concat for the container
+  -> Decoder container
+decodeContainerSkelWithReplicate decodeLen replicateFun fromList = do
+    -- Look at how much data we have at the moment and use it as the limit for
+    -- the size of a single call to replicateFun. We don't want to use
+    -- replicateFun directly on the result of decodeLen since this might lead to
+    -- DOS attack (attacker providing a huge value for length). So if it's above
+    -- our limit, we'll do manual chunking and then combine the containers into
+    -- one.
+    size <- decodeLen
+    limit <- peekLength
+    if size <= limit
+       then replicateFun size decode
+       else do
+           -- Take the max of limit and a fixed chunk size (note: limit can be
+           -- 0). This basically means that the attacker can make us allocate a
+           -- container of size 128 even though there's no actual input.
+           let chunkSize = max limit 128
+               (d, m) = size `divMod` chunkSize
+               buildOne s = replicateFun s decode
+           containers <- sequence $ buildOne m : replicate d (buildOne limit)
+           return $! fromList containers
+{-# INLINE decodeContainerSkelWithReplicate #-}
 
 instance (Serialise a) => Serialise (Sequence.Seq a) where
   encode = encodeContainerSkel
@@ -578,10 +600,10 @@ instance (Serialise a) => Serialise (Sequence.Seq a) where
              Sequence.length
              Foldable.foldr
              (\a b -> encode a <> b)
-  decode = decodeContainerSkel
+  decode = decodeContainerSkelWithReplicate
              decodeListLen
-             (\_len -> Sequence.fromList)
-             decode
+             Sequence.replicateM
+             mconcat
 
 instance (Serialise a) => Serialise (Vector.Vector a) where
   encode = encodeContainerSkel
@@ -590,14 +612,12 @@ instance (Serialise a) => Serialise (Vector.Vector a) where
              Vector.foldr
              (\a b -> encode a <> b)
   {-# INLINE encode #-}
-  decode = decodeContainerSkel
+  decode = decodeContainerSkelWithReplicate
              decodeListLen
-             Vector.fromListN
-             decode
+             Vector.replicateM
+             Vector.concat
   {-# INLINE decode #-}
 
---TODO: we really ought to be able to do better than going via lists,
--- especially for unboxed vectors
 instance (Serialise a, Vector.Unboxed.Unbox a) =>
          Serialise (Vector.Unboxed.Vector a) where
   encode = encodeContainerSkel
@@ -606,10 +626,10 @@ instance (Serialise a, Vector.Unboxed.Unbox a) =>
              Vector.Unboxed.foldr
              (\a b -> encode a <> b)
   {-# INLINE encode #-}
-  decode = decodeContainerSkel
+  decode = decodeContainerSkelWithReplicate
              decodeListLen
-             Vector.Unboxed.fromListN
-             decode
+             Vector.Unboxed.replicateM
+             Vector.Unboxed.concat
   {-# INLINE decode #-}
 
 
@@ -624,8 +644,9 @@ encodeSetSkel size foldr =
 
 decodeSetSkel :: Serialise a
               => ([a] -> s) -> Decoder s
-decodeSetSkel fromList =
-  decodeContainerSkel decodeListLen (\_len -> fromList) decode
+decodeSetSkel fromList = do
+  n <- decodeListLen
+  fmap fromList (replicateM n decode)
 {-# INLINE decodeSetSkel #-}
 
 instance (Ord a, Serialise a) => Serialise (Set.Set a) where
@@ -656,11 +677,13 @@ encodeMapSkel size foldrWithKey =
 decodeMapSkel :: (Serialise k, Serialise v)
               => ([(k,v)] -> m)
               -> Decoder m
-decodeMapSkel fromList =
-  decodeContainerSkel
-    decodeMapLen
-    (\_len -> fromList)
-    (do { !k <- decode; !v <- decode; return (k, v); })
+decodeMapSkel fromList = do
+  n <- decodeMapLen
+  let decodeEntry = do
+        !k <- decode
+        !v <- decode
+        return (k, v)
+  fmap fromList (replicateM n decodeEntry)
 {-# INLINE decodeMapSkel #-}
 
 instance (Ord k, Serialise k, Serialise v) => Serialise (Map.Map k v) where
