@@ -156,9 +156,9 @@ instance NFData BuildInfo where
                  a11 a12 a13 a14 a15 a16 a17 a18 a19 a20
                  a21 a22 a23 a24 a25) =
     rnf a1  `seq` rnf a2  `seq` rnf a3  `seq` rnf a4  `seq` rnf a5  `seq`
-    rnf a6  `seq` rnf a7  `seq` rnf a8  `seq` rnf a9  `seq` rnf a10 `seq` 
+    rnf a6  `seq` rnf a7  `seq` rnf a8  `seq` rnf a9  `seq` rnf a10 `seq`
     rnf a11 `seq` rnf a12 `seq` rnf a13 `seq` rnf a14 `seq` rnf a15 `seq`
-    rnf a16 `seq` rnf a17 `seq` rnf a18 `seq` rnf a19 `seq` rnf a20 `seq` 
+    rnf a16 `seq` rnf a17 `seq` rnf a18 `seq` rnf a19 `seq` rnf a20 `seq`
     rnf a21 `seq` rnf a22 `seq` rnf a23 `seq` rnf a24 `seq` rnf a25 `seq` ()
 
 
@@ -179,9 +179,9 @@ instance NFData PackageDescription where
                           a11 a12 a13 a14 a15 a16 a17 a18 a19 a20
                           a21 a22 a23 a24 a25 a26 a27 a28) =
     rnf a1  `seq` rnf a2  `seq` rnf a3  `seq` rnf a4  `seq` rnf a5  `seq`
-    rnf a6  `seq` rnf a7  `seq` rnf a8  `seq` rnf a9  `seq` rnf a10 `seq` 
+    rnf a6  `seq` rnf a7  `seq` rnf a8  `seq` rnf a9  `seq` rnf a10 `seq`
     rnf a11 `seq` rnf a12 `seq` rnf a13 `seq` rnf a14 `seq` rnf a15 `seq`
-    rnf a16 `seq` rnf a17 `seq` rnf a18 `seq` rnf a19 `seq` rnf a20 `seq` 
+    rnf a16 `seq` rnf a17 `seq` rnf a18 `seq` rnf a19 `seq` rnf a20 `seq`
     rnf a21 `seq` rnf a22 `seq` rnf a23 `seq` rnf a24 `seq` rnf a25 `seq`
     rnf a26 `seq` rnf a27 `seq` rnf a28 `seq` ()
 

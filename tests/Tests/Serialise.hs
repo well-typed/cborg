@@ -73,7 +73,7 @@ prop_validFlatTerm _ = validFlatTerm . toFlatTerm . encode
 format :: (Typeable a, Show a, Serialise a) => a -> Tokens -> TestTree
 format a toks
   = testCase (show (typeOf a) ++ ": " ++ show a)
-  $ toks @=? toks' 
+  $ toks @=? toks'
   where
     Encoding f = encode a
     toks'      = f TkEnd

@@ -668,7 +668,7 @@ go_slow_overlapped da sz bs_cur bs_next !offset =
 
       -- but the other possibilities can happen too
       FastDone bs_empty x ->
-        assert (BS.null bs_empty) $       
+        assert (BS.null bs_empty) $
         return (bs', offset', x)
 
       SlowConsumeTokenBytes bs_empty k len ->
@@ -718,7 +718,7 @@ getTokenVarLen len bs offset =
              in return (tok, BS.drop n bs')
 
         | otherwise -> getTokenVarLenSlow
-                         [bs',bs] 
+                         [bs',bs]
                          (len - (BS.length bs + BS.length bs'))
                          offset
 

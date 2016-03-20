@@ -188,9 +188,9 @@ instance MemSize BuildInfo where
                      a11 a12 a13 a14 a15 a16 a17 a18 a19 a20
                      a21 a22 a23 a24 a25) =
     memSize a1  . memSize a2  . memSize a3  . memSize a4  . memSize a5  .
-    memSize a6  . memSize a7  . memSize a8  . memSize a9  . memSize a10 . 
+    memSize a6  . memSize a7  . memSize a8  . memSize a9  . memSize a10 .
     memSize a11 . memSize a12 . memSize a13 . memSize a14 . memSize a15 .
-    memSize a16 . memSize a17 . memSize a18 . memSize a19 . memSize a20 . 
+    memSize a16 . memSize a17 . memSize a18 . memSize a19 . memSize a20 .
     memSize a21 . memSize a22 . memSize a23 . memSize a24 . memSize a25 . (+26)
 
 
@@ -212,9 +212,9 @@ instance MemSize PackageDescription where
                               a11 a12 a13 a14 a15 a16 a17 a18 a19 a20
                               a21 a22 a23 a24 a25 a26 a27 a28) =
     memSize a1  . memSize a2  . memSize a3  . memSize a4  . memSize a5  .
-    memSize a6  . memSize a7  . memSize a8  . memSize a9  . memSize a10 . 
+    memSize a6  . memSize a7  . memSize a8  . memSize a9  . memSize a10 .
     memSize a11 . memSize a12 . memSize a13 . memSize a14 . memSize a15 .
-    memSize a16 . memSize a17 . memSize a18 . memSize a19 . memSize a20 . 
+    memSize a16 . memSize a17 . memSize a18 . memSize a19 . memSize a20 .
     memSize a21 . memSize a22 . memSize a23 . memSize a24 . memSize a25 .
     memSize a26 . memSize a27 . memSize a28 . (+29)
 

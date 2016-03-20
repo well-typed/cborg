@@ -53,7 +53,7 @@ benchmarks =
 --    , bench "new msgpack"   (whnf perfDecodeNewMsgPack   tstdataN)
       , bench "cbor"          (whnf perfDecodeCBOR         tstdataR)
       ]
-  , bgroup "decoding + deepseq" $ deepseq (tstdataB, tstdataC, tstdataA, 
+  , bgroup "decoding + deepseq" $ deepseq (tstdataB, tstdataC, tstdataA,
                                            tstdataS, tstdataR)
       [ bench "binary"        (nf perfDecodeBinary       tstdataB)
       , bench "cereal"        (nf perfDecodeCereal       tstdataC)

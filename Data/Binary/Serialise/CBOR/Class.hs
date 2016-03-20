@@ -430,7 +430,7 @@ forceUTCTime t@(UTCTime !_day !_daytime) = t
 --------------------------------------------------------------------------------
 -- Generic instances
 
--- | Serialise type class for generic representation of 
+-- | Serialise type class for generic representation of
 class GSerialize f where
     gencode  :: f a -> Encoding
     gdecode  :: Decoder (f a)
