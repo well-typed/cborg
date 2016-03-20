@@ -265,7 +265,8 @@ benchmark micro
     aeson                   >= 0.7     && < 0.12,
     deepseq                 >= 1.0     && < 1.5,
     criterion               >= 1.0     && < 1.2,
-    cereal                  >= 0.4     && < 0.6
+    cereal                  >= 0.4     && < 0.6,
+    cereal-vector           >= 0.2     && < 0.3
 
 benchmark vs-other-libs
   type:              exitcode-stdio-1.0

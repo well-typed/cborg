@@ -7,6 +7,7 @@ module Main
 import           Criterion.Main (defaultMain, bgroup)
 
 import qualified Micro        as Micro
+import qualified SimpleVersus as Versus
 
 --------------------------------------------------------------------------------
 
@@ -14,4 +15,5 @@ import qualified Micro        as Micro
 main :: IO ()
 main = defaultMain
   [ bgroup "micro"  Micro.benchmarks
+  , bgroup "versus" Versus.benchmarks
   ]
