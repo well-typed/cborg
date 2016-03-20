@@ -563,14 +563,15 @@ encodeContainerSkel encodeLen size foldr f  c =
     encodeLen (fromIntegral (size c)) <> foldr f mempty c
 {-# INLINE encodeContainerSkel #-}
 
-decodeContainerSkel :: Decoder Int
-                    -> (Int -> [a] -> container)
-                    -> Decoder a
-                    -> Decoder container
-decodeContainerSkel decodeLen fromList decodeItem = do
+decodeContainerSkelWithReplicate
+  :: (Serialise a)
+  => Decoder Int
+  -> (Int -> Decoder a -> Decoder container)
+  -> Decoder container
+decodeContainerSkelWithReplicate decodeLen replicateFun = do
     n <- decodeLen
-    fmap (fromList n) (replicateM n decodeItem)
-{-# INLINE decodeContainerSkel #-}
+    replicateFun n decode
+{-# INLINE decodeContainerSkelWithReplicate #-}
 
 instance (Serialise a) => Serialise (Sequence.Seq a) where
   encode = encodeContainerSkel
@@ -578,10 +579,7 @@ instance (Serialise a) => Serialise (Sequence.Seq a) where
              Sequence.length
              Foldable.foldr
              (\a b -> encode a <> b)
-  decode = decodeContainerSkel
-             decodeListLen
-             (\_len -> Sequence.fromList)
-             decode
+  decode = decodeContainerSkelWithReplicate decodeListLen Sequence.replicateM
 
 instance (Serialise a) => Serialise (Vector.Vector a) where
   encode = encodeContainerSkel
@@ -590,14 +588,9 @@ instance (Serialise a) => Serialise (Vector.Vector a) where
              Vector.foldr
              (\a b -> encode a <> b)
   {-# INLINE encode #-}
-  decode = decodeContainerSkel
-             decodeListLen
-             Vector.fromListN
-             decode
+  decode = decodeContainerSkelWithReplicate decodeListLen Vector.replicateM
   {-# INLINE decode #-}
 
---TODO: we really ought to be able to do better than going via lists,
--- especially for unboxed vectors
 instance (Serialise a, Vector.Unboxed.Unbox a) =>
          Serialise (Vector.Unboxed.Vector a) where
   encode = encodeContainerSkel
@@ -606,10 +599,9 @@ instance (Serialise a, Vector.Unboxed.Unbox a) =>
              Vector.Unboxed.foldr
              (\a b -> encode a <> b)
   {-# INLINE encode #-}
-  decode = decodeContainerSkel
+  decode = decodeContainerSkelWithReplicate
              decodeListLen
-             Vector.Unboxed.fromListN
-             decode
+             Vector.Unboxed.replicateM
   {-# INLINE decode #-}
 
 
@@ -624,8 +616,9 @@ encodeSetSkel size foldr =
 
 decodeSetSkel :: Serialise a
               => ([a] -> s) -> Decoder s
-decodeSetSkel fromList =
-  decodeContainerSkel decodeListLen (\_len -> fromList) decode
+decodeSetSkel fromList = do
+  n <- decodeListLen
+  fmap fromList (replicateM n decode)
 {-# INLINE decodeSetSkel #-}
 
 instance (Ord a, Serialise a) => Serialise (Set.Set a) where
@@ -656,11 +649,13 @@ encodeMapSkel size foldrWithKey =
 decodeMapSkel :: (Serialise k, Serialise v)
               => ([(k,v)] -> m)
               -> Decoder m
-decodeMapSkel fromList =
-  decodeContainerSkel
-    decodeMapLen
-    (\_len -> fromList)
-    (do { !k <- decode; !v <- decode; return (k, v); })
+decodeMapSkel fromList = do
+  n <- decodeMapLen
+  let decodeEntry = do
+        !k <- decode
+        !v <- decode
+        return (k, v)
+  fmap fromList (replicateM n decodeEntry)
 {-# INLINE decodeMapSkel #-}
 
 instance (Ord k, Serialise k, Serialise v) => Serialise (Map.Map k v) where
