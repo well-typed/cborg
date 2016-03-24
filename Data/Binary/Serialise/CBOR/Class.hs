@@ -292,10 +292,12 @@ instance (Serialise a) => Serialise (Vector.Vector a) where
              Vector.length
              Vector.foldr
              (\a b -> encode a <> b)
+  {-# INLINE encode #-}
   decode = decodeContainerSkel
              decodeListLen
              Vector.fromListN
              decode
+  {-# INLINE decode #-}
 
 --TODO: we really ought to be able to do better than going via lists,
 -- especially for unboxed vectors
@@ -306,10 +308,12 @@ instance (Serialise a, Vector.Unboxed.Unbox a) =>
              Vector.Unboxed.length
              Vector.Unboxed.foldr
              (\a b -> encode a <> b)
+  {-# INLINE encode #-}
   decode = decodeContainerSkel
              decodeListLen
              Vector.Unboxed.fromListN
              decode
+  {-# INLINE decode #-}
 
 
 encodeSetSkel :: Serialise a
