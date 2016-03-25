@@ -361,6 +361,8 @@ go_fast (PeekTokenType k) !bs =
         !tkty = decodeTokenTypeTable `A.unsafeAt` fromIntegral hdr
     in go_fast (k tkty) bs
 
+go_fast (PeekLength k) !bs = go_fast (k $! BS.length bs) bs
+
 go_fast da@Fail{} !bs = go_fast_end da bs
 go_fast da@Done{} !bs = go_fast_end da bs
 
@@ -374,10 +376,11 @@ go_fast da@Done{} !bs = go_fast_end da bs
 --
 go_fast_end :: DecodeAction a -> ByteString -> SlowPath a
 
--- these two cases don't need any input
+-- these three cases don't need any input
 
 go_fast_end (Fail msg) !bs = SlowFail bs msg
 go_fast_end (Done x)   !bs = FastDone bs x
+go_fast_end (PeekLength k) !bs = go_fast_end (k $! BS.length bs) bs
 
 -- the next two cases only need the 1 byte token header
 go_fast_end da !bs | BS.null bs = SlowDecodeAction bs da
