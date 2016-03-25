@@ -177,7 +177,7 @@ encodeInteger n = Encoding (TkInteger n)
 encodeBytes :: B.ByteString -> Encoding
 encodeBytes = Encoding . TkBytes
 
--- | Encode 
+-- | Encode
 encodeBytesIndef :: Encoding
 encodeBytesIndef = Encoding TkBytesBegin
 

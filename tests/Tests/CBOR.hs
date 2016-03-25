@@ -2,7 +2,7 @@
 {-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Tests.CBOR 
+module Tests.CBOR
   ( testTree -- :: TestTree
   ) where
 
@@ -35,7 +35,7 @@ externalTestCase TestCase { encoded, decoded = Left expectedJson } = do
   let term       = deserialise encoded
       actualJson = TestVector.termToJson (toRefTerm term)
       reencoded  = serialise term
-  
+
   expectedJson `TestVector.equalJson` actualJson
   encoded @=? reencoded
 
@@ -59,7 +59,7 @@ expectedDiagnosticNotation expectedDiagnostic encoded = do
 -- examples (all the ones from Appendix A). It does not satisfy the roundtrip
 -- property in general however, non-canonical over-long int encodings for
 -- example.
--- 
+--
 --
 encodedRoundtrip :: String -> [Word8] -> Assertion
 encodedRoundtrip expectedDiagnostic encoded = do
@@ -135,7 +135,7 @@ toRefTerm (TInt      n)
             | n >= 0    = RefImpl.TUInt (RefImpl.toUInt (fromIntegral n))
             | otherwise = RefImpl.TNInt (RefImpl.toUInt (fromIntegral (-1 - n)))
 toRefTerm (TInteger  n) -- = RefImpl.TBigInt n
-            | n >= 0 && n <= fromIntegral (maxBound :: Word64) 
+            | n >= 0 && n <= fromIntegral (maxBound :: Word64)
                         = RefImpl.TUInt (RefImpl.toUInt (fromIntegral n))
             | n <  0 && n >= -1 - fromIntegral (maxBound :: Word64)
                         = RefImpl.TNInt (RefImpl.toUInt (fromIntegral (-1 - n)))
@@ -167,7 +167,7 @@ fromRefTerm (RefImpl.TUInt u)
   | n <= fromIntegral (maxBound :: Int) = TInt     (fromIntegral n)
   | otherwise                           = TInteger (fromIntegral n)
   where n = RefImpl.fromUInt u
-      
+
 fromRefTerm (RefImpl.TNInt u)
   | n <= fromIntegral (maxBound :: Int) = TInt     (-1 - fromIntegral n)
   | otherwise                           = TInteger (-1 - fromIntegral n)

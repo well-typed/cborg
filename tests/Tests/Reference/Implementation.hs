@@ -56,7 +56,7 @@ module Tests.Reference.Implementation (
     prop_word32ToFromNet,
     prop_word64ToFromNet,
     prop_halfToFromFloat,
-    
+
     arbitraryFullRangeIntegral,
     ) where
 
@@ -277,7 +277,7 @@ decodeTokenHeader = do
 
 encodeTokenHeader :: Encoder TokenHeader
 encodeTokenHeader (TokenHeader mt ai) =
-    let (w, ws) = encodeAdditionalInfo ai   
+    let (w, ws) = encodeAdditionalInfo ai
      in encodeInitialByte mt w : ws
 
 prop_TokenHeader :: TokenHeader -> Bool
@@ -294,7 +294,7 @@ prop_TokenHeader2 =
               Just (header, unused) = runDecoder decodeTokenHeader (w8 : extra)
               encoded   = encodeTokenHeader header
               extraused = take (8 - length unused) extra
-        ] 
+        ]
 
 data Token =
      MT0_UnsignedInt UInt
@@ -639,7 +639,7 @@ decodeBytess acc = do
       MT7_Break            -> return $! TBytess (reverse acc)
       MT2_ByteString _ bs  -> decodeBytess (bs : acc)
       _                    -> fail "unexpected"
-      
+
 decodeStrings :: [String] -> Decoder Term
 decodeStrings acc = do
     tk <- decodeToken
@@ -683,7 +683,7 @@ decodeMap acc = do
         tm  <- decodeTermFrom tk
         tm' <- decodeTerm
         decodeMap ((tm, tm') : acc)
-      
+
 decodeTagged :: UInt -> Decoder Term
 decodeTagged tag | fromUInt tag == 2 = do
     MT2_ByteString _ bs <- decodeToken
@@ -802,7 +802,7 @@ eqTerm (TFloat16 f)  (TFloat16 f') | isNaN f && isNaN f' = True
 eqTerm (TFloat32 f)  (TFloat32 f') | isNaN f && isNaN f' = True
 eqTerm (TFloat64 f)  (TFloat64 f') | isNaN f && isNaN f' = True
 eqTerm a b = a == b
-      
+
 eqTermPair :: (Term, Term) -> (Term, Term) -> Bool
 eqTermPair (a,b) (a',b') = eqTerm a a' && eqTerm b b'
 
@@ -867,7 +867,7 @@ diagnosticNotation = \t -> showsTerm t ""
 
     commaSpace = showChar ',' . showChar ' '
     underscoreSpace = showChar '_' . showChar ' '
-    
+
     showsMapElem (k,v) = showsTerm k . showChar ':' . showChar ' ' . showsTerm v
 
     catShows :: (a -> ShowS) -> [a] -> ShowS
@@ -882,7 +882,7 @@ diagnosticNotation = \t -> showsTerm t ""
     showsBytes bs = showChar 'h' . showChar '\''
                                  . catShows showFHex bs
                                  . showChar '\''
-    
+
     showFHex n | n < 16    = showChar '0' . showHex n
                | otherwise = showHex n
 
@@ -918,7 +918,7 @@ word32ToNet w =
     , fromIntegral ((w `shiftR` (8*0)) .&. 0xff)
     )
 
-word64FromNet :: Word8 -> Word8 -> Word8 -> Word8 -> 
+word64FromNet :: Word8 -> Word8 -> Word8 -> Word8 ->
                  Word8 -> Word8 -> Word8 -> Word8 -> Word64
 word64FromNet w7 w6 w5 w4 w3 w2 w1 w0 =
       fromIntegral w7 `shiftL` (8*7)
@@ -951,7 +951,7 @@ prop_word32ToFromNet :: Word8 -> Word8 -> Word8 -> Word8 -> Bool
 prop_word32ToFromNet w3 w2 w1 w0 =
     word32ToNet (word32FromNet w3 w2 w1 w0) == (w3, w2, w1, w0)
 
-prop_word64ToFromNet :: Word8 -> Word8 -> Word8 -> Word8 -> 
+prop_word64ToFromNet :: Word8 -> Word8 -> Word8 -> Word8 ->
                         Word8 -> Word8 -> Word8 -> Word8 -> Bool
 prop_word64ToFromNet w7 w6 w5 w4 w3 w2 w1 w0 =
     word64ToNet (word64FromNet w7 w6 w5 w4 w3 w2 w1 w0)
@@ -998,7 +998,7 @@ prop_halfToFromFloat =
 
 instance Arbitrary Half where
   arbitrary = Half.Half . fromIntegral <$> (arbitrary :: Gen Word16)
-  
+
 newtype FloatSpecials n = FloatSpecials { getFloatSpecials :: n }
   deriving (Show, Eq)
 

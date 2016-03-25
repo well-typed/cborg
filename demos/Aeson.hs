@@ -1,5 +1,5 @@
 {-# LANGUAGE CPP          #-}
-{-# LANGUAGE BangPatterns #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}  -- instance Serialise Value
 module Main
   ( main -- :: IO ()
   ) where

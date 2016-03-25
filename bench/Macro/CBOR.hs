@@ -336,9 +336,9 @@ instance Serialise BuildInfo where
                     a21 a22 a23 a24 a25) =
     encodeListLen 26 <> encode (1 :: Word) <>
     encode a1  <> encode a2  <> encode a3  <> encode a4  <> encode a5  <>
-    encode a6  <> encode a7  <> encode a8  <> encode a9  <> encode a10 <> 
+    encode a6  <> encode a7  <> encode a8  <> encode a9  <> encode a10 <>
     encode a11 <> encode a12 <> encode a13 <> encode a14 <> encode a15 <>
-    encode a16 <> encode a17 <> encode a18 <> encode a19 <> encode a20 <> 
+    encode a16 <> encode a17 <> encode a18 <> encode a19 <> encode a20 <>
     encode a21 <> encode a22 <> encode a23 <> encode a24 <> encode a25
 
   decode = decodeListLenOf 26 *> decodeWordOf 1 *>
@@ -382,9 +382,9 @@ instance Serialise PackageDescription where
                              a21 a22 a23 a24 a25 a26 a27 a28) =
     encodeListLen 29 <> encode (1 :: Word) <>
     encode a1  <> encode a2  <> encode a3  <> encode a4  <> encode a5  <>
-    encode a6  <> encode a7  <> encode a8  <> encode a9  <> encode a10 <> 
+    encode a6  <> encode a7  <> encode a8  <> encode a9  <> encode a10 <>
     encode a11 <> encode a12 <> encode a13 <> encode a14 <> encode a15 <>
-    encode a16 <> encode a17 <> encode a18 <> encode a19 <> encode a20 <> 
+    encode a16 <> encode a17 <> encode a18 <> encode a19 <> encode a20 <>
     encode a21 <> encode a22 <> encode a23 <> encode a24 <> encode a25 <>
     encode a26 <> encode a27 <> encode a28
 
