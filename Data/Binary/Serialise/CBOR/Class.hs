@@ -566,11 +566,32 @@ encodeContainerSkel encodeLen size foldr f  c =
 decodeContainerSkelWithReplicate
   :: (Serialise a)
   => Decoder Int
+     -- ^ How to get the size of the container
   -> (Int -> Decoder a -> Decoder container)
+     -- ^ replicateM for the container
+  -> ([container] -> container)
+     -- ^ concat for the container
   -> Decoder container
-decodeContainerSkelWithReplicate decodeLen replicateFun = do
-    n <- decodeLen
-    replicateFun n decode
+decodeContainerSkelWithReplicate decodeLen replicateFun fromList = do
+    -- Look at how much data we have at the moment and use it as the limit for
+    -- the size of a single call to replicateFun. We don't want to use
+    -- replicateFun directly on the result of decodeLen since this might lead to
+    -- DOS attack (attacker providing a huge value for length). So if it's above
+    -- our limit, we'll do manual chunking and then combine the containers into
+    -- one.
+    size <- decodeLen
+    limit <- peekLength
+    if size <= limit
+       then replicateFun size decode
+       else do
+           -- Take the max of limit and a fixed chunk size (note: limit can be
+           -- 0). This basically means that the attacker can make us allocate a
+           -- container of size 128 even though there's no actual input.
+           let chunkSize = max limit 128
+               (d, m) = size `divMod` chunkSize
+               buildOne s = replicateFun s decode
+           containers <- sequence $ buildOne m : replicate d (buildOne limit)
+           return $! fromList containers
 {-# INLINE decodeContainerSkelWithReplicate #-}
 
 instance (Serialise a) => Serialise (Sequence.Seq a) where
@@ -579,7 +600,10 @@ instance (Serialise a) => Serialise (Sequence.Seq a) where
              Sequence.length
              Foldable.foldr
              (\a b -> encode a <> b)
-  decode = decodeContainerSkelWithReplicate decodeListLen Sequence.replicateM
+  decode = decodeContainerSkelWithReplicate
+             decodeListLen
+             Sequence.replicateM
+             mconcat
 
 instance (Serialise a) => Serialise (Vector.Vector a) where
   encode = encodeContainerSkel
@@ -588,7 +612,10 @@ instance (Serialise a) => Serialise (Vector.Vector a) where
              Vector.foldr
              (\a b -> encode a <> b)
   {-# INLINE encode #-}
-  decode = decodeContainerSkelWithReplicate decodeListLen Vector.replicateM
+  decode = decodeContainerSkelWithReplicate
+             decodeListLen
+             Vector.replicateM
+             Vector.concat
   {-# INLINE decode #-}
 
 instance (Serialise a, Vector.Unboxed.Unbox a) =>
@@ -602,6 +629,7 @@ instance (Serialise a, Vector.Unboxed.Unbox a) =>
   decode = decodeContainerSkelWithReplicate
              decodeListLen
              Vector.Unboxed.replicateM
+             Vector.Unboxed.concat
   {-# INLINE decode #-}
 
 
