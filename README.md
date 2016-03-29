@@ -60,7 +60,7 @@ $ cabal test
 $ stack test
 ```
 
-Note: the `stack.yaml` file is currently synchronized to LTS-5.4. Further
+Note: the `stack.yaml` file is currently synchronized to **LTS-5.10**. Further
 compilers and other LTS releases are currently not supported with Stack
 at the moment, but the build *is* tested with older compilers and Cabal
 libraries (through Travis CI).
