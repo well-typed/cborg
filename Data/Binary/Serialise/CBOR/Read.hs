@@ -1608,7 +1608,7 @@ readBigNInt bs
 nintegerFromBytes :: BS.ByteString -> Integer
 nintegerFromBytes bs = -1 - uintegerFromBytes bs
 
---TODO: optimised implementation for GMP
+-- TODO FIXME: optimised implementation for GMP
 uintegerFromBytes :: BS.ByteString -> Integer
 uintegerFromBytes bs =
     case BS.uncons bs of
