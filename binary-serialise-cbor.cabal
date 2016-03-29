@@ -127,6 +127,28 @@ executable demo-aeson
     vector                  >= 0.10    && < 0.12,
     binary-serialise-cbor
 
+executable demo-dump-cbor
+  hs-source-dirs:    demos
+  main-is:           Dump.hs
+
+  default-language:  Haskell2010
+  ghc-options:       -Wall
+
+  other-extensions:
+    CPP, BangPatterns
+
+  if flag(examples)
+    buildable: True
+  else
+    buildable: False
+
+  build-depends:
+    base                    >= 4.6     && < 5.0,
+    bytestring              >= 0.10.4  && < 0.11,
+    filepath                >= 1.0     && < 1.5,
+    ghc-prim                >= 0.3     && < 0.6,
+    binary-serialise-cbor
+
 --------------------------------------------------------------------------------
 -- Tests
 
