@@ -8,10 +8,13 @@ builder actions) came from Simon Meier.
 People who contributed code, ideas or lively discussion include, in no
 particular order:
 
-  Adam Gundry        <adam   [@at] well-typed [.dot] com>
-  Alexey Khudyakov   <alexey [.dot] skladnoy [@at] gmail.com>
+  Adam Gundry        <adam [@at] well-typed [.dot] com>
+  Alexey Khudyakov   <alexey [.dot] skladnoy [@at] gmail [.dot] com>
+  Arian van Putten   <aeroboy94 [@at] gmail [.dot] com>
   Austin Seipp       <austin [@at] well-typed [.dot] com>
-  Ondrej Palkovsky   <palkovsky [.dot] ondrej [@at] gmail.com>
+  Ben Gamari         <ben [@at] well-typed [.dot] com>
+  Michal Terepeta    <michal [.dot] terepeta [@at] gmail [.dot] com>
+  Ondrej Palkovsky   <palkovsky [.dot] ondrej [@at] gmail [.dot] com>
 
 This package includes code from the 'half' package, particularly the C code
 in cbits/half.c. Thanks to Edward Kmett for this.
