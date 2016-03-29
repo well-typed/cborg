@@ -16,7 +16,6 @@ module Data.Binary.Serialise.CBOR.Term
   ( Term(..)
   , encodeTerm
   , decodeTerm
-  , ignoreTerm
   ) where
 
 #include "cbor.h"
@@ -96,10 +95,6 @@ encodeTerm (TSimple   w)  = encodeSimple w
 encodeTerm (THalf     f)  = encodeFloat16 f
 encodeTerm (TFloat    f)  = encodeFloat   f
 encodeTerm (TDouble   f)  = encodeDouble  f
-
-
-ignoreTerm :: Decoder ()
-ignoreTerm = decodeTerm >> return () -- TODO FIXME: optimised impl(?)
 
 decodeTerm :: Decoder Term
 decodeTerm = do
