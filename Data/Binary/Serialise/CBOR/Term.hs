@@ -99,7 +99,7 @@ encodeTerm (TDouble   f)  = encodeDouble  f
 
 
 ignoreTerm :: Decoder ()
-ignoreTerm = decodeTerm >> return () --TODO: optimised impl
+ignoreTerm = decodeTerm >> return () -- TODO FIXME: optimised impl(?)
 
 decodeTerm :: Decoder Term
 decodeTerm = do
