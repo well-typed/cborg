@@ -77,8 +77,6 @@ import           Data.Binary.Serialise.CBOR.Encoding
 -- to be quickly encoded or decoded directly to a CBOR representation,
 -- for object transmission or storage.
 class Serialise a where
-    {-# MINIMAL encode, decode #-}
-
     -- | Definition for encoding a given type into a binary
     -- representation, using the @'Encoding'@ @'Monoid'@.
     encode  :: a -> Encoding
