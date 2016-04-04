@@ -294,7 +294,14 @@ instance Arbitrary a => Arbitrary (List a) where
         cnv = foldr Cons Nil
 
 
+--------------------------------------------------------------------------------
 -- QC Orphans
+--
+-- A _LOT_ of orphans instances for QuickCheck. Some are already in
+-- git HEAD and some are still waiting as pull request
+--
+-- [https://github.com/nick8325/quickcheck/pull/90]
+
 instance ( Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
          , Arbitrary f
          )
