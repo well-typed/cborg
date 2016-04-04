@@ -281,11 +281,11 @@ instance Serialise a => Serialise (Last a) where
     encode (Last b) = encode b
     decode = Last <$> decode
 
+#if MIN_VERSION_base(4,8,0)
 instance Serialise (f a) => Serialise (Alt f a) where
     encode (Alt b) = encode b
     decode = Alt <$> decode
 
-#if MIN_VERSION_base(4,8,0)
 instance Serialise a => Serialise (Identity a) where
     encode (Identity b) = encode b
     decode = Identity <$> decode

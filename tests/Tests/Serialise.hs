@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE CPP                  #-}
 {-# LANGUAGE ConstraintKinds     #-}
 {-# LANGUAGE DeriveDataTypeable  #-}
@@ -22,8 +23,8 @@ import           GHC.Float (float2Double)
 import           Data.Version
 
 import           Data.Typeable
-#if !MIN_VERSION_base(4,8,0)
-import           Control.Applicative
+#if MIN_VERSION_base(4,8,0)
+import           Data.Functor.Identity
 #endif
 import           Foreign.C.Types
 
@@ -177,6 +178,10 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T (Dual (Maybe (Sum Int))))
       , mkTest (T :: T All)
       , mkTest (T :: T Any)
+#if MIN_VERSION_base(4,8,0)
+      , mkTest (T :: T (Alt Maybe Int))
+      , mkTest (T :: T (Identity ()))
+#endif
       , mkTest (T :: T (Sum Int))
       , mkTest (T :: T (Product Int))
       , mkTest (T :: T (Map.Map Int String))
@@ -472,3 +477,13 @@ instance Arbitrary ExitCode where
 
   shrink (ExitFailure x) = ExitSuccess : [ ExitFailure x' | x' <- shrink x ]
   shrink _        = []
+
+#if MIN_VERSION_base(4,8,0)
+instance Arbitrary (f a) => Arbitrary (Alt f a) where
+  arbitrary = fmap Alt arbitrary
+  shrink (Alt a) = map Alt $ shrink a
+
+instance Arbitrary a => Arbitrary (Identity a) where
+  arbitrary = fmap Identity arbitrary
+  shrink (Identity a) = map Identity $ shrink a
+#endif
