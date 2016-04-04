@@ -1,10 +1,11 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE CPP                  #-}
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE ConstraintKinds     #-}
 {-# LANGUAGE DeriveDataTypeable  #-}
 {-# LANGUAGE DeriveGeneric       #-}
+{-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving  #-}
 module Tests.Serialise
   ( testTree   -- :: TestTree
   , testFormat -- :: TestTree
@@ -486,4 +487,18 @@ instance Arbitrary (f a) => Arbitrary (Alt f a) where
 instance Arbitrary a => Arbitrary (Identity a) where
   arbitrary = fmap Identity arbitrary
   shrink (Identity a) = map Identity $ shrink a
+#endif
+
+#if !MIN_VERSION_base(4,8,0)
+deriving instance Typeable Const
+deriving instance Typeable ZipList
+deriving instance Typeable Down
+deriving instance Typeable Sum
+deriving instance Typeable All
+deriving instance Typeable Any
+deriving instance Typeable Product
+deriving instance Typeable Dual
+
+deriving instance Show a => Show (Const a b)
+deriving instance Eq a   => Eq   (Const a b)
 #endif
