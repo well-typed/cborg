@@ -44,6 +44,7 @@ import qualified Data.Set                   as Set
 import qualified Data.Vector                as Vector
 import qualified Data.Vector.Unboxed        as Vector.Unboxed
 
+import           Tests.Orphanage()
 
 --------------------------------------------------------------------------------
 -- Tests and properties
@@ -120,6 +121,10 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T Char)
       , mkTest (T :: T (Int, Char))
       , mkTest (T :: T (Int, Char, Bool))
+      , mkTest (T :: T (Int, Char, Bool, String))
+      , mkTest (T :: T (Int, Char, Bool, String, ()))
+      , mkTest (T :: T (Int, Char, Bool, String, (), Maybe Char))
+      , mkTest (T :: T (Int, Char, Bool, String, (), Maybe Char, Maybe ()))
       , mkTest (T :: T (Maybe Int))
       , mkTest (T :: T (Either String Int))
       , mkTest (T :: T String)
