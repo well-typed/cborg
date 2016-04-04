@@ -53,6 +53,7 @@ import qualified Data.HashMap.Strict                 as HashMap
 import qualified Data.Vector                         as Vector
 import qualified Data.Vector.Unboxed                 as Vector.Unboxed
 --import qualified Data.Text.Lazy                      as Text.Lazy
+import           Foreign.C.Types
 
 import           Data.Time                           (UTCTime (..))
 #if MIN_VERSION_time(1,5,0)
@@ -204,6 +205,105 @@ instance Serialise BS.ByteString where
     encode = encodeBytes
     decode = decodeBytes
 
+instance Serialise CChar where
+    encode (CChar x) = encode x
+    decode = CChar <$> decode
+
+instance Serialise CSChar where
+    encode (CSChar x) = encode x
+    decode = CSChar <$> decode
+
+instance Serialise CUChar where
+    encode (CUChar x) = encode x
+    decode = CUChar <$> decode
+
+instance Serialise CShort where
+    encode (CShort x) = encode x
+    decode = CShort <$> decode
+
+instance Serialise CUShort where
+    encode (CUShort x) = encode x
+    decode = CUShort <$> decode
+
+instance Serialise CInt where
+    encode (CInt x) = encode x
+    decode = CInt <$> decode
+
+instance Serialise CUInt where
+    encode (CUInt x) = encode x
+    decode = CUInt <$> decode
+
+instance Serialise CLong where
+    encode (CLong x) = encode x
+    decode = CLong <$> decode
+
+instance Serialise CULong where
+    encode (CULong x) = encode x
+    decode = CULong <$> decode
+
+instance Serialise CPtrdiff where
+    encode (CPtrdiff x) = encode x
+    decode = CPtrdiff <$> decode
+
+instance Serialise CSize where
+    encode (CSize x) = encode x
+    decode = CSize <$> decode
+
+instance Serialise CWchar where
+    encode (CWchar x) = encode x
+    decode = CWchar <$> decode
+
+instance Serialise CSigAtomic where
+    encode (CSigAtomic x) = encode x
+    decode = CSigAtomic <$> decode
+
+instance Serialise CLLong where
+    encode (CLLong x) = encode x
+    decode = CLLong <$> decode
+
+instance Serialise CULLong where
+    encode (CULLong x) = encode x
+    decode = CULLong <$> decode
+
+instance Serialise CIntPtr where
+    encode (CIntPtr x) = encode x
+    decode = CIntPtr <$> decode
+
+instance Serialise CUIntPtr where
+    encode (CUIntPtr x) = encode x
+    decode = CUIntPtr <$> decode
+
+instance Serialise CIntMax where
+    encode (CIntMax x) = encode x
+    decode = CIntMax <$> decode
+
+instance Serialise CUIntMax where
+    encode (CUIntMax x) = encode x
+    decode = CUIntMax <$> decode
+
+instance Serialise CClock where
+    encode (CClock x) = encode x
+    decode = CClock <$> decode
+
+instance Serialise CTime where
+    encode (CTime x) = encode x
+    decode = CTime <$> decode
+
+instance Serialise CUSeconds where
+    encode (CUSeconds x) = encode x
+    decode = CUSeconds <$> decode
+
+instance Serialise CSUSeconds where
+    encode (CSUSeconds x) = encode x
+    decode = CSUSeconds <$> decode
+
+instance Serialise CFloat where
+    encode (CFloat x) = encode x
+    decode = CFloat <$> decode
+
+instance Serialise CDouble where
+    encode (CDouble x) = encode x
+    decode = CDouble <$> decode
 
 --------------------------------------------------------------------------------
 -- Structure instances

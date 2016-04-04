@@ -19,6 +19,7 @@ import           Data.Typeable
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
 #endif
+import           Foreign.C.Types
 
 import           Test.QuickCheck
 import           Test.Tasty
@@ -119,6 +120,31 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T Float)
       , mkTest (T :: T Double)
       , mkTest (T :: T Char)
+      , mkTest (T :: T CChar)
+      , mkTest (T :: T CSChar)
+      , mkTest (T :: T CUChar)
+      , mkTest (T :: T CShort)
+      , mkTest (T :: T CUShort)
+      , mkTest (T :: T CInt)
+      , mkTest (T :: T CUInt)
+      , mkTest (T :: T CLong)
+      , mkTest (T :: T CULong)
+      , mkTest (T :: T CPtrdiff)
+      , mkTest (T :: T CSize)
+      , mkTest (T :: T CWchar)
+      , mkTest (T :: T CSigAtomic)
+      , mkTest (T :: T CLLong)
+      , mkTest (T :: T CULLong)
+      , mkTest (T :: T CIntPtr)
+      , mkTest (T :: T CUIntPtr)
+      , mkTest (T :: T CIntMax)
+      , mkTest (T :: T CUIntMax)
+      , mkTest (T :: T CClock)
+      , mkTest (T :: T CTime)
+      , mkTest (T :: T CUSeconds)
+      , mkTest (T :: T CSUSeconds)
+      , mkTest (T :: T CFloat)
+      , mkTest (T :: T CDouble)
       , mkTest (T :: T (Int, Char))
       , mkTest (T :: T (Int, Char, Bool))
       , mkTest (T :: T (Int, Char, Bool, String))
