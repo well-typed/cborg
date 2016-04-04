@@ -11,7 +11,11 @@ module Tests.Serialise
 
 import           Control.Applicative
 
+import           Data.Complex
 import           Data.Int
+import           Data.Monoid as Monoid
+import           Data.Ord
+import           Data.Ratio
 import           Data.Time
 import           Data.Word
 import           GHC.Float (float2Double)
@@ -30,6 +34,7 @@ import           Test.QuickCheck.Instances ()
 import           Test.Tasty.HUnit
 import           GHC.Generics  (Generic)
 import qualified Data.ByteString as BS
+import           System.Exit (ExitCode(..))
 
 import           Data.Binary.Serialise.CBOR
 import           Data.Binary.Serialise.CBOR.Encoding
@@ -161,6 +166,19 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T [Int])
       , mkTest (T :: T UTCTime)
       , mkTest (T :: T Version)
+      , mkTest (T :: T ExitCode)
+      , mkTest (T :: T (Ratio Integer))
+      , mkTest (T :: T (Complex Double))
+      , mkTest (T :: T (Const Int ()))
+      , mkTest (T :: T (ZipList Int))
+      , mkTest (T :: T (ZipList Char))
+      , mkTest (T :: T Ordering)
+      , mkTest (T :: T (Down Int64))
+      , mkTest (T :: T (Dual (Maybe (Sum Int))))
+      , mkTest (T :: T All)
+      , mkTest (T :: T Any)
+      , mkTest (T :: T (Sum Int))
+      , mkTest (T :: T (Product Int))
       , mkTest (T :: T (Map.Map Int String))
       , mkTest (T :: T (Sequence.Seq Int))
       , mkTest (T :: T (Set.Set Int))
@@ -397,3 +415,53 @@ instance Arbitrary CFloat where
 instance Arbitrary CDouble where
   arbitrary = CDouble <$> arbitrary
   shrink (CDouble x) = CDouble <$> shrink x
+
+instance Arbitrary a => Arbitrary (Monoid.Dual a) where
+  arbitrary = fmap Monoid.Dual arbitrary
+  shrink = map Monoid.Dual . shrink . Monoid.getDual
+
+instance (Arbitrary a, CoArbitrary a) => Arbitrary (Monoid.Endo a) where
+  arbitrary = fmap Monoid.Endo arbitrary
+  shrink = map Monoid.Endo . shrink . Monoid.appEndo
+
+instance Arbitrary Monoid.All where
+  arbitrary = fmap Monoid.All arbitrary
+  shrink = map Monoid.All . shrink . Monoid.getAll
+
+instance Arbitrary Monoid.Any where
+  arbitrary = fmap Monoid.Any arbitrary
+  shrink = map Monoid.Any . shrink . Monoid.getAny
+
+instance Arbitrary a => Arbitrary (Monoid.Sum a) where
+  arbitrary = fmap Monoid.Sum arbitrary
+  shrink = map Monoid.Sum . shrink . Monoid.getSum
+
+instance Arbitrary a => Arbitrary (Monoid.Product a) where
+  arbitrary = fmap Monoid.Product  arbitrary
+  shrink = map Monoid.Product  . shrink . Monoid.getProduct
+
+instance Arbitrary a => Arbitrary (Monoid.First a) where
+  arbitrary = fmap Monoid.First arbitrary
+  shrink = map Monoid.First . shrink . Monoid.getFirst
+
+instance Arbitrary a => Arbitrary (Monoid.Last a) where
+  arbitrary = fmap Monoid.Last arbitrary
+  shrink = map Monoid.Last . shrink . Monoid.getLast
+
+instance Arbitrary a => Arbitrary (Down a) where
+  arbitrary = fmap Down arbitrary
+  shrink = map Down . shrink . (\(Down a) -> a)
+
+instance Arbitrary a => Arbitrary (ZipList a) where
+  arbitrary = fmap ZipList arbitrary
+  shrink = map ZipList . shrink . getZipList
+
+instance Arbitrary a => Arbitrary (Const a b) where
+  arbitrary = fmap Const arbitrary
+  shrink = map Const . shrink . getConst
+
+instance Arbitrary ExitCode where
+  arbitrary = frequency [(1, return ExitSuccess), (3, fmap ExitFailure arbitrary)]
+
+  shrink (ExitFailure x) = ExitSuccess : [ ExitFailure x' | x' <- shrink x ]
+  shrink _        = []
