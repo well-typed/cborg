@@ -35,7 +35,9 @@ import           Data.Word
 import           Data.Complex
 import           Data.Ratio
 import           Data.Ord
+#if MIN_VERSION_base(4,8,0)
 import           Data.Functor.Identity
+#endif
 import qualified Data.Foldable                       as Foldable
 import qualified Data.ByteString                     as BS
 import qualified Data.Text                           as Text
@@ -283,9 +285,11 @@ instance Serialise (f a) => Serialise (Alt f a) where
     encode (Alt b) = encode b
     decode = Alt <$> decode
 
+#if MIN_VERSION_base(4,8,0)
 instance Serialise a => Serialise (Identity a) where
     encode (Identity b) = encode b
     decode = Identity <$> decode
+#endif
 
 instance Serialise ExitCode where
     encode ExitSuccess     = encodeListLen 1
