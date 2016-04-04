@@ -124,6 +124,10 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T Char)
       , mkTest (T :: T (Int, Char))
       , mkTest (T :: T (Int, Char, Bool))
+      , mkTest (T :: T (Int, Char, Bool, String))
+      , mkTest (T :: T (Int, Char, Bool, String, ()))
+      , mkTest (T :: T (Int, Char, Bool, String, (), Maybe Char))
+      , mkTest (T :: T (Int, Char, Bool, String, (), Maybe Char, Maybe ()))
       , mkTest (T :: T (Maybe Int))
       , mkTest (T :: T (Either String Int))
       , mkTest (T :: T String)
@@ -244,3 +248,27 @@ instance Arbitrary a => Arbitrary (List a) where
       where
         cnv :: [a] -> List a
         cnv = foldr Cons Nil
+
+
+-- QC Orphans
+instance ( Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
+         , Arbitrary f
+         )
+      => Arbitrary (a,b,c,d,e,f)
+ where
+  arbitrary = return (,,,,,)
+          <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+          <*> arbitrary <*> arbitrary
+
+  shrink (u, v, w, x, y, z) =
+    [ (u', v', w', x', y', z')
+    | (u', (v', (w', (x', (y', z'))))) <- shrink (u, (v, (w, (x, (y, z))))) ]
+
+instance ( Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
+         , Arbitrary f, Arbitrary g
+         )
+      => Arbitrary (a,b,c,d,e,f,g)
+ where
+  arbitrary = return (,,,,,,)
+          <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+          <*> arbitrary <*> arbitrary <*> arbitrary

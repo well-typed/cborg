@@ -228,6 +228,80 @@ instance (Serialise a, Serialise b, Serialise c) => Serialise (a,b,c) where
                 !z <- decode
                 return (x, y, z)
 
+instance (Serialise a, Serialise b, Serialise c, Serialise d
+         ) => Serialise (a,b,c,d) where
+    encode (a,b,c,d) = encodeListLen 4
+                    <> encode a
+                    <> encode b
+                    <> encode c
+                    <> encode d
+
+    decode = do decodeListLenOf 4
+                !a <- decode
+                !b <- decode
+                !c <- decode
+                !d <- decode
+                return (a, b, c, d)
+
+instance (Serialise a, Serialise b, Serialise c, Serialise d, Serialise e
+         ) => Serialise (a,b,c,d,e) where
+    encode (a,b,c,d,e) = encodeListLen 5
+                      <> encode a
+                      <> encode b
+                      <> encode c
+                      <> encode d
+                      <> encode e
+
+    decode = do decodeListLenOf 5
+                !a <- decode
+                !b <- decode
+                !c <- decode
+                !d <- decode
+                !e <- decode
+                return (a, b, c, d, e)
+
+instance ( Serialise a, Serialise b, Serialise c, Serialise d, Serialise e
+         , Serialise f
+         ) => Serialise (a,b,c,d,e,f) where
+    encode (a,b,c,d,e,f) = encodeListLen 6
+                        <> encode a
+                        <> encode b
+                        <> encode c
+                        <> encode d
+                        <> encode e
+                        <> encode f
+
+    decode = do decodeListLenOf 6
+                !a <- decode
+                !b <- decode
+                !c <- decode
+                !d <- decode
+                !e <- decode
+                !f <- decode
+                return (a, b, c, d, e, f)
+
+instance ( Serialise a, Serialise b, Serialise c, Serialise d, Serialise e
+         , Serialise f, Serialise g
+         ) => Serialise (a,b,c,d,e,f,g) where
+    encode (a,b,c,d,e,f,g) = encodeListLen 7
+                          <> encode a
+                          <> encode b
+                          <> encode c
+                          <> encode d
+                          <> encode e
+                          <> encode f
+                          <> encode g
+
+    decode = do decodeListLenOf 7
+                !a <- decode
+                !b <- decode
+                !c <- decode
+                !d <- decode
+                !e <- decode
+                !f <- decode
+                !g <- decode
+                return (a, b, c, d, e, f, g)
+
 instance Serialise a => Serialise (Maybe a) where
     encode Nothing  = encodeListLen 0
     encode (Just x) = encodeListLen 1 <> encode x
