@@ -11,6 +11,10 @@ import           Test.QuickCheck.Arbitrary
 --------------------------------------------------------------------------------
 -- QuickCheck Orphans
 
+-- A _LOT_ of orphans instances for QuickCheck. Some are already in
+-- git HEAD and some are still waiting as pull request
+--
+-- [https://github.com/nick8325/quickcheck/pull/90]
 
 -- Tuples
 
