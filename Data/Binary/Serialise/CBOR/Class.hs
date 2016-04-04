@@ -26,15 +26,22 @@ module Data.Binary.Serialise.CBOR.Class
 
 #include "cbor.h"
 
-#if ! MIN_VERSION_base(4,8,0)
 import           Control.Applicative
-#endif
+
 import           Control.Monad
 import           Data.Hashable
 import           Data.Int
 import           Data.Monoid
 import           Data.Version
 import           Data.Word
+import           Data.Complex
+import           Data.Ratio
+import           Data.Ord
+
+#if MIN_VERSION_base(4,8,0)
+import           Data.Functor.Identity
+#endif
+
 import qualified Data.Foldable                       as Foldable
 import qualified Data.ByteString                     as BS
 import qualified Data.Text                           as Text
@@ -63,6 +70,7 @@ import           Data.Time.Format                    (defaultTimeLocale,
 import           Data.Time.Format                    (formatTime, parseTime)
 import           System.Locale                       (defaultTimeLocale)
 #endif
+import           System.Exit                         (ExitCode(..))
 
 import           Prelude hiding (decodeFloat, encodeFloat, foldr)
 import qualified Prelude
@@ -204,6 +212,109 @@ instance Serialise Text.Text where
 instance Serialise BS.ByteString where
     encode = encodeBytes
     decode = decodeBytes
+
+instance Serialise a => Serialise (Const a b) where
+    encode (Const a) = encode a
+    decode = Const <$> decode
+
+instance Serialise a => Serialise (ZipList a) where
+    encode (ZipList xs) = encode xs
+    decode = ZipList <$> decode
+
+instance (Serialise a, Integral a) => Serialise (Ratio a) where
+    encode a = encodeListLen 2
+            <> encode (numerator a)
+            <> encode (denominator a)
+    decode = do decodeListLenOf 2
+                !a <- decode
+                !b <- decode
+                return $ a % b
+
+instance Serialise a => Serialise (Complex a) where
+    encode (r :+ i) = encodeListLen 2
+                   <> encode r
+                   <> encode i
+    decode = do decodeListLenOf 2
+                !r <- decode
+                !i <- decode
+                return $ r :+ i
+
+instance Serialise Ordering where
+    encode a = encodeListLen 1
+            <> encodeWord (case a of LT -> 0
+                                     EQ -> 1
+                                     GT -> 2)
+    decode = do
+      decodeListLenOf 1
+      t <- decodeWord
+      case t of
+        0 -> return LT
+        1 -> return EQ
+        2 -> return GT
+        _ -> fail "unexpected tag"
+
+instance Serialise a => Serialise (Down a) where
+    encode (Down a) = encode a
+    decode = Down <$> decode
+
+instance Serialise a => Serialise (Dual a) where
+    encode (Dual a) = encode a
+    decode = Dual <$> decode
+
+instance Serialise All where
+    encode (All b) = encode b
+    decode = All <$> decode
+
+instance Serialise Any where
+    encode (Any b) = encode b
+    decode = Any <$> decode
+
+instance Serialise a => Serialise (Sum a) where
+    encode (Sum b) = encode b
+    decode = Sum <$> decode
+
+instance Serialise a => Serialise (Product a) where
+    encode (Product b) = encode b
+    decode = Product <$> decode
+
+instance Serialise a => Serialise (First a) where
+    encode (First b) = encode b
+    decode = First <$> decode
+
+instance Serialise a => Serialise (Last a) where
+    encode (Last b) = encode b
+    decode = Last <$> decode
+
+#if MIN_VERSION_base(4,8,0)
+instance Serialise (f a) => Serialise (Alt f a) where
+    encode (Alt b) = encode b
+    decode = Alt <$> decode
+
+instance Serialise a => Serialise (Identity a) where
+    encode (Identity b) = encode b
+    decode = Identity <$> decode
+#endif
+
+instance Serialise ExitCode where
+    encode ExitSuccess     = encodeListLen 1
+                          <> encodeWord 0
+    encode (ExitFailure i) = encodeListLen 2
+                          <> encodeWord 1
+                          <> encode i
+    decode = do
+      n <- decodeListLen
+      case n of
+        1 -> do t <- decodeWord
+                case t of
+                  0 -> return ExitSuccess
+                  _ -> fail "unexpected tag"
+        2 -> do t <- decodeWord
+                case t of
+                  1 -> return ()
+                  _ -> fail "unexpected tag"
+                !i <- decode
+                return $ ExitFailure i
+        _ -> fail "Bad list length"
 
 instance Serialise CChar where
     encode (CChar x) = encode x

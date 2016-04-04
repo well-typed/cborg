@@ -9,16 +9,22 @@ module Tests.Serialise
   , testFormat -- :: TestTree
   ) where
 
+#if MIN_VERSION_base(4,8,0)
+import           Data.Functor.Identity
+#endif
+
+import           Data.Complex
 import           Data.Int
+import           Data.Monoid as Monoid
+import           Data.Ord
+import           Data.Ratio
 import           Data.Time
 import           Data.Word
 import           GHC.Float (float2Double)
 import           Data.Version
 
 import           Data.Typeable
-#if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
-#endif
 import           Foreign.C.Types
 
 import           Test.QuickCheck
@@ -28,6 +34,7 @@ import           Test.QuickCheck.Instances ()
 import           Test.Tasty.HUnit
 import           GHC.Generics  (Generic)
 import qualified Data.ByteString as BS
+import           System.Exit (ExitCode(..))
 
 import           Data.Binary.Serialise.CBOR
 import           Data.Binary.Serialise.CBOR.Encoding
@@ -158,6 +165,23 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T [Int])
       , mkTest (T :: T UTCTime)
       , mkTest (T :: T Version)
+      , mkTest (T :: T ExitCode)
+      , mkTest (T :: T (Ratio Integer))
+      , mkTest (T :: T (Complex Double))
+      , mkTest (T :: T (Const Int ()))
+      , mkTest (T :: T (ZipList Int))
+      , mkTest (T :: T (ZipList Char))
+      , mkTest (T :: T Ordering)
+      , mkTest (T :: T (Down Int64))
+      , mkTest (T :: T (Dual (Maybe (Sum Int))))
+      , mkTest (T :: T All)
+      , mkTest (T :: T Any)
+#if MIN_VERSION_base(4,8,0)
+      , mkTest (T :: T (Alt Maybe Int))
+      , mkTest (T :: T (Identity ()))
+#endif
+      , mkTest (T :: T (Sum Int))
+      , mkTest (T :: T (Product Int))
       , mkTest (T :: T (Map.Map Int String))
       , mkTest (T :: T (Sequence.Seq Int))
       , mkTest (T :: T (Set.Set Int))
