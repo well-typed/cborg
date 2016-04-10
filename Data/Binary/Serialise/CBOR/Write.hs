@@ -41,6 +41,11 @@ import qualified Data.ByteString.Lazy                  as L
 import qualified Data.Text                             as T
 import qualified Data.Text.Encoding                    as T
 
+#if defined(OPTIMIZED_GMP) && MIN_VERSION_integer_gmp(1,0,0)
+import qualified GHC.Integer.GMP.Internals             as Gmp
+import           GHC.Exts
+#endif
+
 import           Data.Binary.Serialise.CBOR.ByteOrder
 import           Data.Binary.Serialise.CBOR.Encoding
 
@@ -90,10 +95,26 @@ toBuilder =
 
               TkTag      x vs' -> PI.runB tagMP      x op >>= go vs'
               TkTag64    x vs' -> PI.runB tag64MP      x op >>= go vs'
+
+#if defined(OPTIMIZED_GMP) && MIN_VERSION_integer_gmp(1,0,0)
+              -- This code is specialized for GMP implementation of Integer. By
+              -- looking directly at the constructors we can avoid some checks.
+              -- S# hold an Int, so we can just use intMP.
+              TkInteger (Gmp.S# i) vs' -> PI.runB intMP (I# i) op >>= go vs'
+              -- Jp# is guaranteed to be > 0.
+              TkInteger x@(Gmp.Jp# _) vs'
+                | x <= fromIntegral (maxBound :: Word64) ->
+                    PI.runB word64MP (fromIntegral x) op >>= go vs'
+              -- Jn# is guaranteed to be < 0.
+              TkInteger x@(Gmp.Jn# _) vs'
+                | x >= -1 - fromIntegral (maxBound :: Word64) ->
+                    PI.runB negInt64MP (fromIntegral (-1 - x)) op >>= go vs'
+              -- In all the other cases, use the slower but general rule.
+              TkInteger x vs' ->
+                BI.runBuilderWith
+                  (integerMP x) (step vs' k) (BI.BufferRange op ope0)
+#else
               TkInteger  x vs'
-                --TODO: for GMP can optimimise this by looking at the S#
-                -- constructors to see if it fits in an Int, and if it's
-                -- positive or negative.
                 | x >= 0
                 , x <= fromIntegral (maxBound :: Word64)
                                 -> PI.runB word64MP (fromIntegral x) op >>= go vs'
@@ -101,6 +122,7 @@ toBuilder =
                 , x >= -1 - fromIntegral (maxBound :: Word64)
                                 -> PI.runB negInt64MP (fromIntegral (-1 - x)) op >>= go vs'
                 | otherwise     -> BI.runBuilderWith (integerMP x) (step vs' k) (BI.BufferRange op ope0)
+#endif
 
               TkBool False vs' -> PI.runB falseMP   () op >>= go vs'
               TkBool True  vs' -> PI.runB trueMP    () op >>= go vs'

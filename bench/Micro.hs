@@ -7,10 +7,12 @@ module Micro
 import           Criterion.Main
 import           Control.DeepSeq
 import qualified Data.ByteString.Lazy   as BS
+import qualified Data.Vector as Vector
 
 import           Foreign
 
 import           Data.Binary.Serialise.CBOR.ByteOrder
+import           Data.Binary.Serialise.CBOR
 
 import           Macro.DeepSeq ()
 import qualified Micro.MemSize
@@ -64,6 +66,10 @@ benchmarks =
 --    , bench "new msgpack"   (nf perfDecodeNewMsgPack   tstdataN)
       , bench "cbor"          (nf perfDecodeCBOR         tstdataR)
       ]
+  , bgroup "integer" $ deepseq (integerDataSmall, integerDataLarge)
+      [ bench "cbor-small" (nf perfEncodeAnyCBOR integerDataSmall)
+      , bench "cbor-large" (nf perfEncodeAnyCBOR integerDataLarge)
+      ]
   , env lowlevelPtrEnv $ \ptr ->
     bgroup "lowlevel"
       [ bench "grabWord16"    (nf grabWord16 ptr)
@@ -81,6 +87,8 @@ benchmarks =
 --  tstdataM = PkgMsgpack.serialise tstdata
 --  tstdataN = Micro.NewMsgpack.serialise tstdata
     tstdataR = Micro.CBOR.serialise tstdata
+    integerDataSmall = Vector.replicate (100 :: Int) (10 :: Integer)
+    integerDataLarge = Vector.replicate (100 :: Int) ((2 :: Integer)^(70 :: Integer))
 
     -- Encoding tests
     perfEncodeBinary       = BS.length . Micro.PkgBinary.serialise
@@ -92,6 +100,8 @@ benchmarks =
 --  perfEncodeNewMsgPack   = BS.length . Micro.NewMsgpack.serialise
     perfEncodeCBOR         = BS.length . Micro.CBOR.serialise
 
+    perfEncodeAnyCBOR      = BS.length . serialise
+
     -- Decoding tests
     perfDecodeBinary       = Micro.PkgBinary.deserialise
     perfDecodeCereal       = Micro.PkgCereal.deserialise
@@ -101,6 +111,7 @@ benchmarks =
 --  perfDecodeMsgpack      = PkgMsgpack.deserialise
 --  perfDecodeNewMsgPack   = Micro.NewMsgpack.deserialise
     perfDecodeCBOR         = Micro.CBOR.deserialise
+
 
     -- | Allocate an 8-byte pointer, write a 64-bit word into
     -- it, and return a @'Ptr' ()@ to be used by the low-level routines.
