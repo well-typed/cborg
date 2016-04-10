@@ -211,6 +211,7 @@ benchmark instances
     -Wall -rtsopts -fno-cse -fno-ignore-asserts -fno-warn-orphans
 
   other-modules:
+    Instances.Integer
     Instances.Vector
     Instances.Time
 
