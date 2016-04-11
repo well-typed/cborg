@@ -18,5 +18,5 @@ benchmarks =
   where
     go = BS.length . serialise
     integerDataSmall = Vector.replicate (100 :: Int) (10 :: Integer)
-    integerDataLarge = Vector.replicate (100 :: Int) ((2 :: Integer)^(70 :: Integer))
+    integerDataLarge = Vector.replicate (100 :: Int) ((2 :: Integer)^(200 :: Integer))
 
