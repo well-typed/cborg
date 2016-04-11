@@ -44,6 +44,7 @@ import qualified Data.Text.Encoding                    as T
 #if defined(OPTIMIZE_GMP)
 import qualified GHC.Integer.GMP.Internals             as Gmp
 import           GHC.Exts
+import           GHC.Word
 #endif
 
 import           Data.Binary.Serialise.CBOR.ByteOrder
@@ -524,7 +525,57 @@ doubleMP = withConstHeader 0xfb P.doubleBE
 breakMP :: P.BoundedPrim ()
 breakMP = constHeader 0xff
 
---TODO: optimised implementation for GMP
+#if defined(OPTIMIZE_GMP)
+-- ---------------------------------------- --
+-- Implementation optimized for integer-gmp --
+-- ---------------------------------------- --
+integerToBytes :: Integer -> S.ByteString
+integerToBytes (Gmp.Jp# bigNat) = L.toStrict $ B.toLazyByteString (goLimbs 0#)
+  where
+    -- Gmp.BigNat is basically a byte array with words ordered from the least
+    -- significant one to the most significant one. So we go through them in
+    -- such order but use big endian to both encode the words and lay them out.
+    goLimbs :: Gmp.GmpSize# -> B.Builder
+    goLimbs index
+        | isTrue# (index >=# numLimbs) = mempty
+        | otherwise =
+            let word = bigNat `Gmp.indexBigNat#` index
+            in if isTrue# (index +# 1# ==# numLimbs)
+                 then goLastLimb word
+                 else goLimbs (index +# 1#) <> encodeWordBE word
+
+    -- The last limb is a bit more tricky since if the high bits are 0, we don't
+    -- want to encode them. So we manually go byte by byte and detect when
+    -- there's nothing left to encode.
+    goLastLimb :: Gmp.GmpLimb# -> B.Builder
+    goLastLimb limb
+        | isTrue# (limb `eqWord#` (int2Word# 0#)) = mempty
+        | otherwise =
+            let higherBytes = goLastLimb (limb `uncheckedShiftRL#` 8#)
+                byte = limb `and#` (int2Word# 255#)
+            in higherBytes <> P.primFixed P.word8 (W8# byte)
+
+    numLimbs :: Gmp.GmpSize#
+    numLimbs = Gmp.sizeofBigNat# bigNat
+
+    encodeWordBE :: Word# -> B.Builder
+#if defined(ARCH_64bit)
+    encodeWordBE w = P.primFixed P.word64BE (W64# w)
+#elif defined(ARCH_32bit)
+    encodeWordBE w = P.primFixed P.word32BE (W32# w)
+    {-# INLINE encodeWordBE #-}
+#else
+#error expected either ARCH_64bit or ARCH_32bit to be defined
+#endif
+
+integerToBytes _ =
+  error "integerToBytes must be called with an Integer that larger than INT_MAX"
+
+#else
+
+-- ---------------------- --
+-- Generic implementation --
+-- ---------------------- --
 integerToBytes :: Integer -> S.ByteString
 integerToBytes n0
   | n0 == 0   = S.pack [0]
@@ -535,3 +586,4 @@ integerToBytes n0
 
     narrow :: Integer -> Word8
     narrow = fromIntegral
+#endif
