@@ -153,7 +153,7 @@ deserialiseOrFail = supplyAllInput deserialiseIncremental
 -- to the specified @'Handle'@.
 hPutSerialise :: Serialise a
               => Handle       -- ^ The @'Handle'@ to write to.
-              -> a            -- ^ The value to be serialized and written.
+              -> a            -- ^ The value to be serialised and written.
               -> IO ()
 hPutSerialise hnd x = BS.hPut hnd (serialise x)
 
@@ -161,7 +161,7 @@ hPutSerialise hnd x = BS.hPut hnd (serialise x)
 -- specified file.
 writeFileSerialise :: Serialise a
                    => FilePath     -- ^ The file to write to.
-                   -> a            -- ^ The value to be serialized and written.
+                   -> a            -- ^ The value to be serialised and written.
                    -> IO ()
 writeFileSerialise fname x =
     withFile fname WriteMode $ \hnd -> hPutSerialise hnd x
@@ -174,7 +174,7 @@ writeFileSerialise fname x =
 -- deserialise properly.
 readFileDeserialise :: Serialise a
                     => FilePath     -- ^ The file to read from.
-                    -> IO a         -- ^ The deserialized value.
+                    -> IO a         -- ^ The deserialised value.
 readFileDeserialise fname =
     withFile fname ReadMode $ \hnd -> do
       input <- BS.hGetContents hnd

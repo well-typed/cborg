@@ -16,11 +16,11 @@ description:
   This package provides pure, efficient serialization of Haskell
   values directly into @ByteString@s for storage or transmission
   purposes. By providing a set of type class instances, you can
-  also serialize any custom data type you have as well.
+  also serialise any custom data type you have as well.
   .
   The underlying binary format used is the 'Concise Binary Object
   Representation', or CBOR, specified in RFC 7049. As a result,
-  serialized Haskell values have implicit structure outside of the
+  serialised Haskell values have implicit structure outside of the
   Haskell program itself, meaning they can be inspected or analyzed
   with custom tools.
 

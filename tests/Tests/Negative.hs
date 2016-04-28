@@ -53,7 +53,7 @@ testTree = testGroup "Negative tests"
 --------------------------------------------------------------------------------
 -- Utilities
 
--- Simple utility to take an @'Encoding'@ and try to deserialize it as
+-- Simple utility to take an @'Encoding'@ and try to deserialise it as
 -- some user specified type. Useful for writing 'bad' encoders that give
 -- some bad output we attempt to deserialise.
 
