@@ -15,6 +15,7 @@ particular order:
   Ben Gamari         <ben [@at] well-typed [.dot] com>
   Michal Terepeta    <michal [.dot] terepeta [@at] gmail [.dot] com>
   Ondrej Palkovsky   <palkovsky [.dot] ondrej [@at] gmail [.dot] com>
+  Tobias Florek      <tob [@at] butter [.dot] sh>
 
 This package includes code from the 'half' package, particularly the C code
 in cbits/half.c. Thanks to Edward Kmett for this.
