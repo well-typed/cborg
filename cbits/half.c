@@ -11,16 +11,16 @@ unsigned short hs_binary_floatToHalf (float f) {
     int a = (1 << (t - 1)) - 1;
     int b = (m >> t) & 1;
     return s | ((m + a + b) >> t);
-  } 
+  }
   if (e == 143) {
     if (m == 0) return s | 0x7c00; /* +/- infinity */
 
     /* NaN, m == 0 forces us to set at least one bit and not become an infinity */
     m >>= 13;
-    return s | 0x7c00 | m | (m == 0); 
+    return s | 0x7c00 | m | (m == 0);
   }
-  
-  /* round the normalized float */
+
+  /* round the normalised float */
   m = m + 0xfff + ((m >> 13) & 1);
 
   /* significand overflow */
@@ -41,7 +41,7 @@ int hs_binary_halfToFloatRep (unsigned short c) {
   int m =         c & 0x3ff;
   if (e == 0) {
     if (m == 0) /* +/- 0 */ return s << 31;
-    /* denormalized, renormalize it */
+    /* denormalised, renormalise it */
     while (!(m & 0x400)) {
       m <<= 1;
       e -=  1;
