@@ -131,9 +131,9 @@ convFlatTerm  Enc.TkEnd             = []
 
 -- | Given a @'Dec.Decoder'@, decode a @'FlatTerm'@ back into
 -- an ordinary value, or return an error.
-fromFlatTerm :: Decoder a       -- ^ A @'Dec.Decoder'@ for a serialized value.
-             -> FlatTerm        -- ^ The serialized @'FlatTerm'@.
-             -> Either String a -- ^ The deserialized value, or an error.
+fromFlatTerm :: Decoder a       -- ^ A @'Dec.Decoder'@ for a serialised value.
+             -> FlatTerm        -- ^ The serialised @'FlatTerm'@.
+             -> Either String a -- ^ The deserialised value, or an error.
 fromFlatTerm decoder ft = go (getDecodeAction decoder) ft
   where
     go (ConsumeWord k)    (TkInt     n : ts)

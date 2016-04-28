@@ -19,7 +19,7 @@
 --
 -- Similarly, if you wanted to encode some value into a CBOR value directly,
 -- you can wrap it in a @'Term'@ constructor and use @'encodeTerm'@. This
--- would be useful, as an example, if you needed to serialize some value into
+-- would be useful, as an example, if you needed to serialise some value into
 -- a CBOR term that is not compatible with that types @'Serialise'@ instance.
 --
 -- Because this interface gives you the ability to decode or encode any
@@ -52,7 +52,7 @@ import Prelude hiding (encodeFloat, decodeFloat)
 --------------------------------------------------------------------------------
 -- Types
 
--- | A general CBOR term, which can be used to serialize or deserialize
+-- | A general CBOR term, which can be used to serialise or deserialise
 -- arbitrary CBOR terms for interoperability or debugging. This type is
 -- essentially a direct reflection of the CBOR abstract syntax tree as a
 -- Haskell data type.

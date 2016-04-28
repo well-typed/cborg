@@ -77,7 +77,7 @@ newtype Encoding = Encoding (Tokens -> Tokens)
 
 -- | A flattened representation of a term, which is independent
 -- of any underlying binary representation, but which we later
--- serialize into CBOR format.
+-- serialise into CBOR format.
 data Tokens =
 
     -- Positive and negative integers (type 0,1)

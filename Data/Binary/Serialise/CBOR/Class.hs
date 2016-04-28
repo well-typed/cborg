@@ -80,12 +80,12 @@ class Serialise a where
     -- | Definition for encoding a given type into a binary
     -- representation, using the @'Encoding'@ @'Monoid'@.
     encode  :: a -> Encoding
-    default encode :: (Generic a, GSerialize (Rep a)) => a -> Encoding
+    default encode :: (Generic a, GSerialise (Rep a)) => a -> Encoding
     encode = gencode . from
 
     -- | Definition of a given @'Decoder'@ for a type.
     decode  :: Decoder a
-    default decode :: (Generic a, GSerialize (Rep a)) => Decoder a
+    default decode :: (Generic a, GSerialise (Rep a)) => Decoder a
     decode = to <$> gdecode
 
     -- | Utility to support specialised encoding for some list type -
@@ -433,19 +433,19 @@ forceUTCTime t@(UTCTime !_day !_daytime) = t
 -- Generic instances
 
 -- | Serialise type class for generic representation of
-class GSerialize f where
+class GSerialise f where
     gencode  :: f a -> Encoding
     gdecode  :: Decoder (f a)
 
 data Proxy (f :: * -> *) = P
 
--- Data types without constructors are still serialized as null value
-instance GSerialize V1 where
+-- Data types without constructors are still serialised as null value
+instance GSerialise V1 where
     gencode _ = encodeNull
     gdecode   = error "V1 don't have contructors" <$ decodeNull
 
--- Constructors without fields are serialized as null value
-instance GSerialize U1 where
+-- Constructors without fields are serialised as null value
+instance GSerialise U1 where
     gencode _ = encodeListLen 1 <> encodeWord 0
     gdecode   = do
       n <- decodeListLen
@@ -455,13 +455,13 @@ instance GSerialize U1 where
       return U1
 
 -- Metadata (constructor name, etc) is skipped
-instance GSerialize a => GSerialize (M1 i c a) where
+instance GSerialise a => GSerialise (M1 i c a) where
     gencode = gencode . unM1
     gdecode = M1 <$> gdecode
 
 -- Constructor field (Could only appear in one-field & one-constructor
--- data types). In all other cases we go through GSerialize{Sum,Prod}
-instance Serialise a => GSerialize (K1 i a) where
+-- data types). In all other cases we go through GSerialise{Sum,Prod}
+instance Serialise a => GSerialise (K1 i a) where
     gencode (K1 a) = encodeListLen 2
                   <> encodeWord 0
                   <> encode a
@@ -474,8 +474,8 @@ instance Serialise a => GSerialize (K1 i a) where
         fail "unexpected tag. Expects 0"
       K1 <$> decode
 
--- Products are serialized as N-tuples with 0 constructor tag
-instance (GSerializeProd f, GSerializeProd g) => GSerialize (f :*: g) where
+-- Products are serialised as N-tuples with 0 constructor tag
+instance (GSerialiseProd f, GSerialiseProd g) => GSerialise (f :*: g) where
     gencode (f :*: g)
         = encodeListLen (nFields (P :: Proxy (f :*: g)) + 1)
        <> encodeWord 0
@@ -494,9 +494,9 @@ instance (GSerializeProd f, GSerializeProd g) => GSerialize (f :*: g) where
       !g <- gdecodeSeq
       return $ f :*: g
 
--- Sum types are serialized as N-tuples and first element is
+-- Sum types are serialised as N-tuples and first element is
 -- constructor tag
-instance (GSerializeSum f, GSerializeSum g) => GSerialize (f :+: g) where
+instance (GSerialiseSum f, GSerialiseSum g) => GSerialise (f :+: g) where
     gencode a = encodeListLen (numOfFields a + 1)
              <> encode (conNumber a)
              <> encodeSum a
@@ -514,7 +514,7 @@ instance (GSerializeSum f, GSerializeSum g) => GSerialize (f :+: g) where
 
 
 -- | Serialization of product types
-class GSerializeProd f where
+class GSerialiseProd f where
     -- | Number of fields in product type
     nFields   :: Proxy f -> Word
     -- | Encode fields sequentially without writing header
@@ -522,7 +522,7 @@ class GSerializeProd f where
     -- | Decode fields sequentially without reading header
     gdecodeSeq :: Decoder (f a)
 
-instance (GSerializeProd f, GSerializeProd g) => GSerializeProd (f :*: g) where
+instance (GSerialiseProd f, GSerialiseProd g) => GSerialiseProd (f :*: g) where
     nFields _ = nFields (P :: Proxy f) + nFields (P :: Proxy g)
     encodeSeq (f :*: g) = encodeSeq f <> encodeSeq g
     gdecodeSeq = do !f <- gdecodeSeq
@@ -531,26 +531,26 @@ instance (GSerializeProd f, GSerializeProd g) => GSerializeProd (f :*: g) where
 
 -- N.B. Could only be reached when one of constructors in sum type
 --      don't have parameters
-instance GSerializeProd U1 where
+instance GSerialiseProd U1 where
     nFields   _ = 0
     encodeSeq _ = mempty
     gdecodeSeq  = return U1
 
 -- Ordinary field
-instance (Serialise a) => GSerializeProd (K1 i a) where
+instance (Serialise a) => GSerialiseProd (K1 i a) where
     nFields    _     = 1
     encodeSeq (K1 f) = encode f
     gdecodeSeq       = K1 <$> decode
 
 -- We skip metadata
-instance (i ~ S, GSerializeProd f) => GSerializeProd (M1 i c f) where
+instance (i ~ S, GSerialiseProd f) => GSerialiseProd (M1 i c f) where
     nFields     _     = 1
     encodeSeq  (M1 f) = encodeSeq f
     gdecodeSeq        = M1 <$> gdecodeSeq
 
 
 -- | Serialization of sum types
-class GSerializeSum f where
+class GSerialiseSum f where
     -- | Number of constructor of given value
     conNumber   :: f a -> Word
     -- | Number of fields of given value
@@ -566,7 +566,7 @@ class GSerializeSum f where
     fieldsForCon  :: Proxy f -> Word -> Decoder Word
 
 
-instance (GSerializeSum f, GSerializeSum g) => GSerializeSum (f :+: g) where
+instance (GSerialiseSum f, GSerialiseSum g) => GSerialiseSum (f :+: g) where
     conNumber x = case x of
       L1 f -> conNumber f
       R1 g -> conNumber g + nConstructors (P :: Proxy f)
@@ -591,7 +591,7 @@ instance (GSerializeSum f, GSerializeSum g) => GSerializeSum (f :+: g) where
         nL = nConstructors (P :: Proxy f)
 
 
-instance (i ~ C, GSerializeProd f) => GSerializeSum (M1 i c f) where
+instance (i ~ C, GSerialiseProd f) => GSerialiseSum (M1 i c f) where
     conNumber    _     = 0
     numOfFields  _     = nFields (P :: Proxy f)
     encodeSum   (M1 f) = encodeSeq f
