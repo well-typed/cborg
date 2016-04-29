@@ -25,15 +25,19 @@ module Data.Binary.Serialise.CBOR.Class
 
 #include "cbor.h"
 
-#if ! MIN_VERSION_base(4,8,0)
 import           Control.Applicative
-#endif
 import           Control.Monad
 import           Data.Hashable
 import           Data.Int
 import           Data.Monoid
 import           Data.Version
 import           Data.Word
+import           Data.Complex
+import           Data.Ratio
+import           Data.Ord
+#if MIN_VERSION_base(4,8,0)
+import           Data.Functor.Identity
+#endif
 import qualified Data.Foldable                       as Foldable
 import qualified Data.ByteString                     as BS
 import qualified Data.Text                           as Text
@@ -52,6 +56,7 @@ import qualified Data.HashMap.Strict                 as HashMap
 import qualified Data.Vector                         as Vector
 import qualified Data.Vector.Unboxed                 as Vector.Unboxed
 --import qualified Data.Text.Lazy                      as Text.Lazy
+import           Foreign.C.Types
 
 import           Data.Time                           (UTCTime (..))
 #if MIN_VERSION_time(1,5,0)
@@ -61,6 +66,7 @@ import           Data.Time.Format                    (defaultTimeLocale,
 import           Data.Time.Format                    (formatTime, parseTime)
 import           System.Locale                       (defaultTimeLocale)
 #endif
+import           System.Exit                         (ExitCode(..))
 
 import           Prelude hiding (decodeFloat, encodeFloat, foldr)
 import qualified Prelude
@@ -201,6 +207,208 @@ instance Serialise BS.ByteString where
     encode = encodeBytes
     decode = decodeBytes
 
+instance Serialise a => Serialise (Const a b) where
+    encode (Const a) = encode a
+    decode = Const <$> decode
+
+instance Serialise a => Serialise (ZipList a) where
+    encode (ZipList xs) = encode xs
+    decode = ZipList <$> decode
+
+instance (Serialise a, Integral a) => Serialise (Ratio a) where
+    encode a = encodeListLen 2
+            <> encode (numerator a)
+            <> encode (denominator a)
+    decode = do decodeListLenOf 2
+                !a <- decode
+                !b <- decode
+                return $ a % b
+
+instance Serialise a => Serialise (Complex a) where
+    encode (r :+ i) = encodeListLen 2
+                   <> encode r
+                   <> encode i
+    decode = do decodeListLenOf 2
+                !r <- decode
+                !i <- decode
+                return $ r :+ i
+
+instance Serialise Ordering where
+    encode a = encodeListLen 1
+            <> encodeWord (case a of LT -> 0
+                                     EQ -> 1
+                                     GT -> 2)
+    decode = do
+      decodeListLenOf 1
+      t <- decodeWord
+      case t of
+        0 -> return LT
+        1 -> return EQ
+        2 -> return GT
+        _ -> fail "unexpected tag"
+
+instance Serialise a => Serialise (Down a) where
+    encode (Down a) = encode a
+    decode = Down <$> decode
+
+instance Serialise a => Serialise (Dual a) where
+    encode (Dual a) = encode a
+    decode = Dual <$> decode
+
+instance Serialise All where
+    encode (All b) = encode b
+    decode = All <$> decode
+
+instance Serialise Any where
+    encode (Any b) = encode b
+    decode = Any <$> decode
+
+instance Serialise a => Serialise (Sum a) where
+    encode (Sum b) = encode b
+    decode = Sum <$> decode
+
+instance Serialise a => Serialise (Product a) where
+    encode (Product b) = encode b
+    decode = Product <$> decode
+
+instance Serialise a => Serialise (First a) where
+    encode (First b) = encode b
+    decode = First <$> decode
+
+instance Serialise a => Serialise (Last a) where
+    encode (Last b) = encode b
+    decode = Last <$> decode
+
+#if MIN_VERSION_base(4,8,0)
+instance Serialise (f a) => Serialise (Alt f a) where
+    encode (Alt b) = encode b
+    decode = Alt <$> decode
+
+instance Serialise a => Serialise (Identity a) where
+    encode (Identity b) = encode b
+    decode = Identity <$> decode
+#endif
+
+instance Serialise ExitCode where
+    encode ExitSuccess     = encodeListLen 1
+                          <> encodeWord 0
+    encode (ExitFailure i) = encodeListLen 2
+                          <> encodeWord 1
+                          <> encode i
+    decode = do
+      n <- decodeListLen
+      case n of
+        1 -> do t <- decodeWord
+                case t of
+                  0 -> return ExitSuccess
+                  _ -> fail "unexpected tag"
+        2 -> do t <- decodeWord
+                case t of
+                  1 -> return ()
+                  _ -> fail "unexpected tag"
+                !i <- decode
+                return $ ExitFailure i
+        _ -> fail "Bad list length"
+
+instance Serialise CChar where
+    encode (CChar x) = encode x
+    decode = CChar <$> decode
+
+instance Serialise CSChar where
+    encode (CSChar x) = encode x
+    decode = CSChar <$> decode
+
+instance Serialise CUChar where
+    encode (CUChar x) = encode x
+    decode = CUChar <$> decode
+
+instance Serialise CShort where
+    encode (CShort x) = encode x
+    decode = CShort <$> decode
+
+instance Serialise CUShort where
+    encode (CUShort x) = encode x
+    decode = CUShort <$> decode
+
+instance Serialise CInt where
+    encode (CInt x) = encode x
+    decode = CInt <$> decode
+
+instance Serialise CUInt where
+    encode (CUInt x) = encode x
+    decode = CUInt <$> decode
+
+instance Serialise CLong where
+    encode (CLong x) = encode x
+    decode = CLong <$> decode
+
+instance Serialise CULong where
+    encode (CULong x) = encode x
+    decode = CULong <$> decode
+
+instance Serialise CPtrdiff where
+    encode (CPtrdiff x) = encode x
+    decode = CPtrdiff <$> decode
+
+instance Serialise CSize where
+    encode (CSize x) = encode x
+    decode = CSize <$> decode
+
+instance Serialise CWchar where
+    encode (CWchar x) = encode x
+    decode = CWchar <$> decode
+
+instance Serialise CSigAtomic where
+    encode (CSigAtomic x) = encode x
+    decode = CSigAtomic <$> decode
+
+instance Serialise CLLong where
+    encode (CLLong x) = encode x
+    decode = CLLong <$> decode
+
+instance Serialise CULLong where
+    encode (CULLong x) = encode x
+    decode = CULLong <$> decode
+
+instance Serialise CIntPtr where
+    encode (CIntPtr x) = encode x
+    decode = CIntPtr <$> decode
+
+instance Serialise CUIntPtr where
+    encode (CUIntPtr x) = encode x
+    decode = CUIntPtr <$> decode
+
+instance Serialise CIntMax where
+    encode (CIntMax x) = encode x
+    decode = CIntMax <$> decode
+
+instance Serialise CUIntMax where
+    encode (CUIntMax x) = encode x
+    decode = CUIntMax <$> decode
+
+instance Serialise CClock where
+    encode (CClock x) = encode x
+    decode = CClock <$> decode
+
+instance Serialise CTime where
+    encode (CTime x) = encode x
+    decode = CTime <$> decode
+
+instance Serialise CUSeconds where
+    encode (CUSeconds x) = encode x
+    decode = CUSeconds <$> decode
+
+instance Serialise CSUSeconds where
+    encode (CSUSeconds x) = encode x
+    decode = CSUSeconds <$> decode
+
+instance Serialise CFloat where
+    encode (CFloat x) = encode x
+    decode = CFloat <$> decode
+
+instance Serialise CDouble where
+    encode (CDouble x) = encode x
+    decode = CDouble <$> decode
 
 --------------------------------------------------------------------------------
 -- Structure instances
@@ -225,6 +433,80 @@ instance (Serialise a, Serialise b, Serialise c) => Serialise (a,b,c) where
                 !y <- decode
                 !z <- decode
                 return (x, y, z)
+
+instance (Serialise a, Serialise b, Serialise c, Serialise d
+         ) => Serialise (a,b,c,d) where
+    encode (a,b,c,d) = encodeListLen 4
+                    <> encode a
+                    <> encode b
+                    <> encode c
+                    <> encode d
+
+    decode = do decodeListLenOf 4
+                !a <- decode
+                !b <- decode
+                !c <- decode
+                !d <- decode
+                return (a, b, c, d)
+
+instance (Serialise a, Serialise b, Serialise c, Serialise d, Serialise e
+         ) => Serialise (a,b,c,d,e) where
+    encode (a,b,c,d,e) = encodeListLen 5
+                      <> encode a
+                      <> encode b
+                      <> encode c
+                      <> encode d
+                      <> encode e
+
+    decode = do decodeListLenOf 5
+                !a <- decode
+                !b <- decode
+                !c <- decode
+                !d <- decode
+                !e <- decode
+                return (a, b, c, d, e)
+
+instance ( Serialise a, Serialise b, Serialise c, Serialise d, Serialise e
+         , Serialise f
+         ) => Serialise (a,b,c,d,e,f) where
+    encode (a,b,c,d,e,f) = encodeListLen 6
+                        <> encode a
+                        <> encode b
+                        <> encode c
+                        <> encode d
+                        <> encode e
+                        <> encode f
+
+    decode = do decodeListLenOf 6
+                !a <- decode
+                !b <- decode
+                !c <- decode
+                !d <- decode
+                !e <- decode
+                !f <- decode
+                return (a, b, c, d, e, f)
+
+instance ( Serialise a, Serialise b, Serialise c, Serialise d, Serialise e
+         , Serialise f, Serialise g
+         ) => Serialise (a,b,c,d,e,f,g) where
+    encode (a,b,c,d,e,f,g) = encodeListLen 7
+                          <> encode a
+                          <> encode b
+                          <> encode c
+                          <> encode d
+                          <> encode e
+                          <> encode f
+                          <> encode g
+
+    decode = do decodeListLenOf 7
+                !a <- decode
+                !b <- decode
+                !c <- decode
+                !d <- decode
+                !e <- decode
+                !f <- decode
+                !g <- decode
+                return (a, b, c, d, e, f, g)
 
 instance Serialise a => Serialise (Maybe a) where
     encode Nothing  = encodeListLen 0
