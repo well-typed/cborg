@@ -223,6 +223,14 @@ benchmark instances
     deepseq                 >= 1.0     && < 1.5,
     criterion               >= 1.0     && < 1.2
 
+  if flag(newtime15)
+    build-depends:
+      time                  >= 1.5     && < 1.7
+  else
+    build-depends:
+      time                  >= 1.4     && < 1.5,
+      old-locale
+
 benchmark micro
   type:              exitcode-stdio-1.0
   hs-source-dirs:    bench/micro
