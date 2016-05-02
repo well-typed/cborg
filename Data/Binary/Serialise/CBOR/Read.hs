@@ -257,12 +257,37 @@ go_fast da@(ConsumeTag k) !bs =
       DecodedToken sz (W# w#) -> go_fast (k w#) (BS.unsafeDrop sz bs)
 
 -- 64bit variants for 32bit machines
+-- TODO FIXME: finish
 #if defined(ARCH_32bit)
---go_fast da@(ConsumeWord64 k) !bs =
---go_fast da@(ConsumeInt64 k) !bs =
---go_fast da@(ConsumeListLen64 k) !bs =
---go_fast da@(ConsumeMapLen64 k) !bs =
---go_fast da@(ConsumeTag64 k) !bs =
+go_fast da@(ConsumeWord64 _k) !bs =
+  case tryConsumeWord (BS.unsafeHead bs) bs of
+    DecodeFailure            -> go_fast_end da bs
+    DecodedToken _ _         -> error "go_fast/ConsumeWord64: Not Invented Here"
+
+go_fast da@(ConsumeNegWord64 _k) !bs =
+  case tryConsumeNegWord (BS.unsafeHead bs) bs of
+    DecodeFailure            -> go_fast_end da bs
+    DecodedToken _ _         -> error "go_fast/ConsumeNegWord64: Not Invented Here"
+
+go_fast da@(ConsumeInt64 _k) !bs =
+  case tryConsumeInt (BS.unsafeHead bs) bs of
+    DecodeFailure            -> go_fast_end da bs
+    DecodedToken _ _         -> error "go_fast/ConsumeInt64: Not Invented Here"
+
+go_fast da@(ConsumeListLen64 _k) !bs =
+  case tryConsumeListLen (BS.unsafeHead bs) bs of
+    DecodeFailure            -> go_fast_end da bs
+    DecodedToken _ _         -> error "go_fast/ConsumeListLen64: Not Invented Here"
+
+go_fast da@(ConsumeMapLen64 _k) !bs =
+  case tryConsumeMapLen (BS.unsafeHead bs) bs of
+    DecodeFailure            -> go_fast_end da bs
+    DecodedToken _ _         -> error "go_fast/ConsumeMapLen64: Not Invented Here"
+
+go_fast da@(ConsumeTag64 _k) !bs =
+  case tryConsumeTag (BS.unsafeHead bs) bs of
+    DecodeFailure            -> go_fast_end da bs
+    DecodedToken _ _         -> error "go_fast/ConsumeTag64: Not Invented Here"
 #endif
 
 go_fast da@(ConsumeInteger k) !bs =
@@ -472,13 +497,37 @@ go_fast_end (ConsumeTag k) !bs =
       DecodedToken sz (W# w#) -> go_fast_end (k w#) (BS.unsafeDrop sz bs)
 
 -- 64bit variants for 32bit machines
+-- TODO FIXME: finish
 #if defined(ARCH_32bit)
---go_fast_end (ConsumeWord64 k) !bs =
---go_fast_end (ConsumeNegWord64 k) !bs =
---go_fast_end (ConsumeInt64 k) !bs =
---go_fast_end (ConsumeListLen64 k) !bs =
---go_fast_end (ConsumeMapLen64 k) !bs =
---go_fast_end (ConsumeTag64 k) !bs =
+go_fast_end (ConsumeWord64 _k) !bs =
+  case tryConsumeWord (BS.unsafeHead bs) bs of
+    DecodeFailure            -> SlowFail bs "expected word64"
+    DecodedToken _ _         -> error "go_fast_end/ConsumeWord64: Not Invented Here"
+
+go_fast_end (ConsumeNegWord64 _k) !bs =
+  case tryConsumeNegWord (BS.unsafeHead bs) bs of
+    DecodeFailure            -> SlowFail bs "expected negative word64"
+    DecodedToken _ _         -> error "go_fast_end/ConsumeNegWord64: Not Invented Here"
+
+go_fast_end (ConsumeInt64 _k) !bs =
+  case tryConsumeInt (BS.unsafeHead bs) bs of
+    DecodeFailure            -> SlowFail bs "expected int64"
+    DecodedToken _ _         -> error "go_fast_end/ConsumeInt64: Not Invented Here"
+
+go_fast_end (ConsumeListLen64 _k) !bs =
+  case tryConsumeListLen (BS.unsafeHead bs) bs of
+    DecodeFailure            -> SlowFail bs "expected list len 64"
+    DecodedToken _ _         -> error "go_fast_end/ConsumeListLen64: Not Invented Here"
+
+go_fast_end (ConsumeMapLen64 _k) !bs =
+  case tryConsumeMapLen (BS.unsafeHead bs) bs of
+    DecodeFailure            -> SlowFail bs "expected map len 64"
+    DecodedToken _ _         -> error "go_fast_end/ConsumeMapLen64: Not Invented Here"
+
+go_fast_end (ConsumeTag64 _k) !bs =
+  case tryConsumeTag (BS.unsafeHead bs) bs of
+    DecodeFailure            -> SlowFail bs "expected tag64"
+    DecodedToken _ _         -> error "go_fast_end/ConsumeTag64: Not Invented Here"
 #endif
 
 go_fast_end (ConsumeInteger k) !bs =
