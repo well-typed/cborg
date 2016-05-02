@@ -19,9 +19,10 @@
 -- CBOR object, or decode a CBOR object into the user-specified type.
 --
 module Data.Binary.Serialise.CBOR.Class
-       where
-  -- ( -- * The Serialise class
-  --   Serialise(..)
+ ( -- * The Serialise class
+   Serialise(..)
+ , GSerialise(..)
+ ) where
 
 #include "cbor.h"
 
@@ -105,11 +106,13 @@ instance Serialise a => Serialise [a] where
     encode = encodeList
     decode = decodeList
 
+-- | Default @'Encoding'@ for list types.
 defaultEncodeList :: Serialise a => [a] -> Encoding
 defaultEncodeList [] = encodeListLen 0
 defaultEncodeList xs = encodeListLenIndef
                     <> Prelude.foldr (\x r -> encode x <> r) encodeBreak xs
 
+-- | Default @'Decoder'@ for list types.
 defaultDecodeList :: Serialise a => Decoder [a]
 defaultDecodeList = do
     mn <- decodeListLenOrIndef
@@ -413,10 +416,13 @@ instance Serialise UTCTime where
         _ -> fail "Expected timestamp (tag 0 or 1)"
 
 
+-- | @'UTCTime'@ formatting, into a regular @'String'@.
 formatUTCrfc3339 :: UTCTime -> String
+
+-- | @'UTCTime'@ parsing, from a regular @'String'@.
 parseUTCrfc3339  :: String -> Maybe UTCTime
 
--- Format UTC as timezone 'Z' but on parsing accept 'Z' or any numeric offset
+-- Format UTC as timezone 'Z', but on parsing accept 'Z' or any numeric offset
 formatUTCrfc3339 = formatTime       defaultTimeLocale "%Y-%m-%dT%H:%M:%S%QZ"
 #if MIN_VERSION_time(1,5,0)
 parseUTCrfc3339  = parseTimeM False defaultTimeLocale "%Y-%m-%dT%H:%M:%S%Q%Z"
@@ -424,7 +430,7 @@ parseUTCrfc3339  = parseTimeM False defaultTimeLocale "%Y-%m-%dT%H:%M:%S%Q%Z"
 parseUTCrfc3339  = parseTime        defaultTimeLocale "%Y-%m-%dT%H:%M:%S%Q%Z"
 #endif
 
--- UTCTime has an unnecessarily lazy representation, and the parsing is lazy
+-- | Force the unnecessarily lazy @'UTCTime'@ representation.
 forceUTCTime :: UTCTime -> UTCTime
 forceUTCTime t@(UTCTime !_day !_daytime) = t
 

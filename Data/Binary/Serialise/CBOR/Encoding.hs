@@ -9,8 +9,8 @@
 -- Stability   : experimental
 -- Portability : non-portable (GHC extensions)
 --
--- API for encoding values in a high level format, for later serialization
--- into CBOR binary values.
+-- High level API for encoding values, for later serialization into
+-- CBOR binary format, using a @'Monoid'@ based interface.
 --
 module Data.Binary.Serialise.CBOR.Encoding
   ( -- * Encoding implementation
@@ -177,7 +177,11 @@ encodeInteger n = Encoding (TkInteger n)
 encodeBytes :: B.ByteString -> Encoding
 encodeBytes = Encoding . TkBytes
 
--- | Encode
+-- | Encode a token specifying the beginning of a string of bytes of
+-- indefinite length. In reality, this specifies a stream of many
+-- occurrences of `encodeBytes`, each specifying a single chunk of the
+-- overall string. After all the bytes desired have been encoded, you
+-- should follow it with a break token (see @'encodeBreak'@).
 encodeBytesIndef :: Encoding
 encodeBytesIndef = Encoding TkBytesBegin
 
@@ -185,41 +189,61 @@ encodeBytesIndef = Encoding TkBytesBegin
 encodeString :: T.Text -> Encoding
 encodeString = Encoding . TkString
 
+-- | Encode the beginning of an indefinite string.
 encodeStringIndef :: Encoding
 encodeStringIndef = Encoding TkStringBegin
 
+-- | Encode the length of a list, used to indicate that the following
+-- tokens represent the list values.
 encodeListLen :: Word -> Encoding
 encodeListLen = Encoding . TkListLen
 
+-- | Encode a token specifying that this is the beginning of an
+-- indefinite list of unknown size. Tokens representing the list are
+-- expected afterwords, followed by a break token (see
+-- @'encodeBreak'@) when the list has ended.
 encodeListLenIndef :: Encoding
 encodeListLenIndef = Encoding TkListBegin
 
+-- | Encode the length of a Map, used to indicate that
+-- the following tokens represent the map values.
 encodeMapLen :: Word -> Encoding
 encodeMapLen = Encoding . TkMapLen
 
+-- | Encode a token specifying that this is the beginning of an
+-- indefinite map of unknown size. Tokens representing the map are
+-- expected afterwords, followed by a break token (see
+-- @'encodeBreak'@) when the map has ended.
 encodeMapLenIndef :: Encoding
 encodeMapLenIndef = Encoding TkMapBegin
 
+-- | Encode a \'break\', used to specify the end of indefinite
+-- length objects like maps or lists.
 encodeBreak :: Encoding
 encodeBreak = Encoding TkBreak
 
+-- | Encode an arbitrary @'Word'@ tag.
 encodeTag :: Word -> Encoding
 encodeTag = Encoding . TkTag
 
--- | Encode an arbitrary 64-bit @'Word64'@ tag in a flattened format.
+-- | Encode an arbitrary 64-bit @'Word64'@ tag.
 encodeTag64 :: Word64 -> Encoding
 encodeTag64 = Encoding . TkTag64
 
--- | Encode a @'Bool'@ in a flattened format.
+-- | Encode a @'Bool'@.
 encodeBool :: Bool -> Encoding
 encodeBool b = Encoding (TkBool b)
 
+-- | Encode an @Undef@ value.
 encodeUndef :: Encoding
 encodeUndef = Encoding TkUndef
 
+-- | Encode a @Null@ value.
 encodeNull :: Encoding
 encodeNull = Encoding TkNull
 
+-- | Encode a \'simple\' CBOR token that can be represented with an
+-- 8-bit word. You probably don't ever need this.
 encodeSimple :: Word8 -> Encoding
 encodeSimple = Encoding . TkSimple
 

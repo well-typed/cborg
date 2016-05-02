@@ -61,6 +61,9 @@ import           Control.Exception
 #error expected WORD_SIZE_IN_BITS to be 32 or 64
 #endif
 
+-- | Given a @'Decoder'@ and some @'LBS.ByteString'@ representing
+-- an encoded CBOR value, return @'Either'@ the decoded CBOR value
+-- or an error.
 deserialiseFromBytes :: Decoder a -> LBS.ByteString -> Either String a
 deserialiseFromBytes =
     runBinDecoder . deserialiseIncremental
@@ -74,6 +77,8 @@ runBinDecoder d lbs =
         LBS.Empty         -> runBinDecoder (k Nothing)   lbs
         LBS.Chunk bs lbs' -> runBinDecoder (k (Just bs)) lbs'
 
+-- | Run a @'Decoder'@ incrementally, returning a continuation
+-- representing the result of the incremental decode.
 deserialiseIncremental :: Decoder a -> Bin.Decoder a
 deserialiseIncremental =
     runIncrementalDecoder . runDecodeAction . getDecodeAction
