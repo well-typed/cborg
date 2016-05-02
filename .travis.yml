@@ -36,6 +36,7 @@ script:
  - cabal test
  - cabal check
  - cabal sdist   # tests that a source-distribution can be generated
+ - ./scripts/dragon-bureaucrat.sh # ensure the dragon is happy
 
 # Check that the resulting source distribution can be built & installed.
 # If there are no other `.tar.gz` files in `dist`, this can be even simpler:
