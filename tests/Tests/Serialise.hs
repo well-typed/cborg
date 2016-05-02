@@ -33,7 +33,8 @@ import qualified Data.ByteString as BS
 import           Data.Binary.Serialise.CBOR
 import           Data.Binary.Serialise.CBOR.Encoding
 import           Data.Binary.Serialise.CBOR.Decoding
-import           Data.Binary.Serialise.CBOR.FlatTerm (toFlatTerm,fromFlatTerm,validFlatTerm)
+import           Data.Binary.Serialise.CBOR.FlatTerm (toFlatTerm, fromFlatTerm)
+import qualified Data.Binary.Serialise.CBOR.Properties as Props
 
 import qualified Data.HashMap.Strict        as HashMap
 import qualified Data.HashSet               as HashSet
@@ -54,21 +55,18 @@ data T a = T
 
 -- | Ensure that serializing and deserializing a term results in the original
 -- term.
-prop_serialiseId :: (Serialise a, Eq a, Show a) => T a -> a -> Bool
-prop_serialiseId _ a = a == (deserialise . serialise) a
+prop_serialiseId :: (Serialise a, Eq a) => T a -> a -> Bool
+prop_serialiseId _ = Props.serialiseIdentity
 
 -- | Ensure that serializing and deserializing a term (into @'FlatTerm'@ form)
 -- results in the original term.
-prop_flatTermId :: forall a. (Serialise a, Eq a, Show a) => T a -> a -> Bool
-prop_flatTermId _ a = Right a == (fromFlat . toFlat) a
-  where
-    toFlat   = toFlatTerm . encode
-    fromFlat = fromFlatTerm (decode :: Decoder a)
+prop_flatTermId :: (Serialise a, Eq a) => T a -> a -> Bool
+prop_flatTermId _ = Props.flatTermIdentity
 
 -- | Ensure that serializing a term into a @'FlatTerm'@ always gives us a
 -- valid @'FlatTerm'@ back.
-prop_validFlatTerm :: (Serialise a, Eq a, Show a) => T a -> a -> Bool
-prop_validFlatTerm _ = validFlatTerm . toFlatTerm . encode
+prop_validFlatTerm :: Serialise a => T a -> a -> Bool
+prop_validFlatTerm _ = Props.hasValidFlatTerm
 
 format :: (Typeable a, Show a, Serialise a) => a -> Tokens -> TestTree
 format a toks
