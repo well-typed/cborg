@@ -136,6 +136,14 @@ executable demo-aeson
     vector                  >= 0.10    && < 0.12,
     binary-serialise-cbor
 
+  if flag(newtime15)
+    build-depends:
+      time                  >= 1.5     && < 1.7
+  else
+    build-depends:
+      time                  >= 1.4     && < 1.5,
+      old-locale
+
 executable demo-dump-cbor
   hs-source-dirs:    demos
   main-is:           Dump.hs
@@ -157,6 +165,14 @@ executable demo-dump-cbor
     filepath                >= 1.0     && < 1.5,
     ghc-prim                >= 0.3     && < 0.6,
     binary-serialise-cbor
+
+  if flag(newtime15)
+    build-depends:
+      time                  >= 1.5     && < 1.7
+  else
+    build-depends:
+      time                  >= 1.4     && < 1.5,
+      old-locale
 
 --------------------------------------------------------------------------------
 -- Tests
@@ -207,6 +223,14 @@ test-suite tests
     tasty-quickcheck        >= 0.8     && < 0.9,
     quickcheck-instances    >= 0.3     && < 0.4,
     vector                  >= 0.10    && < 0.12
+
+  if flag(newtime15)
+    build-depends:
+      time                  >= 1.5     && < 1.7
+  else
+    build-depends:
+      time                  >= 1.4     && < 1.5,
+      old-locale
 
 --------------------------------------------------------------------------------
 -- Benchmarks
