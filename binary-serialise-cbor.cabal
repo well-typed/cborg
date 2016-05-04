@@ -212,6 +212,7 @@ benchmark instances
 
   other-modules:
     Instances.Vector
+    Instances.Time
 
   build-depends:
     base                    >= 4.6     && < 5.0,
@@ -253,6 +254,8 @@ benchmark micro
     Micro.PkgCereal
   --Micro.PkgMsgpack
     Micro.CBOR
+
+    SimpleVersus
 
   build-depends:
     base                    >= 4.6     && < 5.0,
