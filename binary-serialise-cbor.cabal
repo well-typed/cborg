@@ -95,7 +95,6 @@ library
       time                  >= 1.4     && < 1.5,
       old-locale
 
-
 --------------------------------------------------------------------------------
 -- Demo programs
 
@@ -199,21 +198,12 @@ test-suite tests
     quickcheck-instances    >= 0.3     && < 0.4,
     vector                  >= 0.10    && < 0.12
 
-  if flag(newtime15)
-    build-depends:
-      time                  >= 1.5     && < 1.7
-  else
-    build-depends:
-      time                  >= 1.4     && < 1.5,
-      old-locale
-
-
 --------------------------------------------------------------------------------
 -- Benchmarks
 
-benchmark vs-other-libs
+benchmark instances
   type:              exitcode-stdio-1.0
-  hs-source-dirs:    bench
+  hs-source-dirs:    bench/instances
   main-is:           Main.hs
 
   default-language:  Haskell2010
@@ -221,14 +211,28 @@ benchmark vs-other-libs
     -Wall -rtsopts -fno-cse -fno-ignore-asserts -fno-warn-orphans
 
   other-modules:
-    Utils
-
-    -- Suite #1
-    Instances
     Instances.Vector
 
-    -- Suite #2
-    Micro
+  build-depends:
+    base                    >= 4.6     && < 5.0,
+    binary                  >= 0.7     && < 0.9,
+    bytestring              >= 0.10.4  && < 0.11,
+    vector                  >= 0.10    && < 1.0,
+    binary-serialise-cbor,
+
+    deepseq                 >= 1.0     && < 1.5,
+    criterion               >= 1.0     && < 1.2
+
+benchmark micro
+  type:              exitcode-stdio-1.0
+  hs-source-dirs:    bench/micro
+  main-is:           Main.hs
+
+  default-language:  Haskell2010
+  ghc-options:
+    -Wall -rtsopts -fno-cse -fno-ignore-asserts -fno-warn-orphans
+
+  other-modules:
     Micro.Types
     Micro.Load
     Micro.DeepSeq
@@ -241,10 +245,35 @@ benchmark vs-other-libs
   --Micro.PkgMsgpack
     Micro.CBOR
 
-    -- Suite #3
+  build-depends:
+    base                    >= 4.6     && < 5.0,
+    binary                  >= 0.7     && < 0.9,
+    bytestring              >= 0.10.4  && < 0.11,
+    ghc-prim                >= 0.3     && < 0.6,
+    vector                  >= 0.10    && < 1.0,
+    binary-serialise-cbor,
+
+    aeson                   >= 0.7     && < 0.12,
+    deepseq                 >= 1.0     && < 1.5,
+    criterion               >= 1.0     && < 1.2,
+    cereal                  >= 0.4     && < 0.6
+
+benchmark vs-other-libs
+  type:              exitcode-stdio-1.0
+  hs-source-dirs:    bench/versus
+  main-is:           Main.hs
+
+  default-language:  Haskell2010
+  ghc-options:
+    -Wall -rtsopts -fno-cse -fno-ignore-asserts -fno-warn-orphans
+
+  other-modules:
+    Utils
+
+    -- Suite #1
     Mini
 
-    -- Suite #4
+    -- Suite #2
     Macro
     Macro.Types
     Macro.Load
