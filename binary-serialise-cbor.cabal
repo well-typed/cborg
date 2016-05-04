@@ -241,6 +241,7 @@ benchmark micro
     -Wall -rtsopts -fno-cse -fno-ignore-asserts -fno-warn-orphans
 
   other-modules:
+    Micro
     Micro.Types
     Micro.Load
     Micro.DeepSeq
