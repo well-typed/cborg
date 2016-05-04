@@ -51,16 +51,6 @@ import           GHC.Exts
 import           GHC.Float (float2Double)
 import           Control.Exception
 
-
-#include "MachDeps.h"
-
-#if WORD_SIZE_IN_BITS == 64
-#define ARCH_64bit
-#elif WORD_SIZE_IN_BITS == 32
-#else
-#error expected WORD_SIZE_IN_BITS to be 32 or 64
-#endif
-
 -- | Given a @'Decoder'@ and some @'LBS.ByteString'@ representing
 -- an encoded CBOR value, return @'Either'@ the decoded CBOR value
 -- or an error.
