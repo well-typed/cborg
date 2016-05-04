@@ -46,6 +46,7 @@ import qualified Data.Text          as T
 import qualified Data.Text.Encoding as T
 import           Data.Word
 import           Data.Int
+import           GHC.Int
 import           GHC.Word
 import           GHC.Exts
 import           GHC.Float (float2Double)
@@ -246,38 +247,36 @@ go_fast da@(ConsumeTag k) !bs =
       DecodeFailure           -> go_fast_end da bs
       DecodedToken sz (W# w#) -> go_fast (k w#) (BS.unsafeDrop sz bs)
 
--- 64bit variants for 32bit machines
--- TODO FIXME: finish
 #if defined(ARCH_32bit)
-go_fast da@(ConsumeWord64 _k) !bs =
-  case tryConsumeWord (BS.unsafeHead bs) bs of
-    DecodeFailure            -> go_fast_end da bs
-    DecodedToken _ _         -> error "go_fast/ConsumeWord64: Not Invented Here"
+go_fast da@(ConsumeWord64 k) !bs =
+  case tryConsumeWord64 (BS.unsafeHead bs) bs of
+    DecodeFailure             -> go_fast_end da bs
+    DecodedToken sz (W64# w#) -> go_fast (k w#) (BS.unsafeDrop sz bs)
 
-go_fast da@(ConsumeNegWord64 _k) !bs =
-  case tryConsumeNegWord (BS.unsafeHead bs) bs of
-    DecodeFailure            -> go_fast_end da bs
-    DecodedToken _ _         -> error "go_fast/ConsumeNegWord64: Not Invented Here"
+go_fast da@(ConsumeNegWord64 k) !bs =
+  case tryConsumeNegWord64 (BS.unsafeHead bs) bs of
+    DecodeFailure             -> go_fast_end da bs
+    DecodedToken sz (W64# w#) -> go_fast (k w#) (BS.unsafeDrop sz bs)
 
-go_fast da@(ConsumeInt64 _k) !bs =
-  case tryConsumeInt (BS.unsafeHead bs) bs of
-    DecodeFailure            -> go_fast_end da bs
-    DecodedToken _ _         -> error "go_fast/ConsumeInt64: Not Invented Here"
+go_fast da@(ConsumeInt64 k) !bs =
+  case tryConsumeInt64 (BS.unsafeHead bs) bs of
+    DecodeFailure             -> go_fast_end da bs
+    DecodedToken sz (I64# i#) -> go_fast (k i#) (BS.unsafeDrop sz bs)
 
-go_fast da@(ConsumeListLen64 _k) !bs =
-  case tryConsumeListLen (BS.unsafeHead bs) bs of
-    DecodeFailure            -> go_fast_end da bs
-    DecodedToken _ _         -> error "go_fast/ConsumeListLen64: Not Invented Here"
+go_fast da@(ConsumeListLen64 k) !bs =
+  case tryConsumeListLen64 (BS.unsafeHead bs) bs of
+    DecodeFailure             -> go_fast_end da bs
+    DecodedToken sz (I64# i#) -> go_fast (k i#) (BS.unsafeDrop sz bs)
 
-go_fast da@(ConsumeMapLen64 _k) !bs =
-  case tryConsumeMapLen (BS.unsafeHead bs) bs of
-    DecodeFailure            -> go_fast_end da bs
-    DecodedToken _ _         -> error "go_fast/ConsumeMapLen64: Not Invented Here"
+go_fast da@(ConsumeMapLen64 k) !bs =
+  case tryConsumeMapLen64 (BS.unsafeHead bs) bs of
+    DecodeFailure             -> go_fast_end da bs
+    DecodedToken sz (I64# i#) -> go_fast (k i#) (BS.unsafeDrop sz bs)
 
-go_fast da@(ConsumeTag64 _k) !bs =
-  case tryConsumeTag (BS.unsafeHead bs) bs of
-    DecodeFailure            -> go_fast_end da bs
-    DecodedToken _ _         -> error "go_fast/ConsumeTag64: Not Invented Here"
+go_fast da@(ConsumeTag64 k) !bs =
+  case tryConsumeTag64 (BS.unsafeHead bs) bs of
+    DecodeFailure             -> go_fast_end da bs
+    DecodedToken sz (W64# w#) -> go_fast (k w#) (BS.unsafeDrop sz bs)
 #endif
 
 go_fast da@(ConsumeInteger k) !bs =
@@ -486,38 +485,36 @@ go_fast_end (ConsumeTag k) !bs =
       DecodeFailure           -> SlowFail bs "expected tag"
       DecodedToken sz (W# w#) -> go_fast_end (k w#) (BS.unsafeDrop sz bs)
 
--- 64bit variants for 32bit machines
--- TODO FIXME: finish
 #if defined(ARCH_32bit)
-go_fast_end (ConsumeWord64 _k) !bs =
-  case tryConsumeWord (BS.unsafeHead bs) bs of
-    DecodeFailure            -> SlowFail bs "expected word64"
-    DecodedToken _ _         -> error "go_fast_end/ConsumeWord64: Not Invented Here"
+go_fast_end (ConsumeWord64 k) !bs =
+  case tryConsumeWord64 (BS.unsafeHead bs) bs of
+    DecodeFailure             -> SlowFail bs "expected word64"
+    DecodedToken sz (W64# w#) -> go_fast_end (k w#) (BS.unsafeDrop sz bs)
 
-go_fast_end (ConsumeNegWord64 _k) !bs =
-  case tryConsumeNegWord (BS.unsafeHead bs) bs of
-    DecodeFailure            -> SlowFail bs "expected negative word64"
-    DecodedToken _ _         -> error "go_fast_end/ConsumeNegWord64: Not Invented Here"
+go_fast_end (ConsumeNegWord64 k) !bs =
+  case tryConsumeNegWord64 (BS.unsafeHead bs) bs of
+    DecodeFailure             -> SlowFail bs "expected negative word64"
+    DecodedToken sz (W64# w#) -> go_fast_end (k w#) (BS.unsafeDrop sz bs)
 
-go_fast_end (ConsumeInt64 _k) !bs =
-  case tryConsumeInt (BS.unsafeHead bs) bs of
-    DecodeFailure            -> SlowFail bs "expected int64"
-    DecodedToken _ _         -> error "go_fast_end/ConsumeInt64: Not Invented Here"
+go_fast_end (ConsumeInt64 k) !bs =
+  case tryConsumeInt64 (BS.unsafeHead bs) bs of
+    DecodeFailure             -> SlowFail bs "expected int64"
+    DecodedToken sz (I64# i#) -> go_fast_end (k i#) (BS.unsafeDrop sz bs)
 
-go_fast_end (ConsumeListLen64 _k) !bs =
-  case tryConsumeListLen (BS.unsafeHead bs) bs of
-    DecodeFailure            -> SlowFail bs "expected list len 64"
-    DecodedToken _ _         -> error "go_fast_end/ConsumeListLen64: Not Invented Here"
+go_fast_end (ConsumeListLen64 k) !bs =
+  case tryConsumeListLen64 (BS.unsafeHead bs) bs of
+    DecodeFailure             -> SlowFail bs "expected list len 64"
+    DecodedToken sz (I64# i#) -> go_fast_end (k i#) (BS.unsafeDrop sz bs)
 
-go_fast_end (ConsumeMapLen64 _k) !bs =
-  case tryConsumeMapLen (BS.unsafeHead bs) bs of
-    DecodeFailure            -> SlowFail bs "expected map len 64"
-    DecodedToken _ _         -> error "go_fast_end/ConsumeMapLen64: Not Invented Here"
+go_fast_end (ConsumeMapLen64 k) !bs =
+  case tryConsumeMapLen64 (BS.unsafeHead bs) bs of
+    DecodeFailure             -> SlowFail bs "expected map len 64"
+    DecodedToken sz (I64# i#) -> go_fast_end (k i#) (BS.unsafeDrop sz bs)
 
-go_fast_end (ConsumeTag64 _k) !bs =
-  case tryConsumeTag (BS.unsafeHead bs) bs of
-    DecodeFailure            -> SlowFail bs "expected tag64"
-    DecodedToken _ _         -> error "go_fast_end/ConsumeTag64: Not Invented Here"
+go_fast_end (ConsumeTag64 k) !bs =
+  case tryConsumeTag64 (BS.unsafeHead bs) bs of
+    DecodeFailure             -> SlowFail bs "expected tag64"
+    DecodedToken sz (W64# w#) -> go_fast_end (k w#) (BS.unsafeDrop sz bs)
 #endif
 
 go_fast_end (ConsumeInteger k) !bs =
@@ -854,7 +851,6 @@ data LongToken a = Fits !a | TooLong !Int
 {-# INLINE tryConsumeWord #-}
 tryConsumeWord :: Word8 -> ByteString -> DecodedToken Word
 tryConsumeWord hdr !bs = case fromIntegral hdr :: Word of
-
   -- Positive integers (type 0)
   0x00 -> DecodedToken 1 0
   0x01 -> DecodedToken 1 1
@@ -890,7 +886,6 @@ tryConsumeWord hdr !bs = case fromIntegral hdr :: Word of
 {-# INLINE tryConsumeNegWord #-}
 tryConsumeNegWord :: Word8 -> ByteString -> DecodedToken Word
 tryConsumeNegWord hdr !bs = case fromIntegral hdr :: Word of
-
   -- Positive integers (type 0)
   0x20 -> DecodedToken 1 0
   0x21 -> DecodedToken 1 1
@@ -926,7 +921,6 @@ tryConsumeNegWord hdr !bs = case fromIntegral hdr :: Word of
 {-# INLINE tryConsumeInt #-}
 tryConsumeInt :: Word8 -> ByteString -> DecodedToken Int
 tryConsumeInt hdr !bs = case fromIntegral hdr :: Word of
-
   -- Positive integers (type 0)
   0x00 -> DecodedToken 1 0
   0x01 -> DecodedToken 1 1
@@ -1134,7 +1128,6 @@ tryConsumeString hdr !bs = case fromIntegral hdr :: Word of
 {-# INLINE tryConsumeListLen #-}
 tryConsumeListLen :: Word8 -> ByteString -> DecodedToken Int
 tryConsumeListLen hdr !bs = case fromIntegral hdr :: Word of
-
   -- List structures (type 4)
   0x80 -> DecodedToken 1 0
   0x81 -> DecodedToken 1 1
@@ -1170,7 +1163,6 @@ tryConsumeListLen hdr !bs = case fromIntegral hdr :: Word of
 {-# INLINE tryConsumeMapLen #-}
 tryConsumeMapLen :: Word8 -> ByteString -> DecodedToken Int
 tryConsumeMapLen hdr !bs = case fromIntegral hdr :: Word of
-
   -- Map structures (type 5)
   0xa0 -> DecodedToken 1 0
   0xa1 -> DecodedToken 1 1
@@ -1326,6 +1318,241 @@ tryConsumeTag hdr !bs = case fromIntegral hdr :: Word of
   0xdb -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
   _    -> DecodeFailure
 
+--
+-- 64-on-32 bit code paths
+--
+
+#if defined(ARCH_32bit)
+tryConsumeWord64 :: Word8 -> ByteString -> DecodedToken Word64
+tryConsumeWord64 hdr !bs = case fromIntegral hdr :: Word of
+  -- Positive integers (type 0)
+  0x00 -> DecodedToken 1 0
+  0x01 -> DecodedToken 1 1
+  0x02 -> DecodedToken 1 2
+  0x03 -> DecodedToken 1 3
+  0x04 -> DecodedToken 1 4
+  0x05 -> DecodedToken 1 5
+  0x06 -> DecodedToken 1 6
+  0x07 -> DecodedToken 1 7
+  0x08 -> DecodedToken 1 8
+  0x09 -> DecodedToken 1 9
+  0x0a -> DecodedToken 1 10
+  0x0b -> DecodedToken 1 11
+  0x0c -> DecodedToken 1 12
+  0x0d -> DecodedToken 1 13
+  0x0e -> DecodedToken 1 14
+  0x0f -> DecodedToken 1 15
+  0x10 -> DecodedToken 1 16
+  0x11 -> DecodedToken 1 17
+  0x12 -> DecodedToken 1 18
+  0x13 -> DecodedToken 1 19
+  0x14 -> DecodedToken 1 20
+  0x15 -> DecodedToken 1 21
+  0x16 -> DecodedToken 1 22
+  0x17 -> DecodedToken 1 23
+  0x18 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
+  0x19 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
+  0x1a -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs))
+  0x1b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
+  _    -> DecodeFailure
+
+
+tryConsumeNegWord64 :: Word8 -> ByteString -> DecodedToken Word64
+tryConsumeNegWord64 hdr !bs = case fromIntegral hdr :: Word of
+  -- Positive integers (type 0)
+  0x20 -> DecodedToken 1 0
+  0x21 -> DecodedToken 1 1
+  0x22 -> DecodedToken 1 2
+  0x23 -> DecodedToken 1 3
+  0x24 -> DecodedToken 1 4
+  0x25 -> DecodedToken 1 5
+  0x26 -> DecodedToken 1 6
+  0x27 -> DecodedToken 1 7
+  0x28 -> DecodedToken 1 8
+  0x29 -> DecodedToken 1 9
+  0x2a -> DecodedToken 1 10
+  0x2b -> DecodedToken 1 11
+  0x2c -> DecodedToken 1 12
+  0x2d -> DecodedToken 1 13
+  0x2e -> DecodedToken 1 14
+  0x2f -> DecodedToken 1 15
+  0x30 -> DecodedToken 1 16
+  0x31 -> DecodedToken 1 17
+  0x32 -> DecodedToken 1 18
+  0x33 -> DecodedToken 1 19
+  0x34 -> DecodedToken 1 20
+  0x35 -> DecodedToken 1 21
+  0x36 -> DecodedToken 1 22
+  0x37 -> DecodedToken 1 23
+  0x38 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
+  0x39 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
+  0x3a -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs))
+  0x3b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
+  _    -> DecodeFailure
+
+tryConsumeInt64 :: Word8 -> ByteString -> DecodedToken Int64
+tryConsumeInt64 hdr !bs = case fromIntegral hdr :: Word of
+  -- Positive integers (type 0)
+  0x00 -> DecodedToken 1 0
+  0x01 -> DecodedToken 1 1
+  0x02 -> DecodedToken 1 2
+  0x03 -> DecodedToken 1 3
+  0x04 -> DecodedToken 1 4
+  0x05 -> DecodedToken 1 5
+  0x06 -> DecodedToken 1 6
+  0x07 -> DecodedToken 1 7
+  0x08 -> DecodedToken 1 8
+  0x09 -> DecodedToken 1 9
+  0x0a -> DecodedToken 1 10
+  0x0b -> DecodedToken 1 11
+  0x0c -> DecodedToken 1 12
+  0x0d -> DecodedToken 1 13
+  0x0e -> DecodedToken 1 14
+  0x0f -> DecodedToken 1 15
+  0x10 -> DecodedToken 1 16
+  0x11 -> DecodedToken 1 17
+  0x12 -> DecodedToken 1 18
+  0x13 -> DecodedToken 1 19
+  0x14 -> DecodedToken 1 20
+  0x15 -> DecodedToken 1 21
+  0x16 -> DecodedToken 1 22
+  0x17 -> DecodedToken 1 23
+  0x18 -> DecodedToken 2 (fromIntegral (withBsPtr grabWord8  (BS.unsafeTail bs)))
+  0x19 -> DecodedToken 3 (fromIntegral (withBsPtr grabWord16 (BS.unsafeTail bs)))
+  0x1a -> DecodedToken 5 (fromIntegral (withBsPtr grabWord32 (BS.unsafeTail bs))) --FIXME: overflow
+  0x1b -> DecodedToken 9 (fromIntegral (withBsPtr grabWord64 (BS.unsafeTail bs))) --FIXME: overflow
+
+  -- Negative integers (type 1)
+  0x20 -> DecodedToken 1 (-1)
+  0x21 -> DecodedToken 1 (-2)
+  0x22 -> DecodedToken 1 (-3)
+  0x23 -> DecodedToken 1 (-4)
+  0x24 -> DecodedToken 1 (-5)
+  0x25 -> DecodedToken 1 (-6)
+  0x26 -> DecodedToken 1 (-7)
+  0x27 -> DecodedToken 1 (-8)
+  0x28 -> DecodedToken 1 (-9)
+  0x29 -> DecodedToken 1 (-10)
+  0x2a -> DecodedToken 1 (-11)
+  0x2b -> DecodedToken 1 (-12)
+  0x2c -> DecodedToken 1 (-13)
+  0x2d -> DecodedToken 1 (-14)
+  0x2e -> DecodedToken 1 (-15)
+  0x2f -> DecodedToken 1 (-16)
+  0x30 -> DecodedToken 1 (-17)
+  0x31 -> DecodedToken 1 (-18)
+  0x32 -> DecodedToken 1 (-19)
+  0x33 -> DecodedToken 1 (-20)
+  0x34 -> DecodedToken 1 (-21)
+  0x35 -> DecodedToken 1 (-22)
+  0x36 -> DecodedToken 1 (-23)
+  0x37 -> DecodedToken 1 (-24)
+  0x38 -> DecodedToken 2 (-1 - fromIntegral (withBsPtr grabWord8  (BS.unsafeTail bs)))
+  0x39 -> DecodedToken 3 (-1 - fromIntegral (withBsPtr grabWord16 (BS.unsafeTail bs)))
+  0x3a -> DecodedToken 5 (-1 - fromIntegral (withBsPtr grabWord32 (BS.unsafeTail bs))) --FIXME: overflow
+  0x3b -> DecodedToken 9 (-1 - fromIntegral (withBsPtr grabWord64 (BS.unsafeTail bs))) --FIXME: overflow
+  _    -> DecodeFailure
+
+tryConsumeListLen64 :: Word8 -> ByteString -> DecodedToken Int64
+tryConsumeListLen64 hdr !bs = case fromIntegral hdr :: Word of
+  -- List structures (type 4)
+  0x80 -> DecodedToken 1 0
+  0x81 -> DecodedToken 1 1
+  0x82 -> DecodedToken 1 2
+  0x83 -> DecodedToken 1 3
+  0x84 -> DecodedToken 1 4
+  0x85 -> DecodedToken 1 5
+  0x86 -> DecodedToken 1 6
+  0x87 -> DecodedToken 1 7
+  0x88 -> DecodedToken 1 8
+  0x89 -> DecodedToken 1 9
+  0x8a -> DecodedToken 1 10
+  0x8b -> DecodedToken 1 11
+  0x8c -> DecodedToken 1 12
+  0x8d -> DecodedToken 1 13
+  0x8e -> DecodedToken 1 14
+  0x8f -> DecodedToken 1 15
+  0x90 -> DecodedToken 1 16
+  0x91 -> DecodedToken 1 17
+  0x92 -> DecodedToken 1 18
+  0x93 -> DecodedToken 1 19
+  0x94 -> DecodedToken 1 20
+  0x95 -> DecodedToken 1 21
+  0x96 -> DecodedToken 1 22
+  0x97 -> DecodedToken 1 23
+  0x98 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
+  0x99 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
+  0x9a -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)) --FIXME: overflow
+  0x9b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
+  _    -> DecodeFailure
+
+tryConsumeMapLen64 :: Word8 -> ByteString -> DecodedToken Int64
+tryConsumeMapLen64 hdr !bs = case fromIntegral hdr :: Word of
+  -- Map structures (type 5)
+  0xa0 -> DecodedToken 1 0
+  0xa1 -> DecodedToken 1 1
+  0xa2 -> DecodedToken 1 2
+  0xa3 -> DecodedToken 1 3
+  0xa4 -> DecodedToken 1 4
+  0xa5 -> DecodedToken 1 5
+  0xa6 -> DecodedToken 1 6
+  0xa7 -> DecodedToken 1 7
+  0xa8 -> DecodedToken 1 8
+  0xa9 -> DecodedToken 1 9
+  0xaa -> DecodedToken 1 10
+  0xab -> DecodedToken 1 11
+  0xac -> DecodedToken 1 12
+  0xad -> DecodedToken 1 13
+  0xae -> DecodedToken 1 14
+  0xaf -> DecodedToken 1 15
+  0xb0 -> DecodedToken 1 16
+  0xb1 -> DecodedToken 1 17
+  0xb2 -> DecodedToken 1 18
+  0xb3 -> DecodedToken 1 19
+  0xb4 -> DecodedToken 1 20
+  0xb5 -> DecodedToken 1 21
+  0xb6 -> DecodedToken 1 22
+  0xb7 -> DecodedToken 1 23
+  0xb8 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
+  0xb9 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
+  0xba -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)) --FIXME: overflow
+  0xbb -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
+  _    -> DecodeFailure
+
+
+tryConsumeTag64 :: Word8 -> ByteString -> DecodedToken Word64
+tryConsumeTag64 hdr !bs = case fromIntegral hdr :: Word of
+  -- Tagged values (type 6)
+  0xc0 -> DecodedToken 1 0
+  0xc1 -> DecodedToken 1 1
+  0xc2 -> DecodedToken 1 2
+  0xc3 -> DecodedToken 1 3
+  0xc4 -> DecodedToken 1 4
+  0xc5 -> DecodedToken 1 5
+  0xc6 -> DecodedToken 1 6
+  0xc7 -> DecodedToken 1 7
+  0xc8 -> DecodedToken 1 8
+  0xc9 -> DecodedToken 1 9
+  0xca -> DecodedToken 1 10
+  0xcb -> DecodedToken 1 11
+  0xcc -> DecodedToken 1 12
+  0xcd -> DecodedToken 1 13
+  0xce -> DecodedToken 1 14
+  0xcf -> DecodedToken 1 15
+  0xd0 -> DecodedToken 1 16
+  0xd1 -> DecodedToken 1 17
+  0xd2 -> DecodedToken 1 18
+  0xd3 -> DecodedToken 1 19
+  0xd4 -> DecodedToken 1 20
+  0xd5 -> DecodedToken 1 21
+  0xd6 -> DecodedToken 1 22
+  0xd7 -> DecodedToken 1 23
+  0xd8 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
+  0xd9 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
+  0xda -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs))
+  0xdb -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
+  _    -> DecodeFailure
+#endif
 
 {-# INLINE tryConsumeFloat #-}
 tryConsumeFloat :: Word8 -> ByteString -> DecodedToken Float
