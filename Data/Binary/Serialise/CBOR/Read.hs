@@ -52,6 +52,13 @@ import           GHC.Exts
 import           GHC.Float (float2Double)
 import           Control.Exception
 
+#if defined(OPTIMIZE_GMP)
+import qualified Data.ByteString.Internal       as BS
+import           Foreign.ForeignPtr             (withForeignPtr)
+import qualified GHC.Integer.GMP.Internals      as Gmp
+import           System.IO.Unsafe               (unsafePerformIO)
+#endif
+
 -- | Given a @'Decoder'@ and some @'LBS.ByteString'@ representing
 -- an encoded CBOR value, return @'Either'@ the decoded CBOR value
 -- or an error.
@@ -1882,7 +1889,19 @@ readBigNInt bs
 nintegerFromBytes :: BS.ByteString -> Integer
 nintegerFromBytes bs = -1 - uintegerFromBytes bs
 
--- TODO FIXME: optimised implementation for GMP
+#if defined(OPTIMIZE_GMP)
+uintegerFromBytes :: BS.ByteString -> Integer
+uintegerFromBytes (BS.PS fp (I# off#) (I# len#)) =
+  -- This should be safe since we're simply reading from ByteString (which is
+  -- immutable) and GMP allocates a new memory for the Integer, i.e., there is
+  -- no mutation involved.
+  unsafePerformIO $
+      withForeignPtr fp $ \(Ptr addr#) ->
+          let addrOff# = addr# `plusAddr#` off#
+          -- The last parmaeter (`1#`) tells the import function to use big
+          -- endian encoding.
+          in Gmp.importIntegerFromAddr addrOff# (int2Word# len#) 1#
+#else
 uintegerFromBytes :: BS.ByteString -> Integer
 uintegerFromBytes bs =
     case BS.uncons bs of
@@ -1893,4 +1912,4 @@ uintegerFromBytes bs =
       case BS.uncons ws of
         Nothing       -> acc
         Just (w, ws') -> go (acc `shiftL` 8 + fromIntegral w) ws'
-
+#endif
