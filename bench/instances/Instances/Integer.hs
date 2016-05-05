@@ -12,11 +12,21 @@ import           Data.Binary.Serialise.CBOR
 
 benchmarks :: [Benchmark]
 benchmarks =
-  [ bench "small" (nf go integerDataSmall)
-  , bench "large" (nf go integerDataLarge)
+  [ bgroup "serialise"
+    [ bench "small" (nf goSerialise integerDataSmall)
+    , bench "large" (nf goSerialise integerDataLarge)
+    ]
+  , bgroup "deserialise"
+    [ bench "small" (nf goDeserialise integerDataSerialisedSmall)
+    , bench "large" (nf goDeserialise integerDataSerialisedLarge)
+    ]
   ]
   where
-    go = BS.length . serialise
+    goSerialise = BS.length . serialise
+    goDeserialise :: BS.ByteString -> Vector.Vector Integer
+    goDeserialise = deserialise
     integerDataSmall = Vector.replicate (100 :: Int) (10 :: Integer)
     integerDataLarge = Vector.replicate (100 :: Int) ((2 :: Integer)^(200 :: Integer))
+    integerDataSerialisedSmall = serialise integerDataSmall
+    integerDataSerialisedLarge = serialise integerDataLarge
 
