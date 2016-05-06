@@ -35,6 +35,7 @@ import           Data.Monoid
 import           Data.Version
 import           Data.Word
 import           Data.Complex
+import           Data.Fixed
 import           Data.Ratio
 import           Data.Ord
 
@@ -192,6 +193,14 @@ instance Serialise Float where
 instance Serialise Double where
     encode = encodeDouble
     decode = decodeDouble
+
+#if MIN_VERSION_base(4,7,0)
+-- | Values are serialised in units of least precision represented as
+--   @Integer@.
+instance HasResolution e => Serialise (Fixed e) where
+    encode (MkFixed i) = encode i
+    decode = MkFixed <$> decode
+#endif
 
 instance Serialise Char where
     encode c = encodeString (Text.singleton c)
