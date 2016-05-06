@@ -15,6 +15,7 @@ import           Data.Functor.Identity
 
 import           Data.Complex
 import           Data.Int
+import           Data.Fixed
 import           Data.Monoid as Monoid
 import           Data.Ord
 import           Data.Ratio
@@ -27,9 +28,9 @@ import           Data.Typeable
 import           Control.Applicative
 import           Foreign.C.Types
 
-import           Test.QuickCheck
+import           Test.QuickCheck  hiding (Fixed(..))
 import           Test.Tasty
-import           Test.Tasty.QuickCheck
+import           Test.Tasty.QuickCheck hiding (Fixed(..))
 import           Test.QuickCheck.Instances ()
 import           Test.Tasty.HUnit
 import           GHC.Generics  (Generic)
@@ -126,6 +127,15 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T Integer)
       , mkTest (T :: T Float)
       , mkTest (T :: T Double)
+#if MIN_VERSION_base(4,7,0)
+      , mkTest (T :: T (Fixed E0))
+      , mkTest (T :: T (Fixed E1))
+      , mkTest (T :: T (Fixed E2))
+      , mkTest (T :: T (Fixed E3))
+      , mkTest (T :: T (Fixed E6))
+      , mkTest (T :: T (Fixed E9))
+      , mkTest (T :: T (Fixed E12))
+#endif
       , mkTest (T :: T Char)
       , mkTest (T :: T CChar)
       , mkTest (T :: T CSChar)
