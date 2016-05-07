@@ -62,6 +62,8 @@ import qualified Data.HashSet                        as HashSet
 import qualified Data.HashMap.Strict                 as HashMap
 import qualified Data.Vector                         as Vector
 import qualified Data.Vector.Unboxed                 as Vector.Unboxed
+import qualified Data.Vector.Storable                as Vector.Storable
+import qualified Data.Vector.Primitive               as Vector.Primitive
 --import qualified Data.Text.Lazy                      as Text.Lazy
 import           Foreign.C.Types
 
@@ -618,6 +620,7 @@ instance (Serialise a) => Serialise (Vector.Vector a) where
              Vector.concat
   {-# INLINE decode #-}
 
+
 instance (Serialise a, Vector.Unboxed.Unbox a) =>
          Serialise (Vector.Unboxed.Vector a) where
   encode = encodeContainerSkel
@@ -631,6 +634,33 @@ instance (Serialise a, Vector.Unboxed.Unbox a) =>
              Vector.Unboxed.replicateM
              Vector.Unboxed.concat
   {-# INLINE decode #-}
+
+instance (Serialise a, Vector.Storable.Storable a) => Serialise (Vector.Storable.Vector a) where
+  encode = encodeContainerSkel
+             encodeListLen
+             Vector.Storable.length
+             Vector.Storable.foldr
+             (\a b -> encode a <> b)
+  {-# INLINE encode #-}
+  decode = decodeContainerSkelWithReplicate
+             decodeListLen
+             Vector.Storable.replicateM
+             Vector.Storable.concat
+  {-# INLINE decode #-}
+
+instance (Serialise a, Vector.Primitive.Prim a) => Serialise (Vector.Primitive.Vector a) where
+  encode = encodeContainerSkel
+             encodeListLen
+             Vector.Primitive.length
+             Vector.Primitive.foldr
+             (\a b -> encode a <> b)
+  {-# INLINE encode #-}
+  decode = decodeContainerSkelWithReplicate
+             decodeListLen
+             Vector.Primitive.replicateM
+             Vector.Primitive.concat
+  {-# INLINE decode #-}
+
 
 
 encodeSetSkel :: Serialise a

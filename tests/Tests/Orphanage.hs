@@ -22,6 +22,8 @@ import           System.Exit (ExitCode(..))
 import           Test.QuickCheck.Gen
 import           Test.QuickCheck.Arbitrary
 
+import qualified Data.Vector.Primitive      as Vector.Primitive
+
 --------------------------------------------------------------------------------
 -- QuickCheck Orphans
 
@@ -240,3 +242,8 @@ deriving instance Typeable Dual
 deriving instance Show a => Show (Const a b)
 deriving instance Eq a   => Eq   (Const a b)
 #endif
+
+
+instance (Vector.Primitive.Prim a, Arbitrary a
+         ) => Arbitrary (Vector.Primitive.Vector a) where
+    arbitrary = Vector.Primitive.fromList <$> arbitrary
