@@ -53,6 +53,11 @@ flag optimize-gmp
   manual: False
   description: Use optimized code paths for integer-gmp
 
+flag liquid
+  default: True
+  manual: False
+  description: Enable Liquid Haskell testing.
+
 --------------------------------------------------------------------------------
 -- Library
 
@@ -227,6 +232,35 @@ test-suite tests
     tasty-quickcheck        >= 0.8     && < 0.9,
     quickcheck-instances    >= 0.3     && < 0.4,
     vector                  >= 0.10    && < 0.12
+
+  if flag(newtime15)
+    build-depends:
+      time                  >= 1.5     && < 1.7
+  else
+    build-depends:
+      time                  >= 1.4     && < 1.5,
+      old-locale
+
+test-suite liquid
+  type:              exitcode-stdio-1.0
+  hs-source-dirs:    tests
+  main-is:           Liquid.hs
+
+  default-language:  Haskell2010
+  ghc-options:       -Wall
+
+  build-depends:
+    base                    >= 4.6     && < 5.0,
+    directory               >= 1.0     && < 1.3,
+    filepath                >= 1.0     && < 1.5,
+    binary-serialise-cbor
+
+  if flag(liquid) && impl(ghc == 7.10.3)
+    buildable: True
+    build-depends:
+      liquidhaskell         == 0.6.*
+  else
+    buildable: False
 
   if flag(newtime15)
     build-depends:

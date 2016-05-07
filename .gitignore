@@ -4,6 +4,7 @@
 /cabal.sandbox.config
 /.stack-work
 /bench/data
+.liquid
 *.o
 *.hi
 *.bin

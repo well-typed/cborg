@@ -1,5 +1,8 @@
 packages:
   *.cabal
+  ../liquidhaskell/liquid-fixpoint
+  ../liquidhaskell/prover
+  ../liquidhaskell
 with-compiler: /opt/ghc/7.10.3/bin/ghc
 --benchmarks: True
 --profiling: True
