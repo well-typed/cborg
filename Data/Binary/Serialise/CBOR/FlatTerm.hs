@@ -231,6 +231,7 @@ fromFlatTerm decoder ft = go (getDecodeAction decoder) ft
 
     go (PeekTokenType k) ts@(tk:_) = go (k (tokenTypeOf tk)) ts
     go (PeekTokenType _) ts        = unexpected "peekTokenType" ts
+    go (PeekLength k) ts           = go (k (length ts)) ts
 
     go (Fail msg) _  = Left msg
     go (Done x)   [] = Right x

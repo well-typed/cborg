@@ -65,6 +65,7 @@ module Data.Binary.Serialise.CBOR.Decoding
 
   -- ** Inspecting the token type
   , peekTokenType        -- :: Decoder TokenType
+  , peekLength           -- :: Decoder Int
   , TokenType(..)
 
   -- ** Special operations
@@ -141,6 +142,7 @@ data DecodeAction a
     | ConsumeBreakOr        (Bool -> DecodeAction a)
 
     | PeekTokenType  (TokenType -> DecodeAction a)
+    | PeekLength     (Int -> DecodeAction a)
 
     | Fail String
     | Done a
@@ -440,6 +442,10 @@ decodeBreakOr = Decoder (\k -> ConsumeBreakOr (\b -> k b))
 peekTokenType :: Decoder TokenType
 peekTokenType = Decoder (\k -> PeekTokenType (\tk -> k tk))
 {-# INLINE peekTokenType #-}
+
+{-# INLINE peekLength #-}
+peekLength :: Decoder Int
+peekLength = Decoder (\k -> PeekLength (\len -> k len))
 
 {-
 expectExactly :: Word -> Decoder (Word :#: s) s
