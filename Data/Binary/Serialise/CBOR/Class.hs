@@ -21,7 +21,8 @@
 module Data.Binary.Serialise.CBOR.Class
  ( -- * The Serialise class
    Serialise(..)
- , GSerialise(..)
+ , GSerialiseEncode(..)
+ , GSerialiseDecode(..)
  ) where
 
 #include "cbor.h"
@@ -91,12 +92,12 @@ class Serialise a where
     -- | Definition for encoding a given type into a binary
     -- representation, using the @'Encoding'@ @'Monoid'@.
     encode  :: a -> Encoding
-    default encode :: (Generic a, GSerialise (Rep a)) => a -> Encoding
+    default encode :: (Generic a, GSerialiseEncode (Rep a)) => a -> Encoding
     encode = gencode . from
 
     -- | Definition of a given @'Decoder'@ for a type.
     decode  :: Decoder a
-    default decode :: (Generic a, GSerialise (Rep a)) => Decoder a
+    default decode :: (Generic a, GSerialiseDecode (Rep a)) => Decoder a
     decode = to <$> gdecode
 
     -- | Utility to support specialised encoding for some list type -
@@ -724,19 +725,29 @@ forceUTCTime t@(UTCTime !_day !_daytime) = t
 --------------------------------------------------------------------------------
 -- Generic instances
 
--- | Serialise type class for generic representation of
-class GSerialise f where
+-- Factored into two classes because this makes GHC optimize the
+-- instances faster. This doesn't matter for builds of binary, but it
+-- matters a lot for end-users who write 'instance Binary T'. See
+-- also: https://ghc.haskell.org/trac/ghc/ticket/9630
+
+class GSerialiseEncode f where
     gencode  :: f a -> Encoding
+
+class GSerialiseDecode f where
     gdecode  :: Decoder (f a)
 
 -- Data types without constructors are still serialised as null value
-instance GSerialise V1 where
+instance GSerialiseEncode V1 where
     gencode _ = encodeNull
+
+instance GSerialiseDecode V1 where
     gdecode   = error "V1 don't have contructors" <$ decodeNull
 
 -- Constructors without fields are serialised as null value
-instance GSerialise U1 where
+instance GSerialiseEncode U1 where
     gencode _ = encodeListLen 1 <> encodeWord 0
+
+instance GSerialiseDecode U1 where
     gdecode   = do
       n <- decodeListLen
       when (n /= 1) $ fail "expect list of length 1"
@@ -745,16 +756,20 @@ instance GSerialise U1 where
       return U1
 
 -- Metadata (constructor name, etc) is skipped
-instance GSerialise a => GSerialise (M1 i c a) where
+instance GSerialiseEncode a => GSerialiseEncode (M1 i c a) where
     gencode = gencode . unM1
+
+instance GSerialiseDecode a => GSerialiseDecode (M1 i c a) where
     gdecode = M1 <$> gdecode
 
 -- Constructor field (Could only appear in one-field & one-constructor
 -- data types). In all other cases we go through GSerialise{Sum,Prod}
-instance Serialise a => GSerialise (K1 i a) where
+instance Serialise a => GSerialiseEncode (K1 i a) where
     gencode (K1 a) = encodeListLen 2
                   <> encodeWord 0
                   <> encode a
+
+instance Serialise a => GSerialiseDecode (K1 i a) where
     gdecode = do
       n <- decodeListLen
       when (n /= 2) $
@@ -765,12 +780,14 @@ instance Serialise a => GSerialise (K1 i a) where
       K1 <$> decode
 
 -- Products are serialised as N-tuples with 0 constructor tag
-instance (GSerialiseProd f, GSerialiseProd g) => GSerialise (f :*: g) where
+instance (GSerialiseProd f, GSerialiseProd g) => GSerialiseEncode (f :*: g) where
     gencode (f :*: g)
         = encodeListLen (nFields (Proxy :: Proxy (f :*: g)) + 1)
        <> encodeWord 0
        <> encodeSeq f
        <> encodeSeq g
+
+instance (GSerialiseProd f, GSerialiseProd g) => GSerialiseDecode (f :*: g) where
     gdecode = do
       let nF = nFields (Proxy :: Proxy (f :*: g))
       n <- decodeListLen
@@ -786,11 +803,12 @@ instance (GSerialiseProd f, GSerialiseProd g) => GSerialise (f :*: g) where
 
 -- Sum types are serialised as N-tuples and first element is
 -- constructor tag
-instance (GSerialiseSum f, GSerialiseSum g) => GSerialise (f :+: g) where
+instance (GSerialiseSum f, GSerialiseSum g) => GSerialiseEncode (f :+: g) where
     gencode a = encodeListLen (numOfFields a + 1)
              <> encode (conNumber a)
              <> encodeSum a
 
+instance (GSerialiseSum f, GSerialiseSum g) => GSerialiseDecode (f :+: g) where
     gdecode = do
         n <- decodeListLen
         -- FIXME: Again signedness
