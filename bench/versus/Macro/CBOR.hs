@@ -1,5 +1,9 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
+-- For PackageDescription and friends
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+-- For encodeCtrN/decodeCtrBodyN/etc
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Macro.CBOR (serialise, deserialise, deserialiseNull) where
 
 import Macro.Types
@@ -10,13 +14,16 @@ import Data.Binary.Serialise.CBOR.Decoding
 import Data.Binary.Serialise.CBOR.Read
 import Data.Binary.Serialise.CBOR.Write
 import qualified Data.Binary.Get as Bin
-import Data.Word
 import Data.Monoid
-import Control.Applicative
 
 import qualified Data.ByteString.Lazy as BS
 import qualified Data.ByteString.Lazy.Internal as BS
 import qualified Data.ByteString.Builder as BS
+
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative
+import Data.Word
+#endif
 
 serialise :: [GenericPackageDescription] -> BS.ByteString
 --serialise :: Serialise a => a -> BS.ByteString
@@ -24,7 +31,7 @@ serialise = BS.toLazyByteString . toBuilder . encode
 
 deserialise :: BS.ByteString -> [GenericPackageDescription]
 --deserialise :: Serialise a => BS.ByteString -> a
-deserialise bs = feedAll (deserialiseIncremental decode) bs
+deserialise = feedAll (deserialiseIncremental decode)
   where
     feedAll (Bin.Done _ _ x)    _ = x
     feedAll (Bin.Partial k) lbs   = case lbs of
@@ -34,13 +41,13 @@ deserialise bs = feedAll (deserialiseIncremental decode) bs
       error ("Data.Binary.Get.runGet at position " ++ show pos ++ ": " ++ msg)
 
 deserialiseNull :: BS.ByteString -> ()
-deserialiseNull bs = feedAll (deserialiseIncremental decodeListNull) bs
+deserialiseNull = feedAll (deserialiseIncremental decodeListNull)
   where
     decodeListNull = do decodeListLenIndef; go
 
     go = do stop <- decodeBreakOr
             if stop then return ()
-                    else do !x <- decode :: Decoder GenericPackageDescription
+                    else do !_ <- decode :: Decoder GenericPackageDescription
                             go
 
     feedAll (Bin.Done _ _ x)    _ = x
@@ -49,11 +56,6 @@ deserialiseNull bs = feedAll (deserialiseIncremental decodeListNull) bs
       BS.Empty         -> feedAll (k Nothing) BS.empty
     feedAll (Bin.Fail _ pos msg) _ =
       error ("Data.Binary.Get.runGet at position " ++ show pos ++ ": " ++ msg)
-
-
-encodeCtr0 :: Word -> Encoding
-encodeCtr1 :: Serialise a => Word -> a -> Encoding
-encodeCtr2 :: (Serialise a, Serialise b) => Word -> a -> b -> Encoding
 
 encodeCtr0 n     = encodeListLen 1 <> encode (n :: Word)
 encodeCtr1 n a   = encodeListLen 2 <> encode (n :: Word) <> encode a
@@ -84,22 +86,19 @@ encodeCtr7 n a b c d e f g
 {-# INLINE decodeCtrBody0 #-}
 {-# INLINE decodeCtrBody1 #-}
 {-# INLINE decodeCtrBody2 #-}
-{-# INLINE decodeCtrBody3 #-}
 
 decodeCtrTag = (\len tag -> (tag, len)) <$> decodeListLen <*> decodeWord
 
 decodeCtrBody0 1 f = pure f
+decodeCtrBody0 x _ = error $ "decodeCtrBody0: impossible tag " ++ show x
 decodeCtrBody1 2 f = do x1 <- decode
                         return $! f x1
+decodeCtrBody1 x _ = error $ "decodeCtrBody1: impossible tag " ++ show x
 decodeCtrBody2 3 f = do x1 <- decode
                         x2 <- decode
                         return $! f x1 x2
-decodeCtrBody3 4 f = do x1 <- decode
-                        x2 <- decode
-                        x3 <- decode
-                        return $! f x1 x2 x3
+decodeCtrBody2 x _ = error $ "decodeCtrBody2: impossible tag " ++ show x
 
-{-# INLINE decodeSingleCtr0 #-}
 {-# INLINE decodeSingleCtr1 #-}
 {-# INLINE decodeSingleCtr2 #-}
 {-# INLINE decodeSingleCtr3 #-}
@@ -107,7 +106,6 @@ decodeCtrBody3 4 f = do x1 <- decode
 {-# INLINE decodeSingleCtr6 #-}
 {-# INLINE decodeSingleCtr7 #-}
 
-decodeSingleCtr0 v f = decodeListLenOf 1 *> decodeWordOf v *> pure f
 decodeSingleCtr1 v f = decodeListLenOf 2 *> decodeWordOf v *> pure f <*> decode
 decodeSingleCtr2 v f = decodeListLenOf 3 *> decodeWordOf v *> pure f <*> decode <*> decode
 decodeSingleCtr3 v f = decodeListLenOf 4 *> decodeWordOf v *> pure f <*> decode <*> decode <*> decode
@@ -149,6 +147,7 @@ instance Serialise VersionRange where
       6 -> decodeCtrBody2 l UnionVersionRanges
       7 -> decodeCtrBody2 l IntersectVersionRanges
       8 -> decodeCtrBody1 l VersionRangeParens
+      x -> error $ "Serialise VersionRange: decode: impossible tag " ++ show x
 
 
 instance Serialise Dependency where
@@ -182,6 +181,7 @@ instance Serialise CompilerFlavor where
       9 -> decodeCtrBody0 l UHC
       10 -> decodeCtrBody1 l HaskellSuite
       11 -> decodeCtrBody1 l OtherCompiler
+      x -> error $ "Serialise CompilerFlavor: decode: impossible tag " ++ show x
 
 instance Serialise License where
   encode (GPL  a)   = encodeCtr1 1 a
@@ -210,6 +210,7 @@ instance Serialise License where
       9 -> decodeCtrBody0 l AllRightsReserved
       10 -> decodeCtrBody0 l OtherLicense
       11 -> decodeCtrBody1 l UnknownLicense
+      x -> error $ "Serialise License: decode: impossible tag " ++ show x
 
 instance Serialise SourceRepo where
   encode (SourceRepo a b c d e f g) = encodeCtr7 1 a b c d e f g
@@ -225,6 +226,7 @@ instance Serialise RepoKind where
       1 -> decodeCtrBody0 l RepoHead
       2 -> decodeCtrBody0 l RepoThis
       3 -> decodeCtrBody1 l RepoKindUnknown
+      x -> error $ "Serialise RepoKind: decode: impossible tag " ++ show x
 
 instance Serialise RepoType where
   encode Darcs     = encodeCtr0 1
@@ -249,6 +251,7 @@ instance Serialise RepoType where
       7 -> decodeCtrBody0 l Bazaar
       8 -> decodeCtrBody0 l Monotone
       9 -> decodeCtrBody1 l OtherRepoType
+      x -> error $ "Serialise RepoType: decode: impossible tag " ++ show x
 
 instance Serialise BuildType where
   encode Simple    = encodeCtr0 1
@@ -265,6 +268,7 @@ instance Serialise BuildType where
       3 -> decodeCtrBody0 l Make
       4 -> decodeCtrBody0 l Custom
       5 -> decodeCtrBody1 l UnknownBuildType
+      x -> error $ "Serialise BuildType: decode: impossible tag " ++ show x
 
 instance Serialise Library where
   encode (Library a b c) = encodeCtr3 1 a b c
@@ -289,6 +293,8 @@ instance Serialise TestSuiteInterface where
       1 -> decodeCtrBody2 l TestSuiteExeV10
       2 -> decodeCtrBody2 l TestSuiteLibV09
       3 -> decodeCtrBody1 l TestSuiteUnsupported
+      x -> error $
+               "Serialise TestSuiteInterface: decode: impossible tag " ++ show x
 
 instance Serialise TestType where
   encode (TestTypeExe a) = encodeCtr1 1 a
@@ -301,6 +307,7 @@ instance Serialise TestType where
       1 -> decodeCtrBody1 l TestTypeExe
       2 -> decodeCtrBody1 l TestTypeLib
       3 -> decodeCtrBody2 l TestTypeUnknown
+      x -> error $ "Serialise TestType: decode: impossible tag " ++ show x
 
 instance Serialise Benchmark where
   encode (Benchmark a b c d) = encodeCtr4 1 a b c d
@@ -315,6 +322,8 @@ instance Serialise BenchmarkInterface where
     case t of
       1 -> decodeCtrBody2 l BenchmarkExeV10
       2 -> decodeCtrBody1 l BenchmarkUnsupported
+      x -> error $
+               "Serialise BenchmarkInterface: decode: impossible tag " ++ show x
 
 instance Serialise BenchmarkType where
   encode (BenchmarkTypeExe     a)   = encodeCtr1 1 a
@@ -325,6 +334,7 @@ instance Serialise BenchmarkType where
     case t of
       1 -> decodeCtrBody1 l BenchmarkTypeExe
       2 -> decodeCtrBody2 l BenchmarkTypeUnknown
+      x -> error $ "Serialise BenchmarkType: decode: impossible tag " ++ show x
 
 instance Serialise ModuleName where
   encode (ModuleName a) = encodeCtr1 1 a
@@ -359,6 +369,7 @@ instance Serialise Language where
       1 -> decodeCtrBody0 l Haskell98
       2 -> decodeCtrBody0 l Haskell2010
       3 -> decodeCtrBody1 l UnknownLanguage
+      x -> error $ "Serialise Language: decode: impossible tag " ++ show x
 
 instance Serialise Extension where
   encode (EnableExtension  a) = encodeCtr1 1 a
@@ -371,6 +382,7 @@ instance Serialise Extension where
       1 -> decodeCtrBody1 l EnableExtension
       2 -> decodeCtrBody1 l DisableExtension
       3 -> decodeCtrBody1 l UnknownExtension
+      x -> error $ "Serialise Extension: decode: impossible tag " ++ show x
 
 instance Serialise KnownExtension where
   encode ke = encodeCtr1 1 (fromEnum ke)
@@ -428,6 +440,7 @@ instance Serialise OS where
       11 -> decodeCtrBody0 l HaLVM
       12 -> decodeCtrBody0 l IOS
       13 -> decodeCtrBody1 l OtherOS
+      x -> error $ "Serialise OS: decode: impossible tag " ++ show x
 
 instance Serialise Arch where
   encode I386   = encodeCtr0 1
@@ -445,6 +458,7 @@ instance Serialise Arch where
   encode Rs6000 = encodeCtr0 13
   encode M68k   = encodeCtr0 14
   encode (OtherArch a) = encodeCtr1 15 a
+  encode Vax    = encodeCtr0 16
 
   decode = do
     (t,l) <- decodeCtrTag
@@ -464,6 +478,8 @@ instance Serialise Arch where
       13 -> decodeCtrBody0 l Rs6000
       14 -> decodeCtrBody0 l M68k
       15 -> decodeCtrBody1 l OtherArch
+      16 -> decodeCtrBody0 l Vax
+      x -> error $ "Serialise Arch: decode: impossible tag " ++ show x
 
 instance Serialise Flag where
   encode (MkFlag a b c d) = encodeCtr4 1 a b c d
@@ -492,6 +508,7 @@ instance Serialise ConfVar where
       2 -> decodeCtrBody1 l Arch
       3 -> decodeCtrBody1 l Flag
       4 -> decodeCtrBody2 l Impl
+      x -> error $ "Serialise ConfVar: decode: impossible tag " ++ show x
 
 instance Serialise a => Serialise (Condition a) where
   encode (Var  a)   = encodeCtr1 1 a
@@ -508,6 +525,7 @@ instance Serialise a => Serialise (Condition a) where
       3 -> decodeCtrBody1 l CNot
       4 -> decodeCtrBody2 l COr
       5 -> decodeCtrBody2 l CAnd
+      x -> error $ "Serialise (Condition a): decode: impossible tag " ++ show x
 
   {-# SPECIALIZE instance Serialise (Condition ConfVar) #-}
 

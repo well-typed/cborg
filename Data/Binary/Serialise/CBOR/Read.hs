@@ -31,6 +31,10 @@ import qualified Data.Binary.Get as Bin (Decoder(..))
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
 #endif
+#if defined(ARCH_32bit)
+import           GHC.Int
+#endif
+
 import           Control.Monad (ap)
 import           Data.Array.IArray
 import           Data.Array.Unboxed
@@ -46,7 +50,6 @@ import qualified Data.Text          as T
 import qualified Data.Text.Encoding as T
 import           Data.Word
 import           Data.Int
-import           GHC.Int
 import           GHC.Word
 import           GHC.Exts
 import           GHC.Float (float2Double)
