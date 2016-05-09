@@ -189,6 +189,7 @@ test-suite tests
     Tests.CBOR
     Tests.IO
     Tests.Negative
+    Tests.Orphanage
     Tests.Serialise
     Tests.Regress
     Tests.Regress.Issue13

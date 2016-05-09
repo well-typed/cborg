@@ -15,6 +15,7 @@ deserialiseNull :: BS.ByteString -> ()
 deserialiseNull bs =
     case Cereal.runGetLazy decodeListNull bs of
       Right () -> ()
+      Left e   -> error $ "PkgCereal.deserialiseNull: decoding failed: " ++ e
   where
     decodeListNull = do
       n <- get :: Get Int
