@@ -656,11 +656,14 @@ peekTerm = PP $ \toks ind ss ->
     Just (tk,_) -> Right (toks,ind,ss,tk)
     Nothing -> Left "peekTerm: Unexpected end of input"
 
+appShowS :: ShowS -> PP ()
+appShowS s = PP $ \toks ind ss -> Right (toks,ind,ss . s,())
+
 str :: String -> PP ()
-str s = PP $ \toks ind ss -> Right (toks,ind,ss . (s++),())
+str = appShowS . showString
 
 shown :: Show a => a -> PP ()
-shown x = PP $ \toks ind ss -> Right (toks,ind,ss . shows x,())
+shown = appShowS . shows
 
 parens :: PP a -> PP a
 parens pp = str "(" *> pp <* str ")"
@@ -676,7 +679,6 @@ indef = do
 pprint :: PP ()
 pprint = do
   nl
-  indent
   term <- getTerm
   hexRep term
   str "  "
@@ -798,8 +800,10 @@ unconsToken (TkFloat64 f64 tks) = Just (TkFloat64 f64 TkEnd,tks)
 unconsToken (TkBreak tks)       = Just (TkBreak       TkEnd,tks)
 
 hexRep :: Tokens -> PP ()
-hexRep tk = PP $ \toks ind ss ->
-  Right (toks, ind, ss . hexBS (toStrictByteString (Encoding (const tk))),())
+hexRep tk = go . toStrictByteString . Encoding $ const tk where
+  go bs | S.length bs > 16 = case S.splitAt 16 bs of
+          (h,t) -> indent >> appShowS (hexBS h) >> nl >> go t
+        | otherwise = indent >> appShowS (hexBS bs)
 
 hexBS :: S.ByteString -> ShowS
 hexBS = foldr (.) id . map (\n -> ((if n < 16 then ('0':) else id) . showHex n . (' ':))) . S.unpack
