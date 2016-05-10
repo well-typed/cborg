@@ -144,13 +144,15 @@ fromFlatTerm decoder ft = go (getDecodeAction decoder) ft
         | n >= 0 && n <= maxWord8            = go (k (unW# (fromIntegral n))) ts
     go (ConsumeWord8 k)   (TkInteger n : ts)
         | n >= 0 && n <= maxWord8            = go (k (unW# (fromIntegral n))) ts
-    go (ConsumeWord16 k)   (TkInt     n : ts)
+    go (ConsumeWord16 k)  (TkInt     n : ts)
         | n >= 0 && n <= maxWord16           = go (k (unW# (fromIntegral n))) ts
-    go (ConsumeWord16 k)   (TkInteger n : ts)
+    go (ConsumeWord16 k)  (TkInteger n : ts)
         | n >= 0 && n <= maxWord16           = go (k (unW# (fromIntegral n))) ts
-    go (ConsumeWord32 k)   (TkInt     n : ts)
-        | n >= 0 && n <= maxWord32           = go (k (unW# (fromIntegral n))) ts
-    go (ConsumeWord32 k)   (TkInteger n : ts)
+    go (ConsumeWord32 k)  (TkInt     n : ts)
+        -- NOTE: we have to be very careful about this branch
+        -- on 32 bit machines, because maxBound :: Int < maxBound :: Word32
+        | intIsValidWord32 n                 = go (k (unW# (fromIntegral n))) ts
+    go (ConsumeWord32 k)  (TkInteger n : ts)
         | n >= 0 && n <= maxWord32           = go (k (unW# (fromIntegral n))) ts
     go (ConsumeNegWord k) (TkInt     n : ts)
         | n <  0                             = go (k (unW# (fromIntegral (-1-n)))) ts
@@ -229,6 +231,7 @@ fromFlatTerm decoder ft = go (getDecodeAction decoder) ft
 
     go (PeekTokenType k) ts@(tk:_) = go (k (tokenTypeOf tk)) ts
     go (PeekTokenType _) ts        = unexpected "peekTokenType" ts
+    go (PeekLength k) ts           = go (k (length ts)) ts
 
     go (Fail msg) _  = Left msg
     go (Done x)   [] = Right x
@@ -426,6 +429,22 @@ maxInt32, minInt32, maxWord32 :: Num n => n
 maxInt32    = fromIntegral (maxBound :: Int32)
 minInt32    = fromIntegral (minBound :: Int32)
 maxWord32   = fromIntegral (maxBound :: Word32)
+
+-- | Do a careful check to ensure an @'Int'@ is in the
+-- range of a @'Word32'@.
+intIsValidWord32 :: Int -> Bool
+intIsValidWord32 n = b1 && b2
+  where
+    -- NOTE: this first comparison must use Int for
+    -- the check, not Word32, in case a negative value
+    -- is given. Otherwise this check would fail due to
+    -- overflow.
+    b1 = n >= 0
+    -- NOTE: we must convert n to Word32, otherwise,
+    -- maxWord32 is inferred as Int, and because
+    -- the maxBound of Word32 is greater than Int,
+    -- it overflows and this check fails.
+    b2 = (fromIntegral n :: Word32) <= maxWord32
 
 unI# :: Int -> Int#
 unI#   (I#   i#) = i#

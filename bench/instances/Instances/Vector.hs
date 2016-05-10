@@ -51,7 +51,7 @@ benchmarks =
 --------------------------------------------------------------------------------
 -- Encoding
 
-vectorEncode :: forall v a. (Serialise (v a), VG.Vector v a, Num a)
+vectorEncode :: forall v a. (Serialise (v a), VG.Vector v a)
   => Proxy v
   -> a
   -> Int

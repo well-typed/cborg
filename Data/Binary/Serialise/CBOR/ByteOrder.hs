@@ -165,6 +165,8 @@ grabWord64 (Ptr ip#) =
 --------------------------------------------------------------------------------
 -- ByteString shennanigans
 
+-- | Unsafely take a @'Ptr'@ to a @'ByteString'@ and do unholy things
+-- with it.
 withBsPtr :: (Ptr b -> a) -> ByteString -> a
 withBsPtr f (BS.PS x off _) =
 #if MIN_VERSION_bytestring(0,10,6)
@@ -179,10 +181,12 @@ withBsPtr f (BS.PS x off _) =
 --------------------------------------------------------------------------------
 -- Half floats
 
+-- | Convert a @'Word'@ to a half-sized @'Float'@.
 wordToFloat16 :: Word -> Float
 wordToFloat16 = halfToFloat . fromIntegral
 {-# INLINE wordToFloat16 #-}
 
+-- | Convert a half-sized @'Float'@ to a @'Word'@.
 floatToWord16 :: Float -> Word16
 floatToWord16 = fromIntegral . floatToHalf
 {-# INLINE floatToWord16 #-}
@@ -209,14 +213,17 @@ foreign import ccall unsafe "hs_binary_floatToHalf"
 -- floated out and shared and aliased across multiple concurrent calls. So we
 -- do manual worker/wrapper with the worker not being inlined.
 
+-- | Cast a @'Word'@ to a @'Float'@.
 wordToFloat32 :: Word -> Float
 wordToFloat32 (W# w#) = F# (wordToFloat32# w#)
 {-# INLINE wordToFloat32 #-}
 
+-- | Cast a @'Word64'@ to a @'Float'@.
 wordToFloat64 :: Word64 -> Double
 wordToFloat64 (W64# w#) = D# (wordToFloat64# w#)
 {-# INLINE wordToFloat64 #-}
 
+-- | Cast an unboxed word to an unboxed float.
 wordToFloat32# :: Word# -> Float#
 wordToFloat32# w# =
     case newByteArray# 4# realWorld# of
@@ -227,6 +234,7 @@ wordToFloat32# w# =
               (# _, f# #) -> f#
 {-# NOINLINE wordToFloat32# #-}
 
+-- | Cast an unboxed word to an unboxed double.
 #if defined(ARCH_64bit)
 wordToFloat64# :: Word# -> Double#
 #else

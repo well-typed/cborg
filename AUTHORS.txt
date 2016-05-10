@@ -16,6 +16,7 @@ particular order:
   Michal Terepeta    <michal [.dot] terepeta [@at] gmail [.dot] com>
   Ondrej Palkovsky   <palkovsky [.dot] ondrej [@at] gmail [.dot] com>
   Tobias Florek      <tob [@at] butter [.dot] sh>
+  Tom Hunger         <tehunger [@at] gmail [.dot] com>
 
 This package includes code from the 'half' package, particularly the C code
 in cbits/half.c. Thanks to Edward Kmett for this.
