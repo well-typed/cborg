@@ -13,20 +13,29 @@ import           Data.Binary.Serialise.CBOR
 benchmarks :: [Benchmark]
 benchmarks =
   [ bgroup "serialise"
-    [ bench "small" (nf goSerialise integerDataSmall)
-    , bench "large" (nf goSerialise integerDataLarge)
+    [ bench "small positive" (nf goSerialise integerDataSmallPos)
+    , bench "small negative" (nf goSerialise integerDataSmallNeg)
+    , bench "large positive" (nf goSerialise integerDataLargePos)
+    , bench "large negative" (nf goSerialise integerDataLargeNeg)
     ]
   , bgroup "deserialise"
-    [ bench "small" (nf goDeserialise integerDataSerialisedSmall)
-    , bench "large" (nf goDeserialise integerDataSerialisedLarge)
+    [ bench "small positive" (nf goDeserialise integerDataSerialisedSmallPos)
+    , bench "small negative" (nf goDeserialise integerDataSerialisedSmallNeg)
+    , bench "large positive" (nf goDeserialise integerDataSerialisedLargePos)
+    , bench "large negative" (nf goDeserialise integerDataSerialisedLargeNeg)
     ]
   ]
   where
     goSerialise = BS.length . serialise
     goDeserialise :: BS.ByteString -> Vector.Vector Integer
     goDeserialise = deserialise
-    integerDataSmall = Vector.replicate (100 :: Int) (10 :: Integer)
-    integerDataLarge = Vector.replicate (100 :: Int) ((2 :: Integer)^(200 :: Integer))
-    integerDataSerialisedSmall = serialise integerDataSmall
-    integerDataSerialisedLarge = serialise integerDataLarge
+    integerDataSmallPos = Vector.replicate (100 :: Int) (10 :: Integer)
+    integerDataSmallNeg = Vector.replicate (100 :: Int) (-10 :: Integer)
+    integerDataLargePos = Vector.replicate (100 :: Int) (two^(two * 100))
+    integerDataLargeNeg = Vector.replicate (100 :: Int) (-(two^(two * 100)))
+    integerDataSerialisedSmallPos = serialise integerDataSmallPos
+    integerDataSerialisedSmallNeg = serialise integerDataSmallNeg
+    integerDataSerialisedLargePos = serialise integerDataLargePos
+    integerDataSerialisedLargeNeg = serialise integerDataLargeNeg
+    two = 2 :: Integer
 
