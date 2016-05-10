@@ -56,6 +56,9 @@ import           Data.Binary.Serialise.CBOR.Encoding
 
 import           Control.Monad (replicateM_)
 import           Numeric
+#if !MIN_VERSION_base(4,8,0)
+import           Control.Applicative
+#endif
 --------------------------------------------------------------------------------
 
 -- | Turn an @'Encoding'@ into a lazy @'L.ByteString'@ in CBOR binary
