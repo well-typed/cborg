@@ -42,8 +42,9 @@ import qualified Data.Text                             as T
 import qualified Data.Text.Encoding                    as T
 
 #if defined(OPTIMIZE_GMP)
-import qualified GHC.Integer.GMP.Internals             as Gmp
+import           Control.Exception.Base                (assert)
 import           GHC.Exts
+import qualified GHC.Integer.GMP.Internals             as Gmp
 import           GHC.Word
 #endif
 
@@ -103,17 +104,19 @@ toBuilder =
               -- S# hold an Int, so we can just use intMP.
               TkInteger (Gmp.S# i) vs' -> PI.runB intMP (I# i) op >>= go vs'
               -- Jp# is guaranteed to be > 0.
-              TkInteger x@(Gmp.Jp# _) vs'
-                | x <= fromIntegral (maxBound :: Word64) ->
-                    PI.runB word64MP (fromIntegral x) op >>= go vs'
+              TkInteger integer@(Gmp.Jp# bigNat) vs'
+                | integer <= fromIntegral (maxBound :: Word64) ->
+                    PI.runB word64MP (fromIntegral integer) op >>= go vs'
+                | otherwise ->
+                   let buffer = BI.BufferRange op ope0
+                   in BI.runBuilderWith (bigNatMP bigNat) (step vs' k) buffer
               -- Jn# is guaranteed to be < 0.
-              TkInteger x@(Gmp.Jn# _) vs'
-                | x >= -1 - fromIntegral (maxBound :: Word64) ->
-                    PI.runB negInt64MP (fromIntegral (-1 - x)) op >>= go vs'
-              -- In all the other cases, use the slower but general rule.
-              TkInteger x vs' ->
-                BI.runBuilderWith
-                  (integerMP x) (step vs' k) (BI.BufferRange op ope0)
+              TkInteger integer@(Gmp.Jn# bigNat) vs'
+                | integer >= -1 - fromIntegral (maxBound :: Word64) ->
+                    PI.runB negInt64MP (fromIntegral (-1 - integer)) op >>= go vs'
+                | otherwise ->
+                    let buffer = BI.BufferRange op ope0
+                    in BI.runBuilderWith (negBigNatMP bigNat) (step vs' k) buffer
 #else
               TkInteger  x vs'
                 | x >= 0
@@ -460,11 +463,6 @@ tag64MP =
     condB (<= 0xffffffff) (fromIntegral >$< withConstHeader 0xda P.word32BE) $
                           (fromIntegral >$< withConstHeader 0xdb P.word64BE)
 
-integerMP :: Integer -> B.Builder
-integerMP n
-  | n >= 0    = P.primBounded header 0xc2 <> bytesMP (integerToBytes n)
-  | otherwise = P.primBounded header 0xc3 <> bytesMP (integerToBytes (-1 - n))
-
 {-
    Major type 7:  floating-point numbers and simple data types that need
       no content, as well as the "break" stop code.
@@ -529,53 +527,48 @@ breakMP = constHeader 0xff
 -- ---------------------------------------- --
 -- Implementation optimized for integer-gmp --
 -- ---------------------------------------- --
-integerToBytes :: Integer -> S.ByteString
-integerToBytes (Gmp.Jp# bigNat) = L.toStrict $ B.toLazyByteString (goLimbs 0#)
+bigNatMP :: Gmp.BigNat -> B.Builder
+bigNatMP n = P.primBounded header 0xc2 <> bigNatToBuilder n
+
+negBigNatMP :: Gmp.BigNat -> B.Builder
+negBigNatMP n =
+  -- If value `n` is stored in CBOR, it is interpreted as -1 - n. Since BigNat
+  -- already represents n (note: it's unsigned), we simply decrement it to get
+  -- the correct encoding.
+     P.primBounded header 0xc3
+  <> bigNatToBuilder (Gmp.minusBigNatWord n (int2Word# 1#))
+
+bigNatToBuilder :: Gmp.BigNat -> B.Builder
+bigNatToBuilder = bigNatBuilder
   where
-    -- Gmp.BigNat is basically a byte array with words ordered from the least
-    -- significant one to the most significant one. So we go through them in
-    -- such order but use big endian to both encode the words and lay them out.
-    goLimbs :: Gmp.GmpSize# -> B.Builder
-    goLimbs index
-        | isTrue# (index >=# numLimbs) = mempty
-        | otherwise =
-            let word = bigNat `Gmp.indexBigNat#` index
-            in if isTrue# (index +# 1# ==# numLimbs)
-                 then goLastLimb word
-                 else goLimbs (index +# 1#) <> encodeWordBE word
+    bigNatBuilder :: Gmp.BigNat -> B.Builder
+    bigNatBuilder bigNat =
+        let sizeW# = Gmp.sizeInBaseBigNat bigNat 256#
+            bounded = PI.boudedPrim (I# (word2Int# sizeW#)) (dumpBigNat sizeW#)
+        in P.primBounded bytesLenMP (W# sizeW#) <> P.primBounded bounded bigNat
 
-    -- The last limb is a bit more tricky since if the high bits are 0, we don't
-    -- want to encode them. So we manually go byte by byte and detect when
-    -- there's nothing left to encode.
-    goLastLimb :: Gmp.GmpLimb# -> B.Builder
-    goLastLimb limb
-        | isTrue# (limb `eqWord#` (int2Word# 0#)) = mempty
-        | otherwise =
-            let higherBytes = goLastLimb (limb `uncheckedShiftRL#` 8#)
-                byte = limb `and#` (int2Word# 255#)
-            in higherBytes <> P.primFixed P.word8 (W8# byte)
-
-    numLimbs :: Gmp.GmpSize#
-    numLimbs = Gmp.sizeofBigNat# bigNat
-
-    encodeWordBE :: Word# -> B.Builder
-#if defined(ARCH_64bit)
-    encodeWordBE w = P.primFixed P.word64BE (W64# w)
-#elif defined(ARCH_32bit)
-    encodeWordBE w = P.primFixed P.word32BE (W32# w)
-    {-# INLINE encodeWordBE #-}
-#else
-#error expected either ARCH_64bit or ARCH_32bit to be defined
-#endif
-
-integerToBytes _ =
-  error "integerToBytes must be called with an Integer that larger than INT_MAX"
+    dumpBigNat :: Word# -> Gmp.BigNat -> Ptr a -> IO (Ptr a)
+    dumpBigNat sizeW# bigNat ptr@(Ptr addr#) = do
+        -- The last parameter (`1#`) makes the export function use big endian
+        -- encoding.
+        (W# written#) <- Gmp.exportBigNatToAddr bigNat addr# 1#
+        let !newPtr = ptr `plusPtr` (I# (word2Int# written#))
+            sanity = isTrue# (sizeW# `eqWord#` written#)
+        return $ assert sanity newPtr
 
 #else
 
 -- ---------------------- --
 -- Generic implementation --
 -- ---------------------- --
+integerMP :: Integer -> B.Builder
+integerMP n
+  | n >= 0    = P.primBounded header 0xc2 <> integerToBuilder n
+  | otherwise = P.primBounded header 0xc3 <> integerToBuilder (-1 - n)
+
+integerToBuilder :: Integer -> B.Builder
+integerToBuilder n = bytesMP (integerToBytes n)
+
 integerToBytes :: Integer -> S.ByteString
 integerToBytes n0
   | n0 == 0   = S.pack [0]
