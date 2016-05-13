@@ -600,17 +600,17 @@ integerToBytes n0
 
 --------------------
 -- pretty printing
-newtype PP a = PP (Tokens -> Int -> (String -> String) -> Either String (Tokens,Int,String -> String,a))
+newtype PP a = PP (Tokens -> Int -> ShowS -> Either String (Tokens,Int,ShowS,a))
 
 -- | Pretty prints an Encoding in a format similar to the
 --   format used on http://cbor.me/.
-prettyEnc :: Encoding -> Either String String
+prettyEnc :: Encoding -> String
 prettyEnc e = case runPP pprint e of
-  Left s -> Left s
-  Right (TkEnd,_,ss,_) -> Right (ss "")
-  Right (toks,_,_,_) -> Left $ "prettyEnc: Not all input was consumed (this is probably a problem with the pretty printing code). Tokens left: " ++ show toks
+  Left s -> s
+  Right (TkEnd,_,ss,_) -> ss ""
+  Right (toks,_,ss,_) -> ss $ "\nprettyEnc: Not all input was consumed (this is probably a problem with the pretty printing code). Tokens left: " ++ show toks
 
-runPP :: PP a -> Encoding -> Either String (Tokens, Int, String -> String, a)
+runPP :: PP a -> Encoding -> Either String (Tokens, Int, ShowS, a)
 runPP (PP f) (Encoding enc) = f (enc TkEnd) 0 id
 
 deriving instance Functor PP
@@ -681,7 +681,7 @@ pprint = do
   nl
   term <- getTerm
   hexRep term
-  str "  "
+  str " \t"
   case term of
     TkInt      i  TkEnd -> ppTkInt i
     TkInteger  i  TkEnd -> ppTkInteger i
@@ -701,6 +701,7 @@ pprint = do
     TkFloat16  f  TkEnd -> ppTkFloat16 f
     TkFloat32  f  TkEnd -> ppTkFloat32 f
     TkFloat64  f  TkEnd -> ppTkFloat64 f
+    TkEnd               -> str "# End of input"
     _ -> fail $ unwords ["pprint: Unexpected token:", show term]
 
 ppTkInt        :: Int        -> PP ()
@@ -774,30 +775,30 @@ ppTkFloat64    :: Double     -> PP ()
 ppTkFloat64 f = str "# float64" >> parens (shown f)
 
 unconsToken :: Tokens -> Maybe (Tokens, Tokens)
-unconsToken TkEnd = Nothing
-unconsToken (TkWord w tks)      = Just (TkWord w      TkEnd,tks)
-unconsToken (TkWord64 w tks)    = Just (TkWord64 w    TkEnd,tks)
-unconsToken (TkInt i tks)       = Just (TkInt i       TkEnd,tks)
-unconsToken (TkInt64 i tks)     = Just (TkInt64 i     TkEnd,tks)
-unconsToken (TkBytes bs tks)    = Just (TkBytes bs    TkEnd,tks)
-unconsToken (TkBytesBegin tks)  = Just (TkBytesBegin  TkEnd,tks)
-unconsToken (TkString t tks)    = Just (TkString t    TkEnd,tks)
+unconsToken TkEnd               = Nothing
+unconsToken (TkWord w      tks) = Just (TkWord w      TkEnd,tks)
+unconsToken (TkWord64 w    tks) = Just (TkWord64 w    TkEnd,tks)
+unconsToken (TkInt i       tks) = Just (TkInt i       TkEnd,tks)
+unconsToken (TkInt64 i     tks) = Just (TkInt64 i     TkEnd,tks)
+unconsToken (TkBytes bs    tks) = Just (TkBytes bs    TkEnd,tks)
+unconsToken (TkBytesBegin  tks) = Just (TkBytesBegin  TkEnd,tks)
+unconsToken (TkString t    tks) = Just (TkString t    TkEnd,tks)
 unconsToken (TkStringBegin tks) = Just (TkStringBegin TkEnd,tks)
 unconsToken (TkListLen len tks) = Just (TkListLen len TkEnd,tks)
-unconsToken (TkListBegin tks)   = Just (TkListBegin   TkEnd,tks)
-unconsToken (TkMapLen len tks)  = Just (TkMapLen len  TkEnd,tks)
-unconsToken (TkMapBegin tks)    = Just (TkMapBegin    TkEnd,tks)
-unconsToken (TkTag w tks)       = Just (TkTag w       TkEnd,tks)
-unconsToken (TkTag64 w64 tks)   = Just (TkTag64 w64   TkEnd,tks)
-unconsToken (TkInteger i tks)   = Just (TkInteger i   TkEnd,tks)
-unconsToken (TkNull tks)        = Just (TkNull        TkEnd,tks)
-unconsToken (TkUndef tks)       = Just (TkUndef       TkEnd,tks)
-unconsToken (TkBool b tks)      = Just (TkBool b      TkEnd,tks)
-unconsToken (TkSimple w8 tks)   = Just (TkSimple w8   TkEnd,tks)
+unconsToken (TkListBegin   tks) = Just (TkListBegin   TkEnd,tks)
+unconsToken (TkMapLen len  tks) = Just (TkMapLen len  TkEnd,tks)
+unconsToken (TkMapBegin    tks) = Just (TkMapBegin    TkEnd,tks)
+unconsToken (TkTag w       tks) = Just (TkTag w       TkEnd,tks)
+unconsToken (TkTag64 w64   tks) = Just (TkTag64 w64   TkEnd,tks)
+unconsToken (TkInteger i   tks) = Just (TkInteger i   TkEnd,tks)
+unconsToken (TkNull        tks) = Just (TkNull        TkEnd,tks)
+unconsToken (TkUndef       tks) = Just (TkUndef       TkEnd,tks)
+unconsToken (TkBool b      tks) = Just (TkBool b      TkEnd,tks)
+unconsToken (TkSimple w8   tks) = Just (TkSimple w8   TkEnd,tks)
 unconsToken (TkFloat16 f16 tks) = Just (TkFloat16 f16 TkEnd,tks)
 unconsToken (TkFloat32 f32 tks) = Just (TkFloat32 f32 TkEnd,tks)
 unconsToken (TkFloat64 f64 tks) = Just (TkFloat64 f64 TkEnd,tks)
-unconsToken (TkBreak tks)       = Just (TkBreak       TkEnd,tks)
+unconsToken (TkBreak       tks) = Just (TkBreak       TkEnd,tks)
 
 hexRep :: Tokens -> PP ()
 hexRep tk = go . toStrictByteString . Encoding $ const tk where
