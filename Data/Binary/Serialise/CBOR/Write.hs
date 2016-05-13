@@ -1,8 +1,8 @@
+{-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE CPP                 #-}
+{-# LANGUAGE DeriveFunctor       #-}
 {-# LANGUAGE MagicHash           #-}
 {-# LANGUAGE RankNTypes          #-}
-{-# LANGUAGE BangPatterns        #-}
-{-# LANGUAGE UnboxedTuples       #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 -- |
