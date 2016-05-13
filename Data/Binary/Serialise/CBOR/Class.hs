@@ -23,6 +23,8 @@ module Data.Binary.Serialise.CBOR.Class
    Serialise(..)
  , GSerialiseEncode(..)
  , GSerialiseDecode(..)
+ , encodeVector
+ , decodeVector
  ) where
 
 #include "cbor.h"
@@ -64,6 +66,7 @@ import qualified Data.Vector                         as Vector
 import qualified Data.Vector.Unboxed                 as Vector.Unboxed
 import qualified Data.Vector.Storable                as Vector.Storable
 import qualified Data.Vector.Primitive               as Vector.Primitive
+import qualified Data.Vector.Generic                 as Vector.Generic
 --import qualified Data.Text.Lazy                      as Text.Lazy
 import           Foreign.C.Types
 
@@ -607,58 +610,46 @@ instance (Serialise a) => Serialise (Sequence.Seq a) where
              Sequence.replicateM
              mconcat
 
-instance (Serialise a) => Serialise (Vector.Vector a) where
-  encode = encodeContainerSkel
-             encodeListLen
-             Vector.length
-             Vector.foldr
-             (\a b -> encode a <> b)
-  {-# INLINE encode #-}
-  decode = decodeContainerSkelWithReplicate
-             decodeListLen
-             Vector.replicateM
-             Vector.concat
-  {-# INLINE decode #-}
+encodeVector :: (Serialise a, Vector.Generic.Vector v a)
+             => v a -> Encoding
+encodeVector = encodeContainerSkel
+    encodeListLen
+    Vector.Generic.length
+    Vector.Generic.foldr
+    (\a b -> encode a <> b)
+{-# INLINE encodeVector #-}
 
+decodeVector :: (Serialise a, Vector.Generic.Vector v a)
+             => Decoder (v a)
+decodeVector = decodeContainerSkelWithReplicate
+    decodeListLen
+    Vector.Generic.replicateM
+    Vector.Generic.concat
+{-# INLINE decodeVector #-}
+
+instance (Serialise a) => Serialise (Vector.Vector a) where
+  encode = encodeVector
+  {-# INLINE encode #-}
+  decode = decodeVector
+  {-# INLINE decode #-}
 
 instance (Serialise a, Vector.Unboxed.Unbox a) =>
          Serialise (Vector.Unboxed.Vector a) where
-  encode = encodeContainerSkel
-             encodeListLen
-             Vector.Unboxed.length
-             Vector.Unboxed.foldr
-             (\a b -> encode a <> b)
+  encode = encodeVector
   {-# INLINE encode #-}
-  decode = decodeContainerSkelWithReplicate
-             decodeListLen
-             Vector.Unboxed.replicateM
-             Vector.Unboxed.concat
+  decode = decodeVector
   {-# INLINE decode #-}
 
 instance (Serialise a, Vector.Storable.Storable a) => Serialise (Vector.Storable.Vector a) where
-  encode = encodeContainerSkel
-             encodeListLen
-             Vector.Storable.length
-             Vector.Storable.foldr
-             (\a b -> encode a <> b)
+  encode = encodeVector
   {-# INLINE encode #-}
-  decode = decodeContainerSkelWithReplicate
-             decodeListLen
-             Vector.Storable.replicateM
-             Vector.Storable.concat
+  decode = decodeVector
   {-# INLINE decode #-}
 
 instance (Serialise a, Vector.Primitive.Prim a) => Serialise (Vector.Primitive.Vector a) where
-  encode = encodeContainerSkel
-             encodeListLen
-             Vector.Primitive.length
-             Vector.Primitive.foldr
-             (\a b -> encode a <> b)
+  encode = encodeVector
   {-# INLINE encode #-}
-  decode = decodeContainerSkelWithReplicate
-             decodeListLen
-             Vector.Primitive.replicateM
-             Vector.Primitive.concat
+  decode = decodeVector
   {-# INLINE decode #-}
 
 
