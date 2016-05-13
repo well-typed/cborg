@@ -7,10 +7,7 @@ module Tests.Orphanage where
 #if MIN_VERSION_base(4,8,0)
 import           Data.Functor.Identity
 #endif
-
-#if !MIN_VERSION_base(4,8,0)
 import           Data.Typeable
-#endif
 
 import           Control.Applicative
 
@@ -239,4 +236,9 @@ deriving instance Typeable Dual
 
 deriving instance Show a => Show (Const a b)
 deriving instance Eq a   => Eq   (Const a b)
+#endif
+
+#if MIN_VERSION_base(4,7,0)
+instance Arbitrary (Proxy a) where
+  arbitrary = return Proxy
 #endif

@@ -135,6 +135,7 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T (Fixed E6))
       , mkTest (T :: T (Fixed E9))
       , mkTest (T :: T (Fixed E12))
+      , mkTest (T :: T (Proxy ()))
 #endif
       , mkTest (T :: T Char)
       , mkTest (T :: T CChar)

@@ -2,6 +2,7 @@
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE DefaultSignatures   #-}
 {-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE PolyKinds           #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
@@ -202,6 +203,10 @@ instance Serialise Double where
 instance HasResolution e => Serialise (Fixed e) where
     encode (MkFixed i) = encode i
     decode = MkFixed <$> decode
+
+instance Serialise (Proxy a) where
+    encode _ = encodeNull
+    decode   = Proxy <$ decodeNull
 #endif
 
 instance Serialise Char where
