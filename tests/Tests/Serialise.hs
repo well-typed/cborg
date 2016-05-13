@@ -52,6 +52,7 @@ import qualified Data.Sequence              as Sequence
 import qualified Data.Set                   as Set
 import qualified Data.Vector                as Vector
 import qualified Data.Vector.Unboxed        as Vector.Unboxed
+import           GHC.Fingerprint.Type (Fingerprint(..))
 
 import           Tests.Orphanage()
 
@@ -176,6 +177,7 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T [Int])
       , mkTest (T :: T UTCTime)
       , mkTest (T :: T Version)
+      , mkTest (T :: T Fingerprint)
       , mkTest (T :: T ExitCode)
       , mkTest (T :: T (Ratio Integer))
       , mkTest (T :: T (Complex Double))

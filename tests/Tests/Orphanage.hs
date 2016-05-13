@@ -15,6 +15,7 @@ import           Data.Ord
 import           Data.Monoid as Monoid
 import           Foreign.C.Types
 import           System.Exit (ExitCode(..))
+import           GHC.Fingerprint.Type
 
 import           Test.QuickCheck.Gen
 import           Test.QuickCheck.Arbitrary
@@ -233,6 +234,7 @@ deriving instance Typeable All
 deriving instance Typeable Any
 deriving instance Typeable Product
 deriving instance Typeable Dual
+deriving instance Typeable Fingerprint
 
 deriving instance Show a => Show (Const a b)
 deriving instance Eq a   => Eq   (Const a b)
@@ -242,3 +244,6 @@ deriving instance Eq a   => Eq   (Const a b)
 instance Arbitrary (Proxy a) where
   arbitrary = return Proxy
 #endif
+
+instance Arbitrary Fingerprint where
+  arbitrary = Fingerprint <$> arbitrary <*> arbitrary
