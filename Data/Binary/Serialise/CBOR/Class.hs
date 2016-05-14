@@ -610,6 +610,8 @@ instance (Serialise a) => Serialise (Sequence.Seq a) where
              Sequence.replicateM
              mconcat
 
+-- | Generic encoder for vectors. Its intended use is to allow easy
+-- definition of 'Serialise' instances for custom vector
 encodeVector :: (Serialise a, Vector.Generic.Vector v a)
              => v a -> Encoding
 encodeVector = encodeContainerSkel
@@ -619,6 +621,8 @@ encodeVector = encodeContainerSkel
     (\a b -> encode a <> b)
 {-# INLINE encodeVector #-}
 
+-- | Generic decoder for vectors. Its intended use is to allow easy
+-- definition of 'Serialise' instances for custom vector
 decodeVector :: (Serialise a, Vector.Generic.Vector v a)
              => Decoder (v a)
 decodeVector = decodeContainerSkelWithReplicate
