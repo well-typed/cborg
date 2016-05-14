@@ -2,6 +2,7 @@
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE DefaultSignatures   #-}
 {-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE PolyKinds           #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
@@ -82,6 +83,7 @@ import           System.Exit                         (ExitCode(..))
 
 import           Prelude hiding (decodeFloat, encodeFloat, foldr)
 import qualified Prelude
+import           GHC.Fingerprint.Type (Fingerprint(..))
 import           GHC.Generics
 
 import           Data.Binary.Serialise.CBOR.Decoding
@@ -207,6 +209,10 @@ instance Serialise Double where
 instance HasResolution e => Serialise (Fixed e) where
     encode (MkFixed i) = encode i
     decode = MkFixed <$> decode
+
+instance Serialise (Proxy a) where
+    encode _ = encodeNull
+    decode   = Proxy <$ decodeNull
 #endif
 
 instance Serialise Char where
@@ -739,6 +745,20 @@ instance Serialise Version where
           -> do !x <- decode
                 !y <- decode
                 return (Version x y)
+        _ -> fail "unexpected tag"
+
+instance Serialise Fingerprint where
+    encode (Fingerprint w1 w2) = encodeListLen 3
+                              <> encodeWord 0
+                              <> encode w1
+                              <> encode w2
+    decode = do
+      decodeListLenOf 3
+      tag <- decodeWord
+      case tag of
+        0 -> do !w1 <- decode
+                !w2 <- decode
+                return $! Fingerprint w1 w2
         _ -> fail "unexpected tag"
 
 --------------------------------------------------------------------------------
