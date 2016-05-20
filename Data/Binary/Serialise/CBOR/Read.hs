@@ -1368,7 +1368,7 @@ tryConsumeWord64 hdr !bs = case fromIntegral hdr :: Word of
   0x1a -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs))
   0x1b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
   _    -> DecodeFailure
-
+{-# INLINE tryConsumeWord64 #-}
 
 tryConsumeNegWord64 :: Word8 -> ByteString -> DecodedToken Word64
 tryConsumeNegWord64 hdr !bs = case fromIntegral hdr :: Word of
@@ -1402,6 +1402,7 @@ tryConsumeNegWord64 hdr !bs = case fromIntegral hdr :: Word of
   0x3a -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs))
   0x3b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
   _    -> DecodeFailure
+{-# INLINE tryConsumeNegWord64 #-}
 
 tryConsumeInt64 :: Word8 -> ByteString -> DecodedToken Int64
 tryConsumeInt64 hdr !bs = case fromIntegral hdr :: Word of
@@ -1465,6 +1466,7 @@ tryConsumeInt64 hdr !bs = case fromIntegral hdr :: Word of
   0x3a -> DecodedToken 5 (-1 - fromIntegral (withBsPtr grabWord32 (BS.unsafeTail bs))) --FIXME: overflow
   0x3b -> DecodedToken 9 (-1 - fromIntegral (withBsPtr grabWord64 (BS.unsafeTail bs))) --FIXME: overflow
   _    -> DecodeFailure
+{-# INLINE tryConsumeInt64 #-}
 
 tryConsumeListLen64 :: Word8 -> ByteString -> DecodedToken Int64
 tryConsumeListLen64 hdr !bs = case fromIntegral hdr :: Word of
@@ -1498,6 +1500,7 @@ tryConsumeListLen64 hdr !bs = case fromIntegral hdr :: Word of
   0x9a -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)) --FIXME: overflow
   0x9b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
   _    -> DecodeFailure
+{-# INLINE tryConsumeListLen64 #-}
 
 tryConsumeMapLen64 :: Word8 -> ByteString -> DecodedToken Int64
 tryConsumeMapLen64 hdr !bs = case fromIntegral hdr :: Word of
@@ -1531,7 +1534,7 @@ tryConsumeMapLen64 hdr !bs = case fromIntegral hdr :: Word of
   0xba -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)) --FIXME: overflow
   0xbb -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
   _    -> DecodeFailure
-
+{-# INLINE tryConsumeMapLen64 #-}
 
 tryConsumeTag64 :: Word8 -> ByteString -> DecodedToken Word64
 tryConsumeTag64 hdr !bs = case fromIntegral hdr :: Word of
@@ -1565,6 +1568,7 @@ tryConsumeTag64 hdr !bs = case fromIntegral hdr :: Word of
   0xda -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs))
   0xdb -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
   _    -> DecodeFailure
+{-# INLINE tryConsumeTag64 #-}
 #endif
 
 {-# INLINE tryConsumeFloat #-}
