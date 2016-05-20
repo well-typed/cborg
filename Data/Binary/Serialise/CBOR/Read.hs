@@ -31,9 +31,7 @@ import qualified Data.Binary.Get as Bin (Decoder(..))
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
 #endif
-#if defined(ARCH_32bit)
 import           GHC.Int
-#endif
 
 import           Control.Monad (ap)
 import           Data.Array.IArray
