@@ -45,7 +45,9 @@ import qualified Data.Text.Encoding                    as T
 import           Control.Exception.Base                (assert)
 import           GHC.Exts
 import qualified GHC.Integer.GMP.Internals             as Gmp
+#if __GLASGOW_HASKELL__ < 710
 import           GHC.Word
+#endif
 #endif
 
 import           Data.Binary.Serialise.CBOR.ByteOrder
