@@ -49,7 +49,6 @@ import qualified Data.ByteString.Lazy.Internal  as LBS
 import qualified Data.Text          as T
 import qualified Data.Text.Encoding as T
 import           Data.Word
-import           Data.Int
 import           GHC.Word
 import           GHC.Exts
 import           GHC.Float (float2Double)
