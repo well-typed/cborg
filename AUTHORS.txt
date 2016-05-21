@@ -9,6 +9,7 @@ People who contributed code, ideas or lively discussion include, in no
 particular order:
 
   Adam Gundry        <adam [@at] well-typed [.dot] com>
+  Alex Mason         <alex [.dot] mason [@at] nicta [.dot] com [.dot] au>
   Alexey Khudyakov   <alexey [.dot] skladnoy [@at] gmail [.dot] com>
   Arian van Putten   <aeroboy94 [@at] gmail [.dot] com>
   Austin Seipp       <austin [@at] well-typed [.dot] com>
