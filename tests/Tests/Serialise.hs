@@ -101,6 +101,25 @@ prop_encodeFloatToDouble x = Right dbl == fromFlatTerm dec ft
     ft  = toFlatTerm (encode x)
 
 --------------------------------------------------------------------------------
+-- Ensure we can decode UTCTimes when using tag 1 (offset from epoch)
+
+prop_decodeTag1UTCTimeInteger :: TestTree
+prop_decodeTag1UTCTimeInteger = testCase "Decode tag 1 UTCTime (Integer)" $
+  Right mar21 @=? fromFlatTerm dec (toFlatTerm (Encoding toks))
+  where
+    toks e = TkTag 1 $ TkInteger 1363896240 $ e
+    mar21 = UTCTime (fromGregorian 2013 3 21) (timeOfDayToTime (TimeOfDay 20 4 0))
+    dec = decode :: Decoder UTCTime
+
+prop_decodeTag1UTCTimeDouble :: TestTree
+prop_decodeTag1UTCTimeDouble = testCase "Decode tag 1 UTCTime (Double)" $
+  Right mar21 @=? fromFlatTerm dec (toFlatTerm (Encoding toks))
+  where
+    toks e = TkTag 1 $ TkFloat64 1363896240.5 $ e
+    mar21 = UTCTime (fromGregorian 2013 3 21) (timeOfDayToTime (TimeOfDay 20 4 0.5))
+    dec = decode :: Decoder UTCTime
+
+--------------------------------------------------------------------------------
 -- Extra orphan instances
 
 instance Arbitrary Version where
@@ -113,6 +132,8 @@ testTree :: TestTree
 testTree = testGroup "Serialise class"
   [ testGroup "Corner cases"
       [ testProperty "decode float to double"      prop_encodeFloatToDouble
+      , prop_decodeTag1UTCTimeInteger
+      , prop_decodeTag1UTCTimeDouble
       ]
   , testGroup "Simple instance invariants"
       [ mkTest (T :: T ())

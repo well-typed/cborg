@@ -71,7 +71,8 @@ import qualified Data.Vector.Generic                 as Vector.Generic
 --import qualified Data.Text.Lazy                      as Text.Lazy
 import           Foreign.C.Types
 
-import           Data.Time                           (UTCTime (..))
+import           Data.Time                           (UTCTime (..), addUTCTime)
+import           Data.Time.Calendar                  (fromGregorian)
 #if MIN_VERSION_time(1,5,0)
 import           Data.Time.Format                    (defaultTimeLocale,
                                                       formatTime, parseTimeM)
@@ -777,7 +778,30 @@ instance Serialise UTCTime where
                 case parseUTCrfc3339 (Text.unpack str) of
                   Just t  -> return $! forceUTCTime t
                   Nothing -> fail "Could not parse RFC3339 date"
+        1 -> do
+          tt <- peekTokenType
+          case tt of
+            TypeUInt    -> utcFromIntegral <$> decodeWord
+            TypeUInt64  -> utcFromIntegral <$> decodeWord64
+            TypeNInt    -> utcFromIntegral <$> decodeInt
+            TypeNInt64  -> utcFromIntegral <$> decodeInt64
+            TypeInteger -> utcFromIntegral <$> decodeInteger
+            TypeFloat16 -> utcFromReal <$> decodeFloat
+            TypeFloat32 -> utcFromReal <$> decodeFloat
+            TypeFloat64 -> utcFromReal <$> decodeDouble
+            _ -> fail "Expected numeric type following tag 1 (epoch offset)"
         _ -> fail "Expected timestamp (tag 0 or 1)"
+
+epoch :: UTCTime
+epoch = UTCTime (fromGregorian 1970 1 1) 0
+
+{-# INLINE utcFromIntegral #-}
+utcFromIntegral :: Integral a => a -> UTCTime
+utcFromIntegral i = addUTCTime (fromIntegral i) epoch
+
+{-# INLINE utcFromReal #-}
+utcFromReal :: Real a => a -> UTCTime
+utcFromReal f = addUTCTime (fromRational (toRational f)) epoch
 
 
 -- | @'UTCTime'@ formatting, into a regular @'String'@.
