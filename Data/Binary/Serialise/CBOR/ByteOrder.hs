@@ -90,9 +90,13 @@ grabWord8 (Ptr ip#) = W# (indexWord8OffAddr# ip# 0#)
 -- On x86 machines with GHC 7.10, we have byteswap primitives
 -- available to make this conversion very fast.
 
-grabWord16 (Ptr ip#) = W#   (byteSwap16# (indexWord16OffAddr# ip# 0#))
-grabWord32 (Ptr ip#) = W#   (byteSwap32# (indexWord32OffAddr# ip# 0#))
+grabWord16 (Ptr ip#) = W#   (narrow16Word# (byteSwap16# (indexWord16OffAddr# ip# 0#)))
+grabWord32 (Ptr ip#) = W#   (narrow32Word# (byteSwap32# (indexWord32OffAddr# ip# 0#)))
+#if defined(ARCH_64bit)
+grabWord64 (Ptr ip#) = W64# (byteSwap# (indexWord64OffAddr# ip# 0#))
+#else
 grabWord64 (Ptr ip#) = W64# (byteSwap64# (indexWord64OffAddr# ip# 0#))
+#endif
 
 #elif defined(MEM_UNALIGNED_OPS) && \
       defined(WORDS_BIGENDIAN)
