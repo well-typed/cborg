@@ -9,3 +9,5 @@
 *.bin
 *00-index.tar.gz
 *.html
+*#
+.#*
