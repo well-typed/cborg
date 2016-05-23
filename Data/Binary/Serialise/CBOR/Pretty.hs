@@ -141,12 +141,12 @@ shown = appShowS . shows
 parens :: PP a -> PP a
 parens pp = str "(" *> pp <* str ")"
 
-indef :: PP ()
-indef = do
+indef :: PP () -> PP ()
+indef pp = do
   tk <- peekTerm
   case tk of
     TkBreak TkEnd -> dec 3 >> pprint
-    _ -> pprint >> indef
+    _ -> pp >> indef pp
 
 
 pprint :: PP ()
@@ -154,7 +154,7 @@ pprint = do
   nl
   term <- getTerm
   hexRep term
-  str " \t"
+  str " "
   case term of
     TkInt      i  TkEnd -> ppTkInt i
     TkInteger  i  TkEnd -> ppTkInteger i
@@ -187,13 +187,13 @@ ppTkBytes      :: S.ByteString -> PP ()
 ppTkBytes bs = str "# bytes" >> parens (shown (S.length bs))
 
 ppTkBytesBegin ::               PP ()
-ppTkBytesBegin = str "# bytes(*)" >> inc 3 >> indef
+ppTkBytesBegin = str "# bytes(*)" >> inc 3 >> indef pprint
 
 ppTkString     :: T.Text       -> PP ()
 ppTkString t = str "# text" >> parens (shown t)
 
 ppTkStringBegin::               PP ()
-ppTkStringBegin = str "# text(*)" >> inc 3 >> indef
+ppTkStringBegin = str "# text(*)" >> inc 3 >> indef pprint
 
 ppTkListLen    :: Word       -> PP ()
 ppTkListLen n = do
@@ -204,18 +204,35 @@ ppTkListLen n = do
   dec 3
 
 ppTkListBegin  ::               PP ()
-ppTkListBegin = str "# list(*)" >> inc 3 >> indef
+ppTkListBegin = str "# list(*)" >> inc 3 >> indef pprint
+
+ppMapPairs :: PP ()
+ppMapPairs = do
+  nl
+  inc 3
+  indent
+  str " # key"
+  pprint
+  dec 3
+  -- str " [end map key]"
+  nl
+  inc 3
+  indent
+  str " # value"
+  pprint
+  dec 3
+  -- str " [end map value]"
 
 ppTkMapLen     :: Word       -> PP ()
 ppTkMapLen w = do
   str "# map"
   parens (shown w)
-  inc 3
-  replicateM_ (fromIntegral w) (pprint >> pprint)
-  dec 3
+  -- inc 3
+  replicateM_ (fromIntegral w) ppMapPairs
+  -- dec 3
 
 ppTkMapBegin   ::               PP ()
-ppTkMapBegin = str "# map(*)" >> inc 3
+ppTkMapBegin = str "# map(*)" >> inc 3 >> indef ppMapPairs
 
 ppTkBreak      ::               PP ()
 ppTkBreak = str "# break"
