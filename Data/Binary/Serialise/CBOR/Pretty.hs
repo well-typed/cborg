@@ -121,7 +121,7 @@ pprint = do
   nl
   term <- getTerm
   hexRep term
-  str " \t"
+  str " "
   case term of
     TkInt      i  TkEnd -> ppTkInt i
     TkInteger  i  TkEnd -> ppTkInteger i
@@ -174,15 +174,29 @@ ppTkListBegin  ::               PP ()
 ppTkListBegin = str "# list(*)" >> inc 3 >> indef pprint
 
 ppMapPairs :: PP ()
-ppMapPairs = pprint >> str " [end map key]" >> pprint >> str " [end map value]"
+ppMapPairs = do
+  nl
+  inc 3
+  indent
+  str " # key"
+  pprint
+  dec 3
+  -- str " [end map key]"
+  nl
+  inc 3
+  indent
+  str " # value"
+  pprint
+  dec 3
+  -- str " [end map value]"
 
 ppTkMapLen     :: Word       -> PP ()
 ppTkMapLen w = do
   str "# map"
   parens (shown w)
-  inc 3
+  -- inc 3
   replicateM_ (fromIntegral w) ppMapPairs
-  dec 3
+  -- dec 3
 
 ppTkMapBegin   ::               PP ()
 ppTkMapBegin = str "# map(*)" >> inc 3 >> indef ppMapPairs
