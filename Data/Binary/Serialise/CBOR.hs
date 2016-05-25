@@ -51,6 +51,7 @@ module Data.Binary.Serialise.CBOR
 import           System.IO                        (Handle, IOMode (..), withFile)
 import           Data.Typeable                    (Typeable)
 import           Control.Exception                (Exception(..), throw, throwIO)
+import           Control.Monad.ST                 (ST, runST)
 
 import qualified Data.Binary.Get                  as Bin
 import qualified Data.ByteString.Builder          as BS
@@ -59,6 +60,7 @@ import qualified Data.ByteString.Lazy.Internal    as BS
 
 import           Data.Binary.Serialise.CBOR.Class
 import qualified Data.Binary.Serialise.CBOR.Read  as CBOR.Read
+import           Data.Binary.Serialise.CBOR.Read  (DecodeIncrementally(..))
 import qualified Data.Binary.Serialise.CBOR.Write as CBOR.Write
 
 --------------------------------------------------------------------------------
@@ -85,7 +87,7 @@ serialiseIncremental = CBOR.Write.toBuilder . encode
 -- Note that the incremental behaviour is only for the input data, not the
 -- output value: the final deserialised value is constructed and returned as a
 -- whole, not incrementally.
-deserialiseIncremental :: Serialise a => Bin.Decoder a
+deserialiseIncremental :: Serialise a => ST s (DecodeIncrementally s a)
 deserialiseIncremental = CBOR.Read.deserialiseIncremental decode
 
 --------------------------------------------------------------------------------
@@ -109,16 +111,16 @@ serialise = CBOR.Write.toLazyByteString . encode
 -- /Throws/: @'DeserialiseFailure'@ if the given external representation is
 -- invalid or does not correspond to a value of the expected type.
 deserialise :: Serialise a => BS.ByteString -> a
-deserialise =
-    supplyAllInput deserialiseIncremental
+deserialise bs0 =
+    runST (flip supplyAllInput bs0 =<< deserialiseIncremental)
   where
-    supplyAllInput (Bin.Done _ _ x) _bs = x
-    supplyAllInput (Bin.Partial k)   bs =
+    supplyAllInput (IDone _ _ x) _bs = return x
+    supplyAllInput (IPartial k)   bs =
       case bs of
-        BS.Chunk chunk bs' ->  supplyAllInput (k (Just chunk)) bs'
-        BS.Empty           ->  supplyAllInput (k Nothing)      BS.Empty
-    supplyAllInput (Bin.Fail _ off msg) _ =
-      throw (DeserialiseFailure off msg)
+        BS.Chunk chunk bs' ->  k (Just chunk) >>= \d -> supplyAllInput d bs'
+        BS.Empty           ->  k Nothing      >>= \d -> supplyAllInput d BS.Empty
+    supplyAllInput (IFail _ off msg) _ =
+      throw (DeserialiseFailure off (show msg))
 
 -- | An exception type that may be returned (by pure functions) or
 -- thrown (by IO actions) that fail to deserialise a given input.
@@ -136,15 +138,15 @@ instance Exception DeserialiseFailure where
 -- | Deserialise a Haskell value from the external binary representation,
 -- or get back a @'DeserialiseFailure'@.
 deserialiseOrFail :: Serialise a => BS.ByteString -> Either DeserialiseFailure a
-deserialiseOrFail = supplyAllInput deserialiseIncremental
+deserialiseOrFail bs0 = runST (flip supplyAllInput bs0 =<< deserialiseIncremental)
   where
-    supplyAllInput (Bin.Done _ _ x) _bs = Right x
-    supplyAllInput (Bin.Partial k)   bs =
+    supplyAllInput (IDone _ _ x) _bs = return (Right x)
+    supplyAllInput (IPartial k)   bs =
       case bs of
-        BS.Chunk chunk bs' ->  supplyAllInput (k (Just chunk)) bs'
-        BS.Empty           ->  supplyAllInput (k Nothing)      BS.Empty
-    supplyAllInput (Bin.Fail _ offset msg) _ =
-        Left (DeserialiseFailure offset msg)
+        BS.Chunk chunk bs' ->  k (Just chunk) >>= \d -> supplyAllInput d bs'
+        BS.Empty           ->  k Nothing      >>= \d -> supplyAllInput d BS.Empty
+    supplyAllInput (IFail _ offset msg) _ =
+        return (Left (DeserialiseFailure offset (show msg)))
 
 --------------------------------------------------------------------------------
 -- File-based API

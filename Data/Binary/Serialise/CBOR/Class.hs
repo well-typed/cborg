@@ -97,8 +97,8 @@ class Serialise a where
     encode = gencode . from
 
     -- | Definition of a given @'Decoder'@ for a type.
-    decode  :: Decoder a
-    default decode :: (Generic a, GSerialiseDecode (Rep a)) => Decoder a
+    decode  :: Decoder s a
+    default decode :: (Generic a, GSerialiseDecode (Rep a)) => Decoder s a
     decode = to <$> gdecode
 
     -- | Utility to support specialised encoding for some list type -
@@ -108,7 +108,7 @@ class Serialise a where
 
     -- | Utility to support specialised decoding for some list type -
     -- used for @'Char'@/@'String'@ instances in this package.
-    decodeList :: Decoder [a]
+    decodeList :: Decoder s [a]
     decodeList = defaultDecodeList
 
 --------------------------------------------------------------------------------
@@ -125,7 +125,7 @@ defaultEncodeList xs = encodeListLenIndef
                     <> Prelude.foldr (\x r -> encode x <> r) encodeBreak xs
 
 -- | Default @'Decoder'@ for list types.
-defaultDecodeList :: Serialise a => Decoder [a]
+defaultDecodeList :: Serialise a => Decoder s [a]
 defaultDecodeList = do
     mn <- decodeListLenOrIndef
     case mn of
@@ -565,13 +565,13 @@ encodeContainerSkel encodeLen size foldr f  c =
 
 decodeContainerSkelWithReplicate
   :: (Serialise a)
-  => Decoder Int
+  => Decoder s Int
      -- ^ How to get the size of the container
-  -> (Int -> Decoder a -> Decoder container)
+  -> (Int -> Decoder s a -> Decoder s container)
      -- ^ replicateM for the container
   -> ([container] -> container)
      -- ^ concat for the container
-  -> Decoder container
+  -> Decoder s container
 decodeContainerSkelWithReplicate decodeLen replicateFun fromList = do
     -- Look at how much data we have at the moment and use it as the limit for
     -- the size of a single call to replicateFun. We don't want to use
@@ -643,7 +643,7 @@ encodeSetSkel size foldr =
 {-# INLINE encodeSetSkel #-}
 
 decodeSetSkel :: Serialise a
-              => ([a] -> s) -> Decoder s
+              => ([a] -> c) -> Decoder s c
 decodeSetSkel fromList = do
   n <- decodeListLen
   fmap fromList (replicateM n decode)
@@ -676,7 +676,7 @@ encodeMapSkel size foldrWithKey =
 
 decodeMapSkel :: (Serialise k, Serialise v)
               => ([(k,v)] -> m)
-              -> Decoder m
+              -> Decoder s m
 decodeMapSkel fromList = do
   n <- decodeMapLen
   let decodeEntry = do
@@ -766,7 +766,7 @@ class GSerialiseEncode f where
     gencode  :: f a -> Encoding
 
 class GSerialiseDecode f where
-    gdecode  :: Decoder (f a)
+    gdecode  :: Decoder s (f a)
 
 -- Data types without constructors are still serialised as null value
 instance GSerialiseEncode V1 where
@@ -860,7 +860,7 @@ class GSerialiseProd f where
     -- | Encode fields sequentially without writing header
     encodeSeq :: f a -> Encoding
     -- | Decode fields sequentially without reading header
-    gdecodeSeq :: Decoder (f a)
+    gdecodeSeq :: Decoder s (f a)
 
 instance (GSerialiseProd f, GSerialiseProd g) => GSerialiseProd (f :*: g) where
     nFields _ = nFields (Proxy :: Proxy f) + nFields (Proxy :: Proxy g)
@@ -899,11 +899,11 @@ class GSerialiseSum f where
     encodeSum   :: f a  -> Encoding
 
     -- | Decode field
-    decodeSum     :: Word -> Decoder (f a)
+    decodeSum     :: Word -> Decoder s (f a)
     -- | Number of constructors
     nConstructors :: Proxy f -> Word
     -- | Number of fields for given constructor number
-    fieldsForCon  :: Proxy f -> Word -> Decoder Word
+    fieldsForCon  :: Proxy f -> Word -> Decoder s Word
 
 
 instance (GSerialiseSum f, GSerialiseSum g) => GSerialiseSum (f :+: g) where

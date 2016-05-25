@@ -94,7 +94,7 @@ prop_encodeFloatToDouble x = Right dbl == fromFlatTerm dec ft
   where
     dbl = float2Double x
 
-    dec = decode :: Decoder Double
+    dec = decode :: Decoder s Double
     ft  = toFlatTerm (encode x)
 
 --------------------------------------------------------------------------------

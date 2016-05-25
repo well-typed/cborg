@@ -2,6 +2,7 @@
 {-# LANGUAGE MagicHash    #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RankNTypes   #-}
+{-# LANGUAGE ExistentialQuantification #-}
 
 -- |
 -- Module      : Data.Binary.Serialise.CBOR.Decoding
@@ -20,52 +21,53 @@ module Data.Binary.Serialise.CBOR.Decoding
   ( -- * Decode primitive operations
     Decoder
   , DecodeAction(..)
+  , liftST
   , getDecodeAction
 
   -- ** Read input tokens
-  , decodeWord          -- :: Decoder Word
-  , decodeWord8         -- :: Decoder Word8
-  , decodeWord16        -- :: Decoder Word16
-  , decodeWord32        -- :: Decoder Word32
-  , decodeWord64        -- :: Decoder Word64
-  , decodeNegWord       -- :: Decoder Word
-  , decodeNegWord64     -- :: Decoder Word64
-  , decodeInt           -- :: Decoder Int 
-  , decodeInt8          -- :: Decoder Int8
-  , decodeInt16         -- :: Decoder Int16
-  , decodeInt32         -- :: Decoder Int32
-  , decodeInt64         -- :: Decoder Int64
-  , decodeInteger       -- :: Decoder Integer
-  , decodeFloat         -- :: Decoder Float
-  , decodeDouble        -- :: Decoder Double
-  , decodeBytes         -- :: Decoder ByteString
-  , decodeBytesIndef    -- :: Decoder ()
-  , decodeString        -- :: Decoder Text
-  , decodeStringIndef   -- :: Decoder ()
-  , decodeListLen       -- :: Decoder Int
-  , decodeListLenIndef  -- :: Decoder ()
-  , decodeMapLen        -- :: Decoder Int
-  , decodeMapLenIndef   -- :: Decoder ()
-  , decodeTag           -- :: Decoder Word
-  , decodeTag64         -- :: Decoder Word64
-  , decodeBool          -- :: Decoder Bool
-  , decodeNull          -- :: Decoder ()
-  , decodeSimple        -- :: Decoder Word8
+  , decodeWord          -- :: Decoder s Word
+  , decodeWord8         -- :: Decoder s Word8
+  , decodeWord16        -- :: Decoder s Word16
+  , decodeWord32        -- :: Decoder s Word32
+  , decodeWord64        -- :: Decoder s Word64
+  , decodeNegWord       -- :: Decoder s Word
+  , decodeNegWord64     -- :: Decoder s Word64
+  , decodeInt           -- :: Decoder s Int 
+  , decodeInt8          -- :: Decoder s Int8
+  , decodeInt16         -- :: Decoder s Int16
+  , decodeInt32         -- :: Decoder s Int32
+  , decodeInt64         -- :: Decoder s Int64
+  , decodeInteger       -- :: Decoder s Integer
+  , decodeFloat         -- :: Decoder s Float
+  , decodeDouble        -- :: Decoder s Double
+  , decodeBytes         -- :: Decoder s ByteString
+  , decodeBytesIndef    -- :: Decoder s ()
+  , decodeString        -- :: Decoder s Text
+  , decodeStringIndef   -- :: Decoder s ()
+  , decodeListLen       -- :: Decoder s Int
+  , decodeListLenIndef  -- :: Decoder s ()
+  , decodeMapLen        -- :: Decoder s Int
+  , decodeMapLenIndef   -- :: Decoder s ()
+  , decodeTag           -- :: Decoder s Word
+  , decodeTag64         -- :: Decoder s Word64
+  , decodeBool          -- :: Decoder s Bool
+  , decodeNull          -- :: Decoder s ()
+  , decodeSimple        -- :: Decoder s Word8
 
   -- ** Specialised Read input token operations
-  , decodeWordOf        -- :: Word -> Decoder ()
-  , decodeListLenOf     -- :: Int -> Decoder ()
+  , decodeWordOf        -- :: Word -> Decoder s ()
+  , decodeListLenOf     -- :: Int  -> Decoder s ()
 
   -- ** Branching operations
 --, decodeBytesOrIndef
 --, decodeStringOrIndef
-  , decodeListLenOrIndef -- :: Decoder (Maybe Int)
-  , decodeMapLenOrIndef  -- :: Decoder (Maybe Int)
-  , decodeBreakOr        -- :: Decoder Bool
+  , decodeListLenOrIndef -- :: Decoder s (Maybe Int)
+  , decodeMapLenOrIndef  -- :: Decoder s (Maybe Int)
+  , decodeBreakOr        -- :: Decoder s Bool
 
   -- ** Inspecting the token type
-  , peekTokenType        -- :: Decoder TokenType
-  , peekLength           -- :: Decoder Int
+  , peekTokenType        -- :: Decoder s TokenType
+  , peekLength           -- :: Decoder s Int
   , TokenType(..)
 
   -- ** Special operations
@@ -85,6 +87,7 @@ import           GHC.Int
 import           Data.Text (Text)
 import           Data.ByteString (ByteString)
 import           Control.Applicative
+import           Control.Monad.ST
 
 import           Prelude hiding (decodeFloat)
 
@@ -93,56 +96,56 @@ import           Prelude hiding (decodeFloat)
 -- module. As @'Decoder'@ has a @'Monad'@ instance, you can easily
 -- write @'Decoder'@s monadically for building your deserialisation
 -- logic.
-data Decoder a = Decoder {
-       runDecoder :: forall r. (a -> DecodeAction r) -> DecodeAction r
+data Decoder s a = Decoder {
+       runDecoder :: forall r. (a -> ST s (DecodeAction s r)) -> ST s (DecodeAction s r)
      }
 
 -- | An action, representing a step for a decoder to taken and a
 -- continuation to invoke with the expected value.
-data DecodeAction a
-    = ConsumeWord    (Word# -> DecodeAction a)
-    | ConsumeWord8   (Word# -> DecodeAction a)
-    | ConsumeWord16  (Word# -> DecodeAction a)
-    | ConsumeWord32  (Word# -> DecodeAction a)
-    | ConsumeNegWord (Word# -> DecodeAction a)
-    | ConsumeInt     (Int#  -> DecodeAction a)
-    | ConsumeInt8    (Int#  -> DecodeAction a)
-    | ConsumeInt16   (Int#  -> DecodeAction a)
-    | ConsumeInt32   (Int#  -> DecodeAction a)
-    | ConsumeListLen (Int#  -> DecodeAction a)
-    | ConsumeMapLen  (Int#  -> DecodeAction a)
-    | ConsumeTag     (Word# -> DecodeAction a)
+data DecodeAction s a
+    = ConsumeWord    (Word# -> ST s (DecodeAction s a))
+    | ConsumeWord8   (Word# -> ST s (DecodeAction s a))
+    | ConsumeWord16  (Word# -> ST s (DecodeAction s a))
+    | ConsumeWord32  (Word# -> ST s (DecodeAction s a))
+    | ConsumeNegWord (Word# -> ST s (DecodeAction s a))
+    | ConsumeInt     (Int#  -> ST s (DecodeAction s a))
+    | ConsumeInt8    (Int#  -> ST s (DecodeAction s a))
+    | ConsumeInt16   (Int#  -> ST s (DecodeAction s a))
+    | ConsumeInt32   (Int#  -> ST s (DecodeAction s a))
+    | ConsumeListLen (Int#  -> ST s (DecodeAction s a))
+    | ConsumeMapLen  (Int#  -> ST s (DecodeAction s a))
+    | ConsumeTag     (Word# -> ST s (DecodeAction s a))
 
 -- 64bit variants for 32bit machines
 #if defined(ARCH_32bit)
-    | ConsumeWord64    (Word64# -> DecodeAction a)
-    | ConsumeNegWord64 (Word64# -> DecodeAction a)
-    | ConsumeInt64     (Int64#  -> DecodeAction a)
-    | ConsumeListLen64 (Int64#  -> DecodeAction a)
-    | ConsumeMapLen64  (Int64#  -> DecodeAction a)
-    | ConsumeTag64     (Word64# -> DecodeAction a)
+    | ConsumeWord64    (Word64# -> ST s (DecodeAction s a))
+    | ConsumeNegWord64 (Word64# -> ST s (DecodeAction s a))
+    | ConsumeInt64     (Int64#  -> ST s (DecodeAction s a))
+    | ConsumeListLen64 (Int64#  -> ST s (DecodeAction s a))
+    | ConsumeMapLen64  (Int64#  -> ST s (DecodeAction s a))
+    | ConsumeTag64     (Word64# -> ST s (DecodeAction s a))
 #endif
 
-    | ConsumeInteger (Integer    -> DecodeAction a)
-    | ConsumeFloat   (Float#     -> DecodeAction a)
-    | ConsumeDouble  (Double#    -> DecodeAction a)
-    | ConsumeBytes   (ByteString -> DecodeAction a)
-    | ConsumeString  (Text       -> DecodeAction a)
-    | ConsumeBool    (Bool       -> DecodeAction a)
-    | ConsumeSimple  (Word#      -> DecodeAction a)
+    | ConsumeInteger (Integer    -> ST s (DecodeAction s a))
+    | ConsumeFloat   (Float#     -> ST s (DecodeAction s a))
+    | ConsumeDouble  (Double#    -> ST s (DecodeAction s a))
+    | ConsumeBytes   (ByteString -> ST s (DecodeAction s a))
+    | ConsumeString  (Text       -> ST s (DecodeAction s a))
+    | ConsumeBool    (Bool       -> ST s (DecodeAction s a))
+    | ConsumeSimple  (Word#      -> ST s (DecodeAction s a))
 
-    | ConsumeBytesIndef   (DecodeAction a)
-    | ConsumeStringIndef  (DecodeAction a)
-    | ConsumeListLenIndef (DecodeAction a)
-    | ConsumeMapLenIndef  (DecodeAction a)
-    | ConsumeNull         (DecodeAction a)
+    | ConsumeBytesIndef   (ST s (DecodeAction s a))
+    | ConsumeStringIndef  (ST s (DecodeAction s a))
+    | ConsumeListLenIndef (ST s (DecodeAction s a))
+    | ConsumeMapLenIndef  (ST s (DecodeAction s a))
+    | ConsumeNull         (ST s (DecodeAction s a))
 
-    | ConsumeListLenOrIndef (Int# -> DecodeAction a)
-    | ConsumeMapLenOrIndef  (Int# -> DecodeAction a)
-    | ConsumeBreakOr        (Bool -> DecodeAction a)
+    | ConsumeListLenOrIndef (Int# -> ST s (DecodeAction s a))
+    | ConsumeMapLenOrIndef  (Int# -> ST s (DecodeAction s a))
+    | ConsumeBreakOr        (Bool -> ST s (DecodeAction s a))
 
-    | PeekTokenType  (TokenType -> DecodeAction a)
-    | PeekLength     (Int -> DecodeAction a)
+    | PeekTokenType  (TokenType -> ST s (DecodeAction s a))
+    | PeekLength     (Int -> ST s (DecodeAction s a))  --TODO Int#
 
     | Fail String
     | Done a
@@ -178,11 +181,11 @@ data TokenType
   deriving (Eq, Ord, Enum, Bounded, Show)
 
 
-instance Functor Decoder where
+instance Functor (Decoder s) where
     {-# INLINE fmap #-}
     fmap f = \d -> Decoder $ \k -> runDecoder d (k . f)
 
-instance Applicative Decoder where
+instance Applicative (Decoder s) where
     {-# INLINE pure #-}
     pure = \x -> Decoder $ \k -> k x
 
@@ -190,7 +193,7 @@ instance Applicative Decoder where
     (<*>) = \df dx -> Decoder $ \k ->
                         runDecoder df (\f -> runDecoder dx (\x -> k (f x)))
 
-instance Monad Decoder where
+instance Monad (Decoder s) where
     return = pure
 
     {-# INLINE (>>=) #-}
@@ -199,11 +202,17 @@ instance Monad Decoder where
     {-# INLINE (>>) #-}
     (>>) = \dm dn -> Decoder $ \k -> runDecoder dm (\_ -> runDecoder dn k)
 
-    fail msg = Decoder $ \_ -> Fail msg
+    fail msg = Decoder $ \_ -> return (Fail msg)
+
+-- | Run an 'ST' action within a 'Decoder' context.
+--
+liftST :: ST s a -> Decoder s a
+liftST action = Decoder (\k -> action >>= k)
+
 
 -- | Given a @'Decoder'@, give us the @'DecodeAction'@ 
-getDecodeAction :: Decoder a -> DecodeAction a
-getDecodeAction (Decoder k) = k (\x -> Done x)
+getDecodeAction :: Decoder s a -> ST s (DecodeAction s a)
+getDecodeAction (Decoder k) = k (\x -> return (Done x))
 
 
 ---------------------------------------
@@ -211,168 +220,168 @@ getDecodeAction (Decoder k) = k (\x -> Done x)
 --
 
 -- | Decode a @'Word'@.
-decodeWord :: Decoder Word
-decodeWord = Decoder (\k -> ConsumeWord (\w# -> k (W# w#)))
+decodeWord :: Decoder s Word
+decodeWord = Decoder (\k -> return (ConsumeWord (\w# -> k (W# w#))))
 {-# INLINE decodeWord #-}
 
 -- | Decode a @'Word8'@.
-decodeWord8 :: Decoder Word8
-decodeWord8 = Decoder (\k -> ConsumeWord8 (\w# -> k (W8# w#)))
+decodeWord8 :: Decoder s Word8
+decodeWord8 = Decoder (\k -> return (ConsumeWord8 (\w# -> k (W8# w#))))
 {-# INLINE decodeWord8 #-}
 
 -- | Decode a @'Word16'@.
-decodeWord16 :: Decoder Word16
-decodeWord16 = Decoder (\k -> ConsumeWord16 (\w# -> k (W16# w#)))
+decodeWord16 :: Decoder s Word16
+decodeWord16 = Decoder (\k -> return (ConsumeWord16 (\w# -> k (W16# w#))))
 {-# INLINE decodeWord16 #-}
 
 -- | Decode a @'Word32'@.
-decodeWord32 :: Decoder Word32
-decodeWord32 = Decoder (\k -> ConsumeWord32 (\w# -> k (W32# w#)))
+decodeWord32 :: Decoder s Word32
+decodeWord32 = Decoder (\k -> return (ConsumeWord32 (\w# -> k (W32# w#))))
 {-# INLINE decodeWord32 #-}
 
 -- | Decode a @'Word64'@.
-decodeWord64 :: Decoder Word64
+decodeWord64 :: Decoder s Word64
 {-# INLINE decodeWord64 #-}
 decodeWord64 =
 #if defined(ARCH_64bit)
-  Decoder (\k -> ConsumeWord (\w# -> k (W64# w#)))
+  Decoder (\k -> return (ConsumeWord (\w# -> k (W64# w#))))
 #else
-  Decoder (\k -> ConsumeWord64 (\w64# -> k (W64# w64#)))
+  Decoder (\k -> return (ConsumeWord64 (\w64# -> k (W64# w64#))))
 #endif
 
 -- | Decode a negative @'Word'@.
-decodeNegWord :: Decoder Word
-decodeNegWord = Decoder (\k -> ConsumeNegWord (\w# -> k (W# w#)))
+decodeNegWord :: Decoder s Word
+decodeNegWord = Decoder (\k -> return (ConsumeNegWord (\w# -> k (W# w#))))
 {-# INLINE decodeNegWord #-}
 
 -- | Decode a negative @'Word64'@.
-decodeNegWord64 :: Decoder Word64
+decodeNegWord64 :: Decoder s Word64
 {-# INLINE decodeNegWord64 #-}
 decodeNegWord64 =
 #if defined(ARCH_64bit)
-  Decoder (\k -> ConsumeNegWord (\w# -> k (W64# w#)))
+  Decoder (\k -> return (ConsumeNegWord (\w# -> k (W64# w#))))
 #else
-  Decoder (\k -> ConsumeNegWord64 (\w64# -> k (W64# w64#)))
+  Decoder (\k -> return (ConsumeNegWord64 (\w64# -> k (W64# w64#))))
 #endif
 
 -- | Decode an @'Int'@.
-decodeInt :: Decoder Int
-decodeInt = Decoder (\k -> ConsumeInt (\n# -> k (I# n#)))
+decodeInt :: Decoder s Int
+decodeInt = Decoder (\k -> return (ConsumeInt (\n# -> k (I# n#))))
 {-# INLINE decodeInt #-}
 
 -- | Decode an @'Int8'@.
-decodeInt8 :: Decoder Int8
-decodeInt8 = Decoder (\k -> ConsumeInt8 (\w# -> k (I8# w#)))
+decodeInt8 :: Decoder s Int8
+decodeInt8 = Decoder (\k -> return (ConsumeInt8 (\w# -> k (I8# w#))))
 {-# INLINE decodeInt8 #-}
 
 -- | Decode an @'Int16'@.
-decodeInt16 :: Decoder Int16
-decodeInt16 = Decoder (\k -> ConsumeInt16 (\w# -> k (I16# w#)))
+decodeInt16 :: Decoder s Int16
+decodeInt16 = Decoder (\k -> return (ConsumeInt16 (\w# -> k (I16# w#))))
 {-# INLINE decodeInt16 #-}
 
 -- | Decode an @'Int32'@.
-decodeInt32 :: Decoder Int32
-decodeInt32 = Decoder (\k -> ConsumeInt32 (\w# -> k (I32# w#)))
+decodeInt32 :: Decoder s Int32
+decodeInt32 = Decoder (\k -> return (ConsumeInt32 (\w# -> k (I32# w#))))
 {-# INLINE decodeInt32 #-}
 
 -- | Decode an @'Int64'@.
-decodeInt64 :: Decoder Int64
+decodeInt64 :: Decoder s Int64
 {-# INLINE decodeInt64 #-}
 decodeInt64 =
 #if defined(ARCH_64bit)
-  Decoder (\k -> ConsumeInt (\n# -> k (I64# n#)))
+  Decoder (\k -> return (ConsumeInt (\n# -> k (I64# n#))))
 #else
-  Decoder (\k -> ConsumeInt64 (\n64# -> k (I64# n64#)))
+  Decoder (\k -> return (ConsumeInt64 (\n64# -> k (I64# n64#))))
 #endif
 
 -- | Decode an @'Integer'@.
-decodeInteger :: Decoder Integer
-decodeInteger = Decoder (\k -> ConsumeInteger (\n -> k n))
+decodeInteger :: Decoder s Integer
+decodeInteger = Decoder (\k -> return (ConsumeInteger (\n -> k n)))
 {-# INLINE decodeInteger #-}
 
 -- | Decode a @'Float'@.
-decodeFloat :: Decoder Float
-decodeFloat = Decoder (\k -> ConsumeFloat (\f# -> k (F# f#)))
+decodeFloat :: Decoder s Float
+decodeFloat = Decoder (\k -> return (ConsumeFloat (\f# -> k (F# f#))))
 {-# INLINE decodeFloat #-}
 
 -- | Deocde a @'Double'@.
-decodeDouble :: Decoder Double
-decodeDouble = Decoder (\k -> ConsumeDouble (\f# -> k (D# f#)))
+decodeDouble :: Decoder s Double
+decodeDouble = Decoder (\k -> return (ConsumeDouble (\f# -> k (D# f#))))
 {-# INLINE decodeDouble #-}
 
 -- | Decode a string of bytes as a @'ByteString'@.
-decodeBytes :: Decoder ByteString
-decodeBytes = Decoder (\k -> ConsumeBytes (\bs -> k bs))
+decodeBytes :: Decoder s ByteString
+decodeBytes = Decoder (\k -> return (ConsumeBytes (\bs -> k bs)))
 {-# INLINE decodeBytes #-}
 
 -- | Decode a token marking the beginning of an indefinite length
 -- set of bytes.
-decodeBytesIndef :: Decoder ()
-decodeBytesIndef = Decoder (\k -> ConsumeBytesIndef (k ()))
+decodeBytesIndef :: Decoder s ()
+decodeBytesIndef = Decoder (\k -> return (ConsumeBytesIndef (k ())))
 {-# INLINE decodeBytesIndef #-}
 
 -- | Decode a textual string as a piece of @'Text'@.
-decodeString :: Decoder Text
-decodeString = Decoder (\k -> ConsumeString (\str -> k str))
+decodeString :: Decoder s Text
+decodeString = Decoder (\k -> return (ConsumeString (\str -> k str)))
 {-# INLINE decodeString #-}
 
 -- | Decode a token marking the beginning of an indefinite length
 -- string.
-decodeStringIndef :: Decoder ()
-decodeStringIndef = Decoder (\k -> ConsumeStringIndef (k ()))
+decodeStringIndef :: Decoder s ()
+decodeStringIndef = Decoder (\k -> return (ConsumeStringIndef (k ())))
 {-# INLINE decodeStringIndef #-}
 
 -- | Decode the length of a list.
-decodeListLen :: Decoder Int
-decodeListLen = Decoder (\k -> ConsumeListLen (\n# -> k (I# n#)))
+decodeListLen :: Decoder s Int
+decodeListLen = Decoder (\k -> return (ConsumeListLen (\n# -> k (I# n#))))
 {-# INLINE decodeListLen #-}
 
 -- | Decode a token marking the beginning of a list of indefinite
 -- length.
-decodeListLenIndef :: Decoder ()
-decodeListLenIndef = Decoder (\k -> ConsumeListLenIndef (k ()))
+decodeListLenIndef :: Decoder s ()
+decodeListLenIndef = Decoder (\k -> return (ConsumeListLenIndef (k ())))
 {-# INLINE decodeListLenIndef #-}
 
 -- | Decode the length of a map.
-decodeMapLen :: Decoder Int
-decodeMapLen = Decoder (\k -> ConsumeMapLen (\n# -> k (I# n#)))
+decodeMapLen :: Decoder s Int
+decodeMapLen = Decoder (\k -> return (ConsumeMapLen (\n# -> k (I# n#))))
 {-# INLINE decodeMapLen #-}
 
 -- | Decode a token marking the beginning of a map of indefinite
 -- length.
-decodeMapLenIndef :: Decoder ()
-decodeMapLenIndef = Decoder (\k -> ConsumeMapLenIndef (k ()))
+decodeMapLenIndef :: Decoder s ()
+decodeMapLenIndef = Decoder (\k -> return (ConsumeMapLenIndef (k ())))
 {-# INLINE decodeMapLenIndef #-}
 
 -- | Decode an arbitrary tag and return it as a @'Word'@.
-decodeTag :: Decoder Word
-decodeTag = Decoder (\k -> ConsumeTag (\w# -> k (W# w#)))
+decodeTag :: Decoder s Word
+decodeTag = Decoder (\k -> return (ConsumeTag (\w# -> k (W# w#))))
 {-# INLINE decodeTag #-}
 
 -- | Decode an arbitrary 64-bit tag and return it as a @'Word64'@.
-decodeTag64 :: Decoder Word64
+decodeTag64 :: Decoder s Word64
 {-# INLINE decodeTag64 #-}
 decodeTag64 =
 #if defined(ARCH_64bit)
-  Decoder (\k -> ConsumeTag (\w# -> k (W64# w#)))
+  Decoder (\k -> return (ConsumeTag (\w# -> k (W64# w#))))
 #else
-  Decoder (\k -> ConsumeTag64 (\w64# -> k (W64# w64#)))
+  Decoder (\k -> return (ConsumeTag64 (\w64# -> k (W64# w64#))))
 #endif
 
 -- | Decode a bool.
-decodeBool :: Decoder Bool
-decodeBool = Decoder (\k -> ConsumeBool (\b -> k b))
+decodeBool :: Decoder s Bool
+decodeBool = Decoder (\k -> return (ConsumeBool (\b -> k b)))
 {-# INLINE decodeBool #-}
 
 -- | Decode a nullary value, and return a unit value.
-decodeNull :: Decoder ()
-decodeNull = Decoder (\k -> ConsumeNull (k ()))
+decodeNull :: Decoder s ()
+decodeNull = Decoder (\k -> return (ConsumeNull (k ())))
 {-# INLINE decodeNull #-}
 
 -- | Decode a 'simple' CBOR value and give back a @'Word8'@. You
 -- probably don't ever need to use this.
-decodeSimple :: Decoder Word8
-decodeSimple = Decoder (\k -> ConsumeSimple (\w# -> k (W8# w#)))
+decodeSimple :: Decoder s Word8
+decodeSimple = Decoder (\k -> return (ConsumeSimple (\w# -> k (W8# w#))))
 {-# INLINE decodeSimple #-}
 
 
@@ -383,7 +392,7 @@ decodeSimple = Decoder (\k -> ConsumeSimple (\w# -> k (W8# w#)))
 -- | Attempt to decode a word with @'decodeWord'@, and ensure the word
 -- is exactly as expected, or fail.
 decodeWordOf :: Word -- ^ Expected value of the decoded word
-             -> Decoder ()
+             -> Decoder s ()
 decodeWordOf n = do
   n' <- decodeWord
   if n == n' then return ()
@@ -392,7 +401,7 @@ decodeWordOf n = do
 
 -- | Attempt to decode a list length using @'decodeListLen'@, and
 -- ensure it is exactly the specified length, or fail.
-decodeListLenOf :: Int -> Decoder ()
+decodeListLenOf :: Int -> Decoder s ()
 decodeListLenOf len = do
   len' <- decodeListLen
   if len == len' then return ()
@@ -407,31 +416,31 @@ decodeListLenOf len = do
 -- or an indefinite list. If @'Nothing'@ is returned, then an
 -- indefinite length list occurs afterwords. If @'Just' x@ is
 -- returned, then a list of length @x@ is encoded.
-decodeListLenOrIndef :: Decoder (Maybe Int)
+decodeListLenOrIndef :: Decoder s (Maybe Int)
 decodeListLenOrIndef =
-    Decoder (\k -> ConsumeListLenOrIndef (\n# ->
+    Decoder (\k -> return (ConsumeListLenOrIndef (\n# ->
                      if I# n# >= 0
                        then k (Just (I# n#))
-                       else k Nothing))
+                       else k Nothing)))
 {-# INLINE decodeListLenOrIndef #-}
 
 -- | Attempt to decode a token for the length of a finite, known map,
 -- or an indefinite map. If @'Nothing'@ is returned, then an
 -- indefinite length map occurs afterwords. If @'Just' x@ is returned,
 -- then a map of length @x@ is encoded.
-decodeMapLenOrIndef :: Decoder (Maybe Int)
+decodeMapLenOrIndef :: Decoder s (Maybe Int)
 decodeMapLenOrIndef =
-    Decoder (\k -> ConsumeMapLenOrIndef (\n# ->
+    Decoder (\k -> return (ConsumeMapLenOrIndef (\n# ->
                      if I# n# >= 0
                        then k (Just (I# n#))
-                       else k Nothing))
+                       else k Nothing)))
 {-# INLINE decodeMapLenOrIndef #-}
 
 -- | Attempt to decode a @Break@ token, and if that was
 -- successful, return @'True'@. If the token was of any
 -- other type, return @'False'@.
-decodeBreakOr :: Decoder Bool
-decodeBreakOr = Decoder (\k -> ConsumeBreakOr (\b -> k b))
+decodeBreakOr :: Decoder s Bool
+decodeBreakOr = Decoder (\k -> return (ConsumeBreakOr (\b -> k b)))
 {-# INLINE decodeBreakOr #-}
 
 --------------------------------------------------------------
@@ -439,14 +448,14 @@ decodeBreakOr = Decoder (\k -> ConsumeBreakOr (\b -> k b))
 
 -- | Peek at the current token we're about to decode, and return a
 -- @'TokenType'@ specifying what it is.
-peekTokenType :: Decoder TokenType
-peekTokenType = Decoder (\k -> PeekTokenType (\tk -> k tk))
+peekTokenType :: Decoder s TokenType
+peekTokenType = Decoder (\k -> return (PeekTokenType (\tk -> k tk)))
 {-# INLINE peekTokenType #-}
 
 -- | Peek and return the length of the current buffer that we're
 -- running our decoder on.
-peekLength :: Decoder Int
-peekLength = Decoder (\k -> PeekLength (\len -> k len))
+peekLength :: Decoder s Int
+peekLength = Decoder (\k -> return (PeekLength (\len -> k len)))
 {-# INLINE peekLength #-}
 
 {-
@@ -468,8 +477,8 @@ ignoreTrailingTerms = IgnoreTerms done
 decodeSequenceLenIndef :: (r -> a -> r)
                        -> r
                        -> (r -> r')
-                       -> Decoder a
-                       -> Decoder r'
+                       -> Decoder s a
+                       -> Decoder s r'
 decodeSequenceLenIndef f z g get =
     go z
   where
@@ -484,8 +493,8 @@ decodeSequenceLenN :: (r -> a -> r)
                    -> r
                    -> (r -> r')
                    -> Int
-                   -> Decoder a
-                   -> Decoder r'
+                   -> Decoder s a
+                   -> Decoder s r'
 decodeSequenceLenN f z g c get =
     go z c
   where
@@ -493,3 +502,77 @@ decodeSequenceLenN f z g c get =
     go !acc n = do !x <- get; go (f acc x) (n-1)
 {-# INLINE decodeSequenceLenN #-}
 
+
+{-
+data Array a = Array (Array# a)
+data ArrayTok a = ArrayTok (Proxy# a)
+
+allocateArray :: Int -> Decoder (ArrayTok a)
+allocateArray (I# len) =
+    Decoder (\k -> AllocateArray len (\p# -> k (ArrayTok p#)))
+
+appendToArray :: ArrayTok a -> a -> Decoder ()
+appendToArray (ArrayTok p#) x =
+    Decoder (\k -> AppendToArray p# x (k ()))
+
+freezeArray :: ArrayTok a -> Decoder (Array a)
+freezeArray (ArrayTok p#) =
+    Decoder (\k -> FreezeArray p# (\arr# -> k (Array arr#)))
+
+
+decodeArrayLenN :: Int
+                -> Decoder a
+                -> Decoder (Array a)
+decodeArrayLenN c get = do
+    tok <- allocateArray c
+    go tok c
+    freezeArray tok
+  where
+    go _   0 = return ()
+    go tok n = do !x <- get
+                  appendToArray tok x
+                  go tok (n-1)
+
+data Dec s a = Dec {
+       runDec :: forall r. (a -> DecAct s r) -> DecAct s r
+     }
+
+instance Monad (Dec s) where
+--    return = \x -> Dec $ \k -> k x
+--    (>>=) = \dm f -> Dec $ \k -> runDec dm (\m -> runDec (f m) k)
+
+data DecAct s a =
+      AllocateCounter  Int (STRef s Int -> ST s (DecAct s a))
+    | IncrementCounter (STRef s Int) Int  (ST s (DecAct s a))
+    | ReadCounter      (STRef s Int) (Int -> ST s (DecAct s a))
+    | Finished a
+
+
+--liftST :: ST s a -> Dec s a
+--liftST action = Dec (\k -> action >>= k)
+
+allocateCounter :: Int -> Dec s (STRef s Int)
+allocateCounter c = Dec (\k -> AllocateCounter c (\ref -> return (k ref)))
+
+incrementCounter :: STRef s Int -> Int -> Dec s ()
+incrementCounter ref c = Dec (\k -> return (IncrementCounter ref c (k ())))
+
+readCounter :: STRef s Int -> Dec s Int
+readCounter ref = Dec (\k -> return (ReadCounter ref (\c -> k c)))
+
+example :: Dec s Int
+example = do
+  ref <- allocateCounter 3
+  incrementCounter ref 2
+  incrementCounter ref 5
+  readCounter ref
+
+eval :: forall s a. DecAct s a -> ST s a
+eval (Finished x) = return x
+eval (AllocateCounter c k) = do
+  ref <- newSTRef c
+  eval =<< k ref
+eval (IncrementCounter ref c k) = do
+  modifySTRef ref (+c)
+  eval =<< k
+-}

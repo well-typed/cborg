@@ -125,7 +125,7 @@ serialise = toLazyByteString . encodeTerm
 deserialise :: LBS.ByteString -> Term
 deserialise encoded =
     case deserialiseFromBytes decodeTerm encoded of
-      Left msg   -> error $ "deserialise: " ++ msg
+      Left msg   -> error $ "deserialise: " ++ show msg
       Right term -> term
 
 ------------------------------------------------------------------------------
