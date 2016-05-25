@@ -97,7 +97,7 @@ prop_encodeFloatToDouble x = Right dbl == fromFlatTerm dec ft
   where
     dbl = float2Double x
 
-    dec = decode :: Decoder Double
+    dec = decode :: Decoder s Double
     ft  = toFlatTerm (encode x)
 
 --------------------------------------------------------------------------------
@@ -109,7 +109,7 @@ prop_decodeTag1UTCTimeInteger = testCase "Decode tag 1 UTCTime (Integer)" $
   where
     toks e = TkTag 1 $ TkInteger 1363896240 $ e
     mar21 = UTCTime (fromGregorian 2013 3 21) (timeOfDayToTime (TimeOfDay 20 4 0))
-    dec = decode :: Decoder UTCTime
+    dec = decode :: Decoder s UTCTime
 
 prop_decodeTag1UTCTimeDouble :: TestTree
 prop_decodeTag1UTCTimeDouble = testCase "Decode tag 1 UTCTime (Double)" $
@@ -117,7 +117,7 @@ prop_decodeTag1UTCTimeDouble = testCase "Decode tag 1 UTCTime (Double)" $
   where
     toks e = TkTag 1 $ TkFloat64 1363896240.5 $ e
     mar21 = UTCTime (fromGregorian 2013 3 21) (timeOfDayToTime (TimeOfDay 20 4 0.5))
-    dec = decode :: Decoder UTCTime
+    dec = decode :: Decoder s UTCTime
 
 --------------------------------------------------------------------------------
 -- Extra orphan instances

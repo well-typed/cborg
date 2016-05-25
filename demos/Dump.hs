@@ -25,7 +25,7 @@ dumpCborFile file = do
 
   bs <- LB.readFile file
   case (deserialiseFromBytes decodeTerm bs) of
-    Left err -> fail $ "deserialization error: " ++ err
+    Left err -> fail $ "deserialization error: " ++ show err
     Right v  -> print v
 
 dumpAsHex :: FilePath -> IO ()
