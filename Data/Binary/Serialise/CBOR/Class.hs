@@ -48,6 +48,10 @@ import           Data.Ord
 import           Data.Functor.Identity
 #endif
 
+#if MIN_VERSION_base(4,9,0)
+import qualified Data.Semigroup                      as Semigroup
+#endif
+
 import qualified Data.Foldable                       as Foldable
 import qualified Data.ByteString                     as BS
 import qualified Data.Text                           as Text
@@ -393,6 +397,34 @@ instance Serialise ExitCode where
                 !i <- decode
                 return $ ExitFailure i
         _ -> fail "Bad list length"
+
+-- Semigroup instances for GHC 8.0+
+#if MIN_VERSION_base(4,9,0)
+-- | @since 0.2.0.0
+instance Serialise a => Serialise (Semigroup.Min a) where
+  encode = encode . Semigroup.getMin
+  decode = fmap Semigroup.Min decode
+
+-- | @since 0.2.0.0
+instance Serialise a => Serialise (Semigroup.Max a) where
+  encode = encode . Semigroup.getMax
+  decode = fmap Semigroup.Max decode
+
+-- | @since 0.2.0.0
+instance Serialise a => Serialise (Semigroup.First a) where
+  encode = encode . Semigroup.getFirst
+  decode = fmap Semigroup.First decode
+
+-- | @since 0.2.0.0
+instance Serialise a => Serialise (Semigroup.Last a) where
+  encode = encode . Semigroup.getLast
+  decode = fmap Semigroup.Last decode
+
+-- | @since 0.2.0.0
+instance Serialise a => Serialise (Semigroup.Option a) where
+  encode = encode . Semigroup.getOption
+  decode = fmap Semigroup.Option decode
+#endif
 
 --------------------------------------------------------------------------------
 -- Foreign types
