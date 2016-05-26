@@ -41,9 +41,40 @@ import           Control.Applicative
 
 newtype PP a = PP (Tokens -> Int -> ShowS -> Either String (Tokens,Int,ShowS,a))
 
--- | Pretty prints an Encoding in an annotated, hexadecimal format
+-- | Pretty prints an @'Encoding'@ in an annotated, hexadecimal format
 -- that maps CBOR values to their types. The output format is similar
 -- to the format used on http://cbor.me/.
+--
+-- For example, with the term:
+--
+-- @
+-- 'Prelude.putStrLn' . 'prettyHexEnc' . 'Data.Binary.Serialise.CBOR.encode' $
+--   ( True
+--   , [1,2,3::Int]
+--   , ('Data.Map.fromList' [(\"Hello\",True),(\"World\",False)], "This is a long string which wraps")
+--   )
+-- @
+--
+-- You get:
+--
+-- @
+-- 83      # list(3)
+--    f5   # bool(true)
+--    9f   # list(*)
+--       01        # int(1)
+--       02        # int(2)
+--       03        # int(3)
+--    ff   # break
+--    82   # list(2)
+--       a2        # map(2)
+--          65 48 65 6c 6c 6f      # text(\"Hello\")
+--          f5     # bool(true)
+--          65 57 6f 72 6c 64      # text(\"World\")
+--          f4     # bool(false)
+--       78 21 54 68 69 73 20 69 73 20 61 20 6c 6f 6e 67
+--       20 73 74 72 69 6e 67 20 77 68 69 63 68 20 77 72
+--       61 70 73          # text("This is a long string which wraps")
+-- @
 --
 -- @since 0.2.0.0
 prettyHexEnc :: Encoding -> String
