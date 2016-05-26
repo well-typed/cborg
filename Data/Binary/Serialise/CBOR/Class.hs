@@ -97,42 +97,57 @@ import           Data.Binary.Serialise.CBOR.Encoding
 -- | Types that are instances of the @'Serialise'@ class allow values
 -- to be quickly encoded or decoded directly to a CBOR representation,
 -- for object transmission or storage.
+--
+-- @since 0.2.0.0
 class Serialise a where
     -- | Definition for encoding a given type into a binary
     -- representation, using the @'Encoding'@ @'Monoid'@.
+    --
+    -- @since 0.2.0.0
     encode  :: a -> Encoding
     default encode :: (Generic a, GSerialiseEncode (Rep a)) => a -> Encoding
     encode = gencode . from
 
     -- | Definition of a given @'Decoder'@ for a type.
+    --
+    -- @since 0.2.0.0
     decode  :: Decoder a
     default decode :: (Generic a, GSerialiseDecode (Rep a)) => Decoder a
     decode = to <$> gdecode
 
     -- | Utility to support specialised encoding for some list type -
     -- used for @'Char'@/@'String'@ instances in this package.
+    --
+    -- @since 0.2.0.0
     encodeList :: [a] -> Encoding
     encodeList = defaultEncodeList
 
     -- | Utility to support specialised decoding for some list type -
     -- used for @'Char'@/@'String'@ instances in this package.
+    --
+    -- @since 0.2.0.0
     decodeList :: Decoder [a]
     decodeList = defaultDecodeList
 
 --------------------------------------------------------------------------------
 -- Special list business
 
+-- | @since 0.2.0.0
 instance Serialise a => Serialise [a] where
     encode = encodeList
     decode = decodeList
 
 -- | Default @'Encoding'@ for list types.
+--
+-- @since 0.2.0.0
 defaultEncodeList :: Serialise a => [a] -> Encoding
 defaultEncodeList [] = encodeListLen 0
 defaultEncodeList xs = encodeListLenIndef
                     <> Prelude.foldr (\x r -> encode x <> r) encodeBreak xs
 
 -- | Default @'Decoder'@ for list types.
+--
+-- @since 0.2.0.0
 defaultDecodeList :: Serialise a => Decoder [a]
 defaultDecodeList = do
     mn <- decodeListLenOrIndef
@@ -144,62 +159,77 @@ defaultDecodeList = do
 --------------------------------------------------------------------------------
 -- Primitive and integral instances
 
+-- | @since 0.2.0.0
 instance Serialise () where
     encode = const encodeNull
     decode = decodeNull
 
+-- | @since 0.2.0.0
 instance Serialise Bool where
     encode = encodeBool
     decode = decodeBool
 
+-- | @since 0.2.0.0
 instance Serialise Int where
     encode = encodeInt
     decode = decodeInt
 
+-- | @since 0.2.0.0
 instance Serialise Int8 where
     encode = encodeInt8
     decode = decodeInt8
 
+-- | @since 0.2.0.0
 instance Serialise Int16 where
     encode = encodeInt16
     decode = decodeInt16
 
+-- | @since 0.2.0.0
 instance Serialise Int32 where
     encode = encodeInt32
     decode = decodeInt32
 
+-- | @since 0.2.0.0
 instance Serialise Int64 where
     encode = encodeInt64
     decode = decodeInt64
 
+-- | @since 0.2.0.0
 instance Serialise Word where
     encode = encodeWord
     decode = decodeWord
 
+-- | @since 0.2.0.0
 instance Serialise Word8 where
     encode = encodeWord8
     decode = decodeWord8
 
+-- | @since 0.2.0.0
 instance Serialise Word16 where
     encode = encodeWord16
     decode = decodeWord16
 
+-- | @since 0.2.0.0
 instance Serialise Word32 where
     encode = encodeWord32
     decode = decodeWord32
 
+-- | @since 0.2.0.0
 instance Serialise Word64 where
     encode = encodeWord64
     decode = decodeWord64
 
+-- | @since 0.2.0.0
 instance Serialise Integer where
     encode = encodeInteger
     decode = decodeInteger
 
+-- | @since 0.2.0.0
 instance Serialise Float where
     encode = encodeFloat
     decode = decodeFloat
 
+-- | @since 0.2.0.0
 instance Serialise Double where
     encode = encodeDouble
     decode = decodeDouble
@@ -210,15 +240,19 @@ instance Serialise Double where
 #if MIN_VERSION_base(4,7,0)
 -- | Values are serialised in units of least precision represented as
 --   @Integer@.
+--
+-- @since 0.2.0.0
 instance Serialise (Fixed e) where
     encode (MkFixed i) = encode i
     decode = MkFixed <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise (Proxy a) where
     encode _ = encodeNull
     decode   = Proxy <$ decodeNull
 #endif
 
+-- | @since 0.2.0.0
 instance Serialise Char where
     encode c = encodeString (Text.singleton c)
     decode = do t <- decodeString
@@ -231,22 +265,27 @@ instance Serialise Char where
     decodeList    = do txt <- decodeString
                        return (Text.unpack txt) -- unpack lazily
 
+-- | @since 0.2.0.0
 instance Serialise Text.Text where
     encode = encodeString
     decode = decodeString
 
+-- | @since 0.2.0.0
 instance Serialise BS.ByteString where
     encode = encodeBytes
     decode = decodeBytes
 
+-- | @since 0.2.0.0
 instance Serialise a => Serialise (Const a b) where
     encode (Const a) = encode a
     decode = Const <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise a => Serialise (ZipList a) where
     encode (ZipList xs) = encode xs
     decode = ZipList <$> decode
 
+-- | @since 0.2.0.0
 instance (Serialise a, Integral a) => Serialise (Ratio a) where
     encode a = encodeListLen 2
             <> encode (numerator a)
@@ -256,6 +295,7 @@ instance (Serialise a, Integral a) => Serialise (Ratio a) where
                 !b <- decode
                 return $ a % b
 
+-- | @since 0.2.0.0
 instance Serialise a => Serialise (Complex a) where
     encode (r :+ i) = encodeListLen 2
                    <> encode r
@@ -265,6 +305,7 @@ instance Serialise a => Serialise (Complex a) where
                 !i <- decode
                 return $ r :+ i
 
+-- | @since 0.2.0.0
 instance Serialise Ordering where
     encode a = encodeListLen 1
             <> encodeWord (case a of LT -> 0
@@ -279,48 +320,59 @@ instance Serialise Ordering where
         2 -> return GT
         _ -> fail "unexpected tag"
 
+-- | @since 0.2.0.0
 instance Serialise a => Serialise (Down a) where
     encode (Down a) = encode a
     decode = Down <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise a => Serialise (Dual a) where
     encode (Dual a) = encode a
     decode = Dual <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise All where
     encode (All b) = encode b
     decode = All <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise Any where
     encode (Any b) = encode b
     decode = Any <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise a => Serialise (Sum a) where
     encode (Sum b) = encode b
     decode = Sum <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise a => Serialise (Product a) where
     encode (Product b) = encode b
     decode = Product <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise a => Serialise (First a) where
     encode (First b) = encode b
     decode = First <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise a => Serialise (Last a) where
     encode (Last b) = encode b
     decode = Last <$> decode
 
 #if MIN_VERSION_base(4,8,0)
+-- | @since 0.2.0.0
 instance Serialise (f a) => Serialise (Alt f a) where
     encode (Alt b) = encode b
     decode = Alt <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise a => Serialise (Identity a) where
     encode (Identity b) = encode b
     decode = Identity <$> decode
 #endif
 
+-- | @since 0.2.0.0
 instance Serialise ExitCode where
     encode ExitSuccess     = encodeListLen 1
                           <> encodeWord 0
@@ -345,102 +397,127 @@ instance Serialise ExitCode where
 --------------------------------------------------------------------------------
 -- Foreign types
 
+-- | @since 0.2.0.0
 instance Serialise CChar where
     encode (CChar x) = encode x
     decode = CChar <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CSChar where
     encode (CSChar x) = encode x
     decode = CSChar <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CUChar where
     encode (CUChar x) = encode x
     decode = CUChar <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CShort where
     encode (CShort x) = encode x
     decode = CShort <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CUShort where
     encode (CUShort x) = encode x
     decode = CUShort <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CInt where
     encode (CInt x) = encode x
     decode = CInt <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CUInt where
     encode (CUInt x) = encode x
     decode = CUInt <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CLong where
     encode (CLong x) = encode x
     decode = CLong <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CULong where
     encode (CULong x) = encode x
     decode = CULong <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CPtrdiff where
     encode (CPtrdiff x) = encode x
     decode = CPtrdiff <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CSize where
     encode (CSize x) = encode x
     decode = CSize <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CWchar where
     encode (CWchar x) = encode x
     decode = CWchar <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CSigAtomic where
     encode (CSigAtomic x) = encode x
     decode = CSigAtomic <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CLLong where
     encode (CLLong x) = encode x
     decode = CLLong <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CULLong where
     encode (CULLong x) = encode x
     decode = CULLong <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CIntPtr where
     encode (CIntPtr x) = encode x
     decode = CIntPtr <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CUIntPtr where
     encode (CUIntPtr x) = encode x
     decode = CUIntPtr <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CIntMax where
     encode (CIntMax x) = encode x
     decode = CIntMax <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CUIntMax where
     encode (CUIntMax x) = encode x
     decode = CUIntMax <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CClock where
     encode (CClock x) = encode x
     decode = CClock <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CTime where
     encode (CTime x) = encode x
     decode = CTime <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CUSeconds where
     encode (CUSeconds x) = encode x
     decode = CUSeconds <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CSUSeconds where
     encode (CSUSeconds x) = encode x
     decode = CSUSeconds <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CFloat where
     encode (CFloat x) = encode x
     decode = CFloat <$> decode
 
+-- | @since 0.2.0.0
 instance Serialise CDouble where
     encode (CDouble x) = encode x
     decode = CDouble <$> decode
@@ -448,6 +525,7 @@ instance Serialise CDouble where
 --------------------------------------------------------------------------------
 -- Structural instances
 
+-- | @since 0.2.0.0
 instance (Serialise a, Serialise b) => Serialise (a,b) where
     encode (a,b) = encodeListLen 2
                 <> encode a
@@ -457,6 +535,7 @@ instance (Serialise a, Serialise b) => Serialise (a,b) where
                 !y <- decode
                 return (x, y)
 
+-- | @since 0.2.0.0
 instance (Serialise a, Serialise b, Serialise c) => Serialise (a,b,c) where
     encode (a,b,c) = encodeListLen 3
                   <> encode a
@@ -469,6 +548,7 @@ instance (Serialise a, Serialise b, Serialise c) => Serialise (a,b,c) where
                 !z <- decode
                 return (x, y, z)
 
+-- | @since 0.2.0.0
 instance (Serialise a, Serialise b, Serialise c, Serialise d
          ) => Serialise (a,b,c,d) where
     encode (a,b,c,d) = encodeListLen 4
@@ -484,6 +564,7 @@ instance (Serialise a, Serialise b, Serialise c, Serialise d
                 !d <- decode
                 return (a, b, c, d)
 
+-- | @since 0.2.0.0
 instance (Serialise a, Serialise b, Serialise c, Serialise d, Serialise e
          ) => Serialise (a,b,c,d,e) where
     encode (a,b,c,d,e) = encodeListLen 5
@@ -501,6 +582,7 @@ instance (Serialise a, Serialise b, Serialise c, Serialise d, Serialise e
                 !e <- decode
                 return (a, b, c, d, e)
 
+-- | @since 0.2.0.0
 instance ( Serialise a, Serialise b, Serialise c, Serialise d, Serialise e
          , Serialise f
          ) => Serialise (a,b,c,d,e,f) where
@@ -521,6 +603,7 @@ instance ( Serialise a, Serialise b, Serialise c, Serialise d, Serialise e
                 !f <- decode
                 return (a, b, c, d, e, f)
 
+-- | @since 0.2.0.0
 instance ( Serialise a, Serialise b, Serialise c, Serialise d, Serialise e
          , Serialise f, Serialise g
          ) => Serialise (a,b,c,d,e,f,g) where
@@ -543,6 +626,7 @@ instance ( Serialise a, Serialise b, Serialise c, Serialise d, Serialise e
                 !g <- decode
                 return (a, b, c, d, e, f, g)
 
+-- | @since 0.2.0.0
 instance Serialise a => Serialise (Maybe a) where
     encode Nothing  = encodeListLen 0
     encode (Just x) = encodeListLen 1 <> encode x
@@ -554,6 +638,7 @@ instance Serialise a => Serialise (Maybe a) where
                           return (Just x)
                   _ -> fail "unknown tag"
 
+-- | @since 0.2.0.0
 instance (Serialise a, Serialise b) => Serialise (Either a b) where
     encode (Left  x) = encodeListLen 2 <> encodeWord 0 <> encode x
     encode (Right x) = encodeListLen 2 <> encodeWord 1 <> encode x
@@ -612,6 +697,7 @@ decodeContainerSkelWithReplicate decodeLen replicateFun fromList = do
            return $! fromList containers
 {-# INLINE decodeContainerSkelWithReplicate #-}
 
+-- | @since 0.2.0.0
 instance (Serialise a) => Serialise (Sequence.Seq a) where
   encode = encodeContainerSkel
              encodeListLen
@@ -625,6 +711,8 @@ instance (Serialise a) => Serialise (Sequence.Seq a) where
 
 -- | Generic encoder for vectors. Its intended use is to allow easy
 -- definition of 'Serialise' instances for custom vector
+--
+-- @since 0.2.0.0
 encodeVector :: (Serialise a, Vector.Generic.Vector v a)
              => v a -> Encoding
 encodeVector = encodeContainerSkel
@@ -636,6 +724,8 @@ encodeVector = encodeContainerSkel
 
 -- | Generic decoder for vectors. Its intended use is to allow easy
 -- definition of 'Serialise' instances for custom vector
+--
+-- @since 0.2.0.0
 decodeVector :: (Serialise a, Vector.Generic.Vector v a)
              => Decoder (v a)
 decodeVector = decodeContainerSkelWithReplicate
@@ -644,12 +734,14 @@ decodeVector = decodeContainerSkelWithReplicate
     Vector.Generic.concat
 {-# INLINE decodeVector #-}
 
+-- | @since 0.2.0.0
 instance (Serialise a) => Serialise (Vector.Vector a) where
   encode = encodeVector
   {-# INLINE encode #-}
   decode = decodeVector
   {-# INLINE decode #-}
 
+-- | @since 0.2.0.0
 instance (Serialise a, Vector.Unboxed.Unbox a) =>
          Serialise (Vector.Unboxed.Vector a) where
   encode = encodeVector
@@ -657,12 +749,14 @@ instance (Serialise a, Vector.Unboxed.Unbox a) =>
   decode = decodeVector
   {-# INLINE decode #-}
 
+-- | @since 0.2.0.0
 instance (Serialise a, Vector.Storable.Storable a) => Serialise (Vector.Storable.Vector a) where
   encode = encodeVector
   {-# INLINE encode #-}
   decode = decodeVector
   {-# INLINE decode #-}
 
+-- | @since 0.2.0.0
 instance (Serialise a, Vector.Primitive.Prim a) => Serialise (Vector.Primitive.Vector a) where
   encode = encodeVector
   {-# INLINE encode #-}
@@ -687,14 +781,17 @@ decodeSetSkel fromList = do
   fmap fromList (replicateM n decode)
 {-# INLINE decodeSetSkel #-}
 
+-- | @since 0.2.0.0
 instance (Ord a, Serialise a) => Serialise (Set.Set a) where
   encode = encodeSetSkel Set.size Set.foldr
   decode = decodeSetSkel Set.fromList
 
+-- | @since 0.2.0.0
 instance Serialise IntSet.IntSet where
   encode = encodeSetSkel IntSet.size IntSet.foldr
   decode = decodeSetSkel IntSet.fromList
 
+-- | @since 0.2.0.0
 instance (Serialise a, Hashable a, Eq a) => Serialise (HashSet.HashSet a) where
   encode = encodeSetSkel HashSet.size HashSet.foldr
   decode = decodeSetSkel HashSet.fromList
@@ -724,14 +821,17 @@ decodeMapSkel fromList = do
   fmap fromList (replicateM n decodeEntry)
 {-# INLINE decodeMapSkel #-}
 
+-- | @since 0.2.0.0
 instance (Ord k, Serialise k, Serialise v) => Serialise (Map.Map k v) where
   encode = encodeMapSkel Map.size Map.foldrWithKey
   decode = decodeMapSkel Map.fromList
 
+-- | @since 0.2.0.0
 instance (Serialise a) => Serialise (IntMap.IntMap a) where
   encode = encodeMapSkel IntMap.size IntMap.foldrWithKey
   decode = decodeMapSkel IntMap.fromList
 
+-- | @since 0.2.0.0
 instance (Serialise k, Hashable k, Eq k, Serialise v) =>
   Serialise (HashMap.HashMap k v) where
   encode = encodeMapSkel HashMap.size HashMap.foldrWithKey
@@ -741,6 +841,7 @@ instance (Serialise k, Hashable k, Eq k, Serialise v) =>
 --------------------------------------------------------------------------------
 -- Misc base package instances
 
+-- | @since 0.2.0.0
 instance Serialise Version where
     encode (Version ns ts) = encodeListLen 3
                           <> encodeWord 0 <> encode ns <> encode ts
@@ -754,6 +855,7 @@ instance Serialise Version where
                 return (Version x y)
         _ -> fail "unexpected tag"
 
+-- | @since 0.2.0.0
 instance Serialise Fingerprint where
     encode (Fingerprint w1 w2) = encodeListLen 3
                               <> encodeWord 0
@@ -768,6 +870,7 @@ instance Serialise Fingerprint where
                 return $! Fingerprint w1 w2
         _ -> fail "unexpected tag"
 
+-- | @since 0.2.0.0
 instance Serialise TyCon where
 #if MIN_VERSION_base(4,9,0)
   encode tycon
@@ -795,6 +898,7 @@ instance Serialise TyCon where
               return $! mkTyCon3 pkg modname name
       _ -> fail "unexpected tag"
 
+-- | @since 0.2.0.0
 instance Serialise TypeRep where
 #if MIN_VERSION_base(4,8,0)
   encode (TypeRep fp tycon kirep tyrep)
@@ -839,6 +943,7 @@ instance Serialise TypeRep where
 --
 -- CBOR has some special encodings for times/timestamps
 
+-- | @since 0.2.0.0
 instance Serialise UTCTime where
     encode d = encodeTag 0
             <> encode (formatUTCrfc3339 d)
@@ -903,23 +1008,31 @@ forceUTCTime t@(UTCTime !_day !_daytime) = t
 -- matters a lot for end-users who write 'instance Binary T'. See
 -- also: https://ghc.haskell.org/trac/ghc/ticket/9630
 
+-- | @since 0.2.0.0
 class GSerialiseEncode f where
+    -- | @since 0.2.0.0
     gencode  :: f a -> Encoding
 
+-- | @since 0.2.0.0
 class GSerialiseDecode f where
+    -- | @since 0.2.0.0
     gdecode  :: Decoder (f a)
 
--- Data types without constructors are still serialised as null value
+-- | @since 0.2.0.0
 instance GSerialiseEncode V1 where
+    -- Data types without constructors are still serialised as null value
     gencode _ = encodeNull
 
+-- | @since 0.2.0.0
 instance GSerialiseDecode V1 where
     gdecode   = error "V1 don't have contructors" <$ decodeNull
 
--- Constructors without fields are serialised as null value
+-- | @since 0.2.0.0
 instance GSerialiseEncode U1 where
+    -- Constructors without fields are serialised as null value
     gencode _ = encodeListLen 1 <> encodeWord 0
 
+-- | @since 0.2.0.0
 instance GSerialiseDecode U1 where
     gdecode   = do
       n <- decodeListLen
@@ -928,20 +1041,24 @@ instance GSerialiseDecode U1 where
       when (tag /= 0) $ fail "unexpected tag. Expect 0"
       return U1
 
--- Metadata (constructor name, etc) is skipped
+-- | @since 0.2.0.0
 instance GSerialiseEncode a => GSerialiseEncode (M1 i c a) where
+    -- Metadata (constructor name, etc) is skipped
     gencode = gencode . unM1
 
+-- | @since 0.2.0.0
 instance GSerialiseDecode a => GSerialiseDecode (M1 i c a) where
     gdecode = M1 <$> gdecode
 
--- Constructor field (Could only appear in one-field & one-constructor
--- data types). In all other cases we go through GSerialise{Sum,Prod}
+-- | @since 0.2.0.0
 instance Serialise a => GSerialiseEncode (K1 i a) where
+    -- Constructor field (Could only appear in one-field & one-constructor
+    -- data types). In all other cases we go through GSerialise{Sum,Prod}
     gencode (K1 a) = encodeListLen 2
                   <> encodeWord 0
                   <> encode a
 
+-- | @since 0.2.0.0
 instance Serialise a => GSerialiseDecode (K1 i a) where
     gdecode = do
       n <- decodeListLen
@@ -952,14 +1069,16 @@ instance Serialise a => GSerialiseDecode (K1 i a) where
         fail "unexpected tag. Expects 0"
       K1 <$> decode
 
--- Products are serialised as N-tuples with 0 constructor tag
+-- | @since 0.2.0.0
 instance (GSerialiseProd f, GSerialiseProd g) => GSerialiseEncode (f :*: g) where
+    -- Products are serialised as N-tuples with 0 constructor tag
     gencode (f :*: g)
         = encodeListLen (nFields (Proxy :: Proxy (f :*: g)) + 1)
        <> encodeWord 0
        <> encodeSeq f
        <> encodeSeq g
 
+-- | @since 0.2.0.0
 instance (GSerialiseProd f, GSerialiseProd g) => GSerialiseDecode (f :*: g) where
     gdecode = do
       let nF = nFields (Proxy :: Proxy (f :*: g))
@@ -974,13 +1093,15 @@ instance (GSerialiseProd f, GSerialiseProd g) => GSerialiseDecode (f :*: g) wher
       !g <- gdecodeSeq
       return $ f :*: g
 
--- Sum types are serialised as N-tuples and first element is
--- constructor tag
+-- | @since 0.2.0.0
 instance (GSerialiseSum f, GSerialiseSum g) => GSerialiseEncode (f :+: g) where
+    -- Sum types are serialised as N-tuples and first element is
+    -- constructor tag
     gencode a = encodeListLen (numOfFields a + 1)
              <> encode (conNumber a)
              <> encodeSum a
 
+-- | @since 0.2.0.0
 instance (GSerialiseSum f, GSerialiseSum g) => GSerialiseDecode (f :+: g) where
     gdecode = do
         n <- decodeListLen
@@ -1003,6 +1124,7 @@ class GSerialiseProd f where
     -- | Decode fields sequentially without reading header
     gdecodeSeq :: Decoder (f a)
 
+-- | @since 0.2.0.0
 instance (GSerialiseProd f, GSerialiseProd g) => GSerialiseProd (f :*: g) where
     nFields _ = nFields (Proxy :: Proxy f) + nFields (Proxy :: Proxy g)
     encodeSeq (f :*: g) = encodeSeq f <> encodeSeq g
@@ -1010,27 +1132,32 @@ instance (GSerialiseProd f, GSerialiseProd g) => GSerialiseProd (f :*: g) where
                     !g <- gdecodeSeq
                     return (f :*: g)
 
--- N.B. Could only be reached when one of constructors in sum type
---      don't have parameters
+-- | @since 0.2.0.0
 instance GSerialiseProd U1 where
+    -- N.B. Could only be reached when one of constructors in sum type
+    --      don't have parameters
     nFields   _ = 0
     encodeSeq _ = mempty
     gdecodeSeq  = return U1
 
--- Ordinary field
+-- | @since 0.2.0.0
 instance (Serialise a) => GSerialiseProd (K1 i a) where
+    -- Ordinary field
     nFields    _     = 1
     encodeSeq (K1 f) = encode f
     gdecodeSeq       = K1 <$> decode
 
--- We skip metadata
+-- | @since 0.2.0.0
 instance (i ~ S, GSerialiseProd f) => GSerialiseProd (M1 i c f) where
+    -- We skip metadata
     nFields     _     = 1
     encodeSeq  (M1 f) = encodeSeq f
     gdecodeSeq        = M1 <$> gdecodeSeq
 
 
 -- | Serialization of sum types
+--
+-- @since 0.2.0.0
 class GSerialiseSum f where
     -- | Number of constructor of given value
     conNumber   :: f a -> Word
@@ -1047,6 +1174,7 @@ class GSerialiseSum f where
     fieldsForCon  :: Proxy f -> Word -> Decoder Word
 
 
+-- | @since 0.2.0.0
 instance (GSerialiseSum f, GSerialiseSum g) => GSerialiseSum (f :+: g) where
     conNumber x = case x of
       L1 f -> conNumber f
@@ -1072,6 +1200,7 @@ instance (GSerialiseSum f, GSerialiseSum g) => GSerialiseSum (f :+: g) where
         nL = nConstructors (Proxy :: Proxy f)
 
 
+-- | @since 0.2.0.0
 instance (i ~ C, GSerialiseProd f) => GSerialiseSum (M1 i c f) where
     conNumber    _     = 0
     numOfFields  _     = nFields (Proxy :: Proxy f)
