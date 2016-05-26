@@ -74,6 +74,8 @@ import qualified Data.Binary.Serialise.CBOR.Write as CBOR.Write
 -- The output is represented as a 'BS.Builder' and is constructed incrementally.
 -- The representation as a 'BS.Builder' allows efficient concatenation with
 -- other data.
+--
+-- @since 0.2.0.0
 serialiseIncremental :: Serialise a => a -> BS.Builder
 serialiseIncremental = CBOR.Write.toBuilder . encode
 
@@ -85,6 +87,8 @@ serialiseIncremental = CBOR.Write.toBuilder . encode
 -- Note that the incremental behaviour is only for the input data, not the
 -- output value: the final deserialised value is constructed and returned as a
 -- whole, not incrementally.
+--
+-- @since 0.2.0.0
 deserialiseIncremental :: Serialise a => Bin.Decoder a
 deserialiseIncremental = CBOR.Read.deserialiseIncremental decode
 
@@ -100,6 +104,8 @@ deserialiseIncremental = CBOR.Read.deserialiseIncremental decode
 --
 -- The output is represented as a lazy 'BS.ByteString' and is constructed
 -- incrementally.
+--
+-- @since 0.2.0.0
 serialise :: Serialise a => a -> BS.ByteString
 serialise = CBOR.Write.toLazyByteString . encode
 
@@ -108,6 +114,8 @@ serialise = CBOR.Write.toLazyByteString . encode
 --
 -- /Throws/: @'DeserialiseFailure'@ if the given external representation is
 -- invalid or does not correspond to a value of the expected type.
+--
+-- @since 0.2.0.0
 deserialise :: Serialise a => BS.ByteString -> a
 deserialise =
     supplyAllInput deserialiseIncremental
@@ -122,6 +130,8 @@ deserialise =
 
 -- | An exception type that may be returned (by pure functions) or
 -- thrown (by IO actions) that fail to deserialise a given input.
+--
+-- @since 0.2.0.0
 data DeserialiseFailure =
        DeserialiseFailure Bin.ByteOffset String
   deriving (Show, Typeable)
@@ -135,6 +145,8 @@ instance Exception DeserialiseFailure where
 
 -- | Deserialise a Haskell value from the external binary representation,
 -- or get back a @'DeserialiseFailure'@.
+--
+-- @since 0.2.0.0
 deserialiseOrFail :: Serialise a => BS.ByteString -> Either DeserialiseFailure a
 deserialiseOrFail = supplyAllInput deserialiseIncremental
   where
@@ -151,6 +163,8 @@ deserialiseOrFail = supplyAllInput deserialiseIncremental
 
 -- | Serialise a @'BS.ByteString'@ (via @'serialise'@) and write it directly
 -- to the specified @'Handle'@.
+--
+-- @since 0.2.0.0
 hPutSerialise :: Serialise a
               => Handle       -- ^ The @'Handle'@ to write to.
               -> a            -- ^ The value to be serialised and written.
@@ -159,6 +173,8 @@ hPutSerialise hnd x = BS.hPut hnd (serialise x)
 
 -- | Serialise a @'BS.ByteString'@ and write it directly to the
 -- specified file.
+--
+-- @since 0.2.0.0
 writeFileSerialise :: Serialise a
                    => FilePath     -- ^ The file to write to.
                    -> a            -- ^ The value to be serialised and written.
@@ -172,6 +188,8 @@ writeFileSerialise fname x =
 --
 -- /Throws/: @'DeserialiseFailure'@ iff the file fails to
 -- deserialise properly.
+--
+-- @since 0.2.0.0
 readFileDeserialise :: Serialise a
                     => FilePath     -- ^ The file to read from.
                     -> IO a         -- ^ The deserialised value.

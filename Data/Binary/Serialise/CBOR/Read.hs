@@ -62,6 +62,8 @@ import           System.IO.Unsafe               (unsafePerformIO)
 -- | Given a @'Decoder'@ and some @'LBS.ByteString'@ representing
 -- an encoded CBOR value, return @'Either'@ the decoded CBOR value
 -- or an error.
+--
+-- @since 0.2.0.0
 deserialiseFromBytes :: Decoder a -> LBS.ByteString -> Either String a
 deserialiseFromBytes =
     runBinDecoder . deserialiseIncremental
@@ -77,6 +79,8 @@ runBinDecoder d lbs =
 
 -- | Run a @'Decoder'@ incrementally, returning a continuation
 -- representing the result of the incremental decode.
+--
+-- @since 0.2.0.0
 deserialiseIncremental :: Decoder a -> Bin.Decoder a
 deserialiseIncremental =
     runIncrementalDecoder . runDecodeAction . getDecodeAction

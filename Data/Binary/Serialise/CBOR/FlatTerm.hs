@@ -61,10 +61,14 @@ import           Data.ByteString (ByteString)
 
 -- | A "flat" representation of an @'Enc.Encoding'@ value,
 -- useful for round-tripping and writing tests.
+--
+-- @since 0.2.0.0
 type FlatTerm = [TermToken]
 
 -- | A concrete encoding of @'Enc.Encoding'@ values, one
 -- which mirrors the original @'Enc.Encoding'@ type closely.
+--
+-- @since 0.2.0.0
 data TermToken
     = TkInt      {-# UNPACK #-} !Int
     | TkInteger                 !Integer
@@ -89,6 +93,8 @@ data TermToken
 --------------------------------------------------------------------------------
 
 -- | Convert an arbitrary @'Enc.Encoding'@ into a @'FlatTerm'@.
+--
+-- @since 0.2.0.0
 toFlatTerm :: Encoding -- ^ The input @'Enc.Encoding'@.
            -> FlatTerm -- ^ The resulting @'FlatTerm'@.
 toFlatTerm (Encoding tb) = convFlatTerm (tb Enc.TkEnd)
@@ -131,6 +137,8 @@ convFlatTerm  Enc.TkEnd             = []
 
 -- | Given a @'Dec.Decoder'@, decode a @'FlatTerm'@ back into
 -- an ordinary value, or return an error.
+--
+-- @since 0.2.0.0
 fromFlatTerm :: Decoder a       -- ^ A @'Dec.Decoder'@ for a serialised value.
              -> FlatTerm        -- ^ The serialised @'FlatTerm'@.
              -> Either String a -- ^ The deserialised value, or an error.
@@ -285,7 +293,7 @@ fromFlatTerm decoder ft = go (getDecodeAction decoder) ft
     unexpected name []      = Left $ name ++ ": unexpected end of input"
     unexpected name (tok:_) = Left $ name ++ ": unexpected token " ++ show tok
 
-
+-- | Map a @'TermToken'@ to the underlying CBOR @'TokenType'@
 tokenTypeOf :: TermToken -> TokenType
 tokenTypeOf (TkInt n)
     | n >= 0                = TypeUInt
@@ -312,6 +320,8 @@ tokenTypeOf TkFloat64{}     = TypeFloat64
 
 -- | Ensure a @'FlatTerm'@ is internally consistent and was created in a valid
 -- manner.
+--
+-- @since 0.2.0.0
 validFlatTerm :: FlatTerm -- ^ The input @'FlatTerm'@
               -> Bool     -- ^ @'True'@ if valid, @'False'@ otherwise.
 validFlatTerm ts =

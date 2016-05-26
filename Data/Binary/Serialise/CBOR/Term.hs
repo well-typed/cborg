@@ -28,9 +28,9 @@
 -- @'Data.Binary.Serialise.CBOR.Decoding'@ modules.
 --
 module Data.Binary.Serialise.CBOR.Term
-  ( Term(..)
-  , encodeTerm
-  , decodeTerm
+  ( Term(..)    -- :: *
+  , encodeTerm  -- :: Term -> Encoding
+  , decodeTerm  -- :: Decoder Term
   ) where
 
 #include "cbor.h"
@@ -60,6 +60,8 @@ import Prelude hiding (encodeFloat, decodeFloat)
 -- The @'Term'@ type also comes with a @'Serialise'@ instance, so you can
 -- easily use @'decode' :: 'Decoder' 'Term'@ to directly decode any arbitrary
 -- CBOR value into Haskell with ease, and likewise with @'encode'@.
+--
+-- @since 0.2.0.0
 data Term
   = TInt     {-# UNPACK #-} !Int
   | TInteger                !Integer
@@ -80,6 +82,7 @@ data Term
   | TDouble  {-# UNPACK #-} !Double
   deriving (Eq, Ord, Show, Read)
 
+-- | @since 0.2.0.0
 instance Serialise Term where
   encode = encodeTerm
   decode = decodeTerm
@@ -88,6 +91,8 @@ instance Serialise Term where
 -- Main API
 
 -- | Encode an arbitrary @'Term'@ into an @'Encoding'@ for later serialization.
+--
+-- @since 0.2.0.0
 encodeTerm :: Term -> Encoding
 encodeTerm (TInt      n)  = encodeInt n
 encodeTerm (TInteger  n)  = encodeInteger n
@@ -122,6 +127,8 @@ encodeTerm (TFloat    f)  = encodeFloat   f
 encodeTerm (TDouble   f)  = encodeDouble  f
 
 -- | Decode some arbitrary CBOR value into a @'Term'@.
+--
+-- @since 0.2.0.0
 decodeTerm :: Decoder Term
 decodeTerm = do
     tkty <- peekTokenType

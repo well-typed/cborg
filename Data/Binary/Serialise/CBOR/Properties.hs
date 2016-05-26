@@ -27,11 +27,15 @@ import           Data.Binary.Serialise.CBOR.FlatTerm
 
 -- | Ensure that serializing and deserializing some value results in
 -- the original value being returned.
+--
+-- @since 0.2.0.0
 serialiseIdentity :: (Serialise a, Eq a) => a -> Bool
 serialiseIdentity a = a == (deserialise . serialise) a
 
 -- | Ensure that serializing and deserializing a value with the
 -- @'FlatTerm'@ form results in the original value being returned.
+--
+-- @since 0.2.0.0
 flatTermIdentity :: (Serialise a, Eq a) => a -> Bool
 flatTermIdentity  a = Right a == (fromFlat . toFlat) a
   where
@@ -40,5 +44,7 @@ flatTermIdentity  a = Right a == (fromFlat . toFlat) a
 
 -- | Ensure that serializing a value into a @'FlatTerm'@ gives us a
 -- valid @'FlatTerm'@ back.
+--
+-- @since 0.2.0.0
 hasValidFlatTerm :: Serialise a => a -> Bool
 hasValidFlatTerm = validFlatTerm . toFlatTerm . encode
