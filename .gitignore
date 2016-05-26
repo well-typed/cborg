@@ -2,6 +2,7 @@
 /dist*
 /.cabal-sandbox
 /cabal.sandbox.config
+/cabal.project.local
 /.stack-work
 /bench/data
 *.o
