@@ -142,7 +142,7 @@ defaultDecodeList = do
 
 
 --------------------------------------------------------------------------------
--- Primitive instances
+-- Primitive and integral instances
 
 instance Serialise () where
     encode = const encodeNull
@@ -203,6 +203,9 @@ instance Serialise Float where
 instance Serialise Double where
     encode = encodeDouble
     decode = decodeDouble
+
+--------------------------------------------------------------------------------
+-- Core types
 
 #if MIN_VERSION_base(4,7,0)
 -- | Values are serialised in units of least precision represented as
@@ -339,6 +342,9 @@ instance Serialise ExitCode where
                 return $ ExitFailure i
         _ -> fail "Bad list length"
 
+--------------------------------------------------------------------------------
+-- Foreign types
+
 instance Serialise CChar where
     encode (CChar x) = encode x
     decode = CChar <$> decode
@@ -440,7 +446,7 @@ instance Serialise CDouble where
     decode = CDouble <$> decode
 
 --------------------------------------------------------------------------------
--- Structure instances
+-- Structural instances
 
 instance (Serialise a, Serialise b) => Serialise (a,b) where
     encode (a,b) = encodeListLen 2
