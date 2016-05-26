@@ -1,5 +1,4 @@
 packages:
   *.cabal
-with-compiler: /opt/ghc/7.10.3/bin/ghc
 --benchmarks: True
 --profiling: True
