@@ -210,7 +210,7 @@ instance Serialise Double where
 #if MIN_VERSION_base(4,7,0)
 -- | Values are serialised in units of least precision represented as
 --   @Integer@.
-instance HasResolution e => Serialise (Fixed e) where
+instance Serialise (Fixed e) where
     encode (MkFixed i) = encode i
     decode = MkFixed <$> decode
 
