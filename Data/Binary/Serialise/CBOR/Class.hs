@@ -84,7 +84,7 @@ import           System.Exit                         (ExitCode(..))
 
 import           Prelude hiding (decodeFloat, encodeFloat, foldr)
 import qualified Prelude
-import           GHC.Fingerprint.Type (Fingerprint(..))
+import           Data.Typeable.Internal
 import           GHC.Generics
 
 import           Data.Binary.Serialise.CBOR.Decoding
@@ -767,6 +767,72 @@ instance Serialise Fingerprint where
                 !w2 <- decode
                 return $! Fingerprint w1 w2
         _ -> fail "unexpected tag"
+
+instance Serialise TyCon where
+#if MIN_VERSION_base(4,9,0)
+  encode tycon
+    = encodeListLen 4
+   <> encodeWord 0
+   <> encode (tyConPackage tycon)
+   <> encode (tyConModule  tycon)
+   <> encode (tyConName    tycon)
+#else
+  encode (TyCon _ pkg modname name)
+    = encodeListLen 4
+   <> encodeWord 0
+   <> encode pkg
+   <> encode modname
+   <> encode name
+#endif
+
+  decode = do
+    decodeListLenOf 4
+    tag <- decodeWord
+    case tag of
+      0 -> do !pkg     <- decode
+              !modname <- decode
+              !name    <- decode
+              return $! mkTyCon3 pkg modname name
+      _ -> fail "unexpected tag"
+
+instance Serialise TypeRep where
+#if MIN_VERSION_base(4,8,0)
+  encode (TypeRep fp tycon kirep tyrep)
+    = encodeListLen 5
+   <> encodeWord 0
+   <> encode fp
+   <> encode tycon
+   <> encode kirep
+   <> encode tyrep
+
+  decode = do
+    decodeListLenOf 5
+    tag <- decodeWord
+    case tag of
+      0 -> do !fp    <- decode
+              !tycon <- decode
+              !kirep <- decode
+              !tyrep <- decode
+              return $! TypeRep fp tycon kirep tyrep
+      _ -> fail "unexpected tag"
+#else
+  encode (TypeRep fp tycon tyrep)
+    = encodeListLen 4
+   <> encodeWord 0
+   <> encode fp
+   <> encode tycon
+   <> encode tyrep
+
+  decode = do
+    decodeListLenOf 4
+    tag <- decodeWord
+    case tag of
+      0 -> do !fp    <- decode
+              !tycon <- decode
+              !tyrep <- decode
+              return $! TypeRep fp tycon tyrep
+      _ -> fail "unexpected tag"
+#endif
 
 --------------------------------------------------------------------------------
 -- Time instances
