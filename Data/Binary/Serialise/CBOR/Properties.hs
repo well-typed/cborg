@@ -9,7 +9,36 @@
 --
 -- This module contains a set of generally useful properties, which
 -- instance authors are encouraged to use in order to test their
--- instances of the @'Serialise'@ class.
+-- instances of the @'Serialise'@ class. For example, if you have a
+-- data type which you might derive or write instances for:
+--
+-- @
+-- data Foo = Foo { fooInt :: Int, fooBool :: Bool }
+--   deriving (Eq, Show, 'GHC.Generics.Generic')
+-- -- or, alternatively
+-- instance 'Serialise' Foo where
+--   'encode' = ...
+--   'decode' = ...
+-- @
+--
+-- Then you can use this module to easily derive some quick
+-- properties:
+--
+-- @
+-- import qualified "Data.Binary.Serialise.CBOR.Properties" as Props
+--
+-- fooSerialiseId :: Foo -> Bool
+-- fooSerialiseId = Props.'serialiseIdentity'
+--
+-- fooFlatTermId :: Foo -> Bool
+-- fooFlatTermId = Props.'flatTermIdentity'
+--
+-- fooHasValidFlatTerm :: Foo -> Bool
+-- fooHasValidFlatTerm = Props.'hasValidFlatTerm'
+-- @
+--
+-- You can then conveniently use these three functions with
+-- QuickCheck, for example.
 --
 module Data.Binary.Serialise.CBOR.Properties
   ( -- * CBOR Properties
