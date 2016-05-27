@@ -21,7 +21,7 @@ import Data.Bits
 import Control.Monad
 import Control.Exception
 import qualified Data.ByteString.Lazy.Char8 as BS
-import System.FilePath (normalise, splitDirectories)
+import System.FilePath (normalise, splitDirectories, takeExtension)
 import qualified Codec.Archive.Tar       as Tar
 import qualified Codec.Archive.Tar.Entry as Tar
 
@@ -35,10 +35,16 @@ readPkgIndex = fmap extractCabalFiles . readTarIndex
   where
     extractCabalFiles entries =
       [ pkgDesc
-      | Tar.Entry {
+      | entry@Tar.Entry {
           Tar.entryContent = Tar.NormalFile cabalFile _
         } <- entries
-      , let ParseOk _ pkgDesc = parsePackageDescription . fromUTF8 . BS.unpack $ cabalFile ]
+      , let filename = Tar.entryPath entry
+      , takeExtension filename == ".cabal"
+      , let pkgDesc = case parsePackageDescription
+                         . ignoreBOM . fromUTF8 . BS.unpack $ cabalFile of
+                        ParseOk _   pkg -> pkg
+                        ParseFailed err -> error (filename ++ ": " ++ show err)
+      ]
 
     readTarIndex :: BS.ByteString
                  -> Either String [Tar.Entry]
@@ -97,6 +103,10 @@ fromUTF8 (c:cs)
       = replacementChar : fromUTF8 cs'
 
     replacementChar = '\xfffd'
+
+ignoreBOM :: String -> String
+ignoreBOM ('\xFEFF':string) = string
+ignoreBOM string            = string
 
 ------------------------------------------------------------------------------
 
