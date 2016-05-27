@@ -291,6 +291,7 @@ benchmark micro
     Micro.PkgAesonTH
     Micro.PkgBinary
     Micro.PkgCereal
+    Micro.PkgStore
   --Micro.PkgMsgpack
     Micro.CBOR
 
@@ -308,7 +309,8 @@ benchmark micro
     deepseq                 >= 1.0     && < 1.5,
     criterion               >= 1.0     && < 1.2,
     cereal                  >= 0.5.2.0 && < 0.6,
-    cereal-vector           >= 0.2     && < 0.3
+    cereal-vector           >= 0.2     && < 0.3,
+    store                   >= 0.2     && < 0.3
 
 benchmark vs-other-libs
   type:              exitcode-stdio-1.0
@@ -336,6 +338,7 @@ benchmark vs-other-libs
     Macro.PkgAesonTH
     Macro.PkgBinary
     Macro.PkgCereal
+    Macro.PkgStore
   --Macro.PkgMsgpack
     Macro.CBOR
 
@@ -362,7 +365,8 @@ benchmark vs-other-libs
     tar                     >= 0.4     && < 0.6,
     zlib                    >= 0.5     && < 0.7,
     pretty                  >= 1.0     && < 1.2,
-    criterion               >= 1.0     && < 1.2
+    criterion               >= 1.0     && < 1.2,
+    store                   >= 0.2     && < 0.3
 
   if flag(newtime15)
     build-depends:
