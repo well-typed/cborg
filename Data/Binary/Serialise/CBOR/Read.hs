@@ -182,7 +182,9 @@ runDecodeAction :: DecodeAction s a
                 -> DecodeIncrementallyM s (ByteString, ByteOffset, a)
 runDecodeAction (D.Fail msg) = decodeFail BS.empty 0 msg
 runDecodeAction (D.Done x)   = return (BS.empty, 0, x)
---TODO: also need peaklength case here
+runDecodeAction (D.PeekAvailable k) = do
+    da' <- liftST (k 0#)
+    runDecodeAction da'
 runDecodeAction da = do
     mbs <- needChunk
     case mbs of
@@ -424,7 +426,9 @@ go_fast (PeekTokenType k) !bs =
         !tkty = decodeTokenTypeTable `A.unsafeAt` fromIntegral hdr
     in k tkty >>= flip go_fast bs
 
-go_fast (PeekLength k) !bs = (k $! BS.length bs) >>= flip go_fast bs
+go_fast (PeekAvailable k) !bs = do
+    da' <- k (case BS.length bs of I# len# -> len#)
+    go_fast da' bs
 
 go_fast da@D.Fail{} !bs = go_fast_end da bs
 go_fast da@D.Done{} !bs = go_fast_end da bs
@@ -441,9 +445,11 @@ go_fast_end :: DecodeAction s a -> ByteString -> ST s (SlowPath s a)
 
 -- these three cases don't need any input
 
-go_fast_end (D.Fail msg)   !bs = return $ SlowFail bs msg
-go_fast_end (D.Done x)     !bs = return $ FastDone bs x
-go_fast_end (PeekLength k) !bs = (k $! BS.length bs) >>= flip go_fast_end bs
+go_fast_end (D.Fail msg)      !bs = return $ SlowFail bs msg
+go_fast_end (D.Done x)        !bs = return $ FastDone bs x
+go_fast_end (PeekAvailable k) !bs = do
+    da' <- k (case BS.length bs of I# len# -> len#)
+    go_fast_end da' bs
 
 -- the next two cases only need the 1 byte token header
 go_fast_end da !bs | BS.null bs = return $ SlowDecodeAction bs da

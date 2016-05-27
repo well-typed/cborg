@@ -236,7 +236,7 @@ fromFlatTerm decoder ft =
 
     go (PeekTokenType k) ts@(tk:_) = k (tokenTypeOf tk) >>= flip go ts
     go (PeekTokenType _) ts        = unexpected "peekTokenType" ts
-    go (PeekLength k) ts           = k (length ts) >>= flip go ts
+    go (PeekAvailable k) ts        = k (unI# (length ts)) >>= flip go ts
 
     go (Fail msg) _  = return $ Left msg
     go (Done x)   [] = return $ Right x

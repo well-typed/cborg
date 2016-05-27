@@ -580,7 +580,7 @@ decodeContainerSkelWithReplicate decodeLen replicateFun fromList = do
     -- our limit, we'll do manual chunking and then combine the containers into
     -- one.
     size <- decodeLen
-    limit <- peekLength
+    limit <- peekAvailable
     if size <= limit
        then replicateFun size decode
        else do
