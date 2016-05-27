@@ -20,13 +20,17 @@ module Data.Binary.Serialise.CBOR.Read
   ( deserialiseFromBytes   -- :: Decoder a -> ByteString -> Either String a
   , deserialiseIncremental -- :: Decoder a -> DecodeIncrementally s a
   , DecodeIncrementally(..)
+  , DeserialiseFailure(..)
   ) where
 
 #include "cbor.h"
 
 import           Data.Binary.Serialise.CBOR.ByteOrder
 import           Data.Binary.Serialise.CBOR.Decoding
-         (Decoder, DecodeAction(..), TokenType(..), getDecodeAction)
+                   hiding (DecodeAction(Done,Fail), liftST)
+import           Data.Binary.Serialise.CBOR.Decoding
+                   (DecodeAction)
+import qualified Data.Binary.Serialise.CBOR.Decoding as D
 
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
@@ -69,28 +73,28 @@ import           System.IO.Unsafe               (unsafePerformIO)
 -- or an error.
 deserialiseFromBytes :: (forall s. Decoder s a)
                      -> LBS.ByteString
-                     -> Either DecodeException a
+                     -> Either DeserialiseFailure a
 deserialiseFromBytes d lbs =
     runDecodeIncrementally (deserialiseIncremental d) lbs
 
 runDecodeIncrementally :: (forall s. ST s (DecodeIncrementally s a))
-                       -> LBS.ByteString -> Either DecodeException a
+                       -> LBS.ByteString -> Either DeserialiseFailure a
 runDecodeIncrementally d lbs =
     runST (flip go lbs =<< d)
   where
     go :: DecodeIncrementally s a -> LBS.ByteString
-       -> ST s (Either DecodeException a)
-    go (IFail _ _ err) _                = return (Left err)
-    go (IDone _ _ x)   _                = return (Right x)
-    go (IPartial k)  LBS.Empty          = k Nothing   >>= flip go LBS.Empty
-    go (IPartial k) (LBS.Chunk bs lbs') = k (Just bs) >>= flip go lbs'
+       -> ST s (Either DeserialiseFailure a)
+    go (Fail _ _ err) _                = return (Left err)
+    go (Done _ _ x)   _                = return (Right x)
+    go (Partial k)  LBS.Empty          = k Nothing   >>= flip go LBS.Empty
+    go (Partial k) (LBS.Chunk bs lbs') = k (Just bs) >>= flip go lbs'
 
 -- | Run a @'Decoder'@ incrementally, returning a continuation
 -- representing the result of the incremental decode.
 deserialiseIncremental :: Decoder s a -> ST s (DecodeIncrementally s a)
 deserialiseIncremental decoder = do
     da <- getDecodeAction decoder
-    runIncrementalDecoder (runDecodeAction da)
+    unwrapDecodeIncrementallyM (runDecodeAction da)
 
 
 ----------------------------------------------
@@ -102,23 +106,30 @@ data DecodeIncrementally s a =
     -- | The decoder has consumed the available input and needs
     -- more to continue. Provide 'Just' if more input is available
     -- and 'Nothing' otherwise, and you will get a new 'Decoder'.
-    IPartial (Maybe BS.ByteString -> ST s (DecodeIncrementally s a))
+    Partial (Maybe BS.ByteString -> ST s (DecodeIncrementally s a))
 
     -- | The decoder has successfully finished. Except for the
     -- output value you also get any unused input as well as the
     -- number of bytes consumed.
-  | IDone !BS.ByteString {-# UNPACK #-} !ByteOffset a
+  | Done !BS.ByteString {-# UNPACK #-} !ByteOffset a
 
     -- | The decoder ran into an error. The decoder either used
     -- 'fail' or was not provided enough input. Contains any
     -- unconsumed input and the number of bytes consumed.
-  | IFail !BS.ByteString {-# UNPACK #-} !ByteOffset DecodeException
+  | Fail !BS.ByteString {-# UNPACK #-} !ByteOffset DeserialiseFailure
 
 
-newtype DecodeException = DecodeException String
-  deriving (Eq, Show, Typeable)
+-- | An exception type that may be returned (by pure functions) or
+-- thrown (by IO actions) that fail to deserialise a given input.
+data DeserialiseFailure = DeserialiseFailure !ByteOffset String
+  deriving (Show, Typeable)
 
-instance Exception DecodeException
+instance Exception DeserialiseFailure where
+#if MIN_VERSION_base(4,8,0)
+    displayException (DeserialiseFailure off msg) =
+      "Data.Binary.Serialise.CBOR: deserialising failed at offset "
+           ++ show off ++ " : " ++ msg
+#endif
 
 type ByteOffset = Int64
 
@@ -127,39 +138,39 @@ type ByteOffset = Int64
 -- A monad for building incremental decoders
 --
 
-newtype IncrementalDecoder s a = IncrementalDecoder {
-       unIncrementalDecoder ::
+newtype DecodeIncrementallyM s a = DecodeIncrementallyM {
+       unDecodeIncrementallyM ::
          forall r. (a -> ST s (DecodeIncrementally s r)) -> ST s (DecodeIncrementally s r)
      }
 
-instance Functor (IncrementalDecoder s) where
+instance Functor (DecodeIncrementallyM s) where
     fmap f a = a >>= return . f
 
-instance Applicative (IncrementalDecoder s) where
+instance Applicative (DecodeIncrementallyM s) where
     pure  = return
     (<*>) = ap
 
-instance Monad (IncrementalDecoder s) where
-    return x = IncrementalDecoder $ \k -> k x
+instance Monad (DecodeIncrementallyM s) where
+    return x = DecodeIncrementallyM $ \k -> k x
 
     {-# INLINE (>>=) #-}
-    m >>= f = IncrementalDecoder $ \k ->
-                unIncrementalDecoder m $ \x ->
-                  unIncrementalDecoder (f x) k
+    m >>= f = DecodeIncrementallyM $ \k ->
+                unDecodeIncrementallyM m $ \x ->
+                  unDecodeIncrementallyM (f x) k
 
-runIncrementalDecoder :: IncrementalDecoder s (ByteString, ByteOffset, a)
-                      -> ST s (DecodeIncrementally s a)
-runIncrementalDecoder (IncrementalDecoder f) =
-  f (\(trailing, off, x) -> return $ IDone trailing off x)
+unwrapDecodeIncrementallyM :: DecodeIncrementallyM s (ByteString, ByteOffset, a)
+                           -> ST s (DecodeIncrementally s a)
+unwrapDecodeIncrementallyM (DecodeIncrementallyM f) =
+  f (\(trailing, off, x) -> return $ Done trailing off x)
 
-decodeFail :: ByteString -> ByteOffset -> String -> IncrementalDecoder s a
-decodeFail trailing off msg = IncrementalDecoder $ \_ -> return $ IFail trailing off (DecodeException msg)
+decodeFail :: ByteString -> ByteOffset -> String -> DecodeIncrementallyM s a
+decodeFail trailing off msg = DecodeIncrementallyM $ \_ -> return $ Fail trailing off (DeserialiseFailure off msg)
 
-needChunk :: IncrementalDecoder s (Maybe ByteString)
-needChunk = IncrementalDecoder $ \k -> return $ IPartial $ \mbs -> k mbs
+needChunk :: DecodeIncrementallyM s (Maybe ByteString)
+needChunk = DecodeIncrementallyM $ \k -> return $ Partial $ \mbs -> k mbs
 
-liftST :: ST s a -> IncrementalDecoder s a
-liftST action = IncrementalDecoder (\k -> action >>= k)
+liftST :: ST s a -> DecodeIncrementallyM s a
+liftST action = DecodeIncrementallyM (\k -> action >>= k)
 
 
 --------------------------------------------
@@ -168,9 +179,10 @@ liftST action = IncrementalDecoder (\k -> action >>= k)
 
 -- The top level entry point
 runDecodeAction :: DecodeAction s a
-                -> IncrementalDecoder s (ByteString, ByteOffset, a)
-runDecodeAction (Fail msg) = decodeFail BS.empty 0 msg
-runDecodeAction (Done x)   = return (BS.empty, 0, x)
+                -> DecodeIncrementallyM s (ByteString, ByteOffset, a)
+runDecodeAction (D.Fail msg) = decodeFail BS.empty 0 msg
+runDecodeAction (D.Done x)   = return (BS.empty, 0, x)
+--TODO: also need peaklength case here
 runDecodeAction da = do
     mbs <- needChunk
     case mbs of
@@ -414,8 +426,8 @@ go_fast (PeekTokenType k) !bs =
 
 go_fast (PeekLength k) !bs = (k $! BS.length bs) >>= flip go_fast bs
 
-go_fast da@Fail{} !bs = go_fast_end da bs
-go_fast da@Done{} !bs = go_fast_end da bs
+go_fast da@D.Fail{} !bs = go_fast_end da bs
+go_fast da@D.Done{} !bs = go_fast_end da bs
 
 
 -- This variant of the fast path has to do a few more checks because we're
@@ -429,8 +441,8 @@ go_fast_end :: DecodeAction s a -> ByteString -> ST s (SlowPath s a)
 
 -- these three cases don't need any input
 
-go_fast_end (Fail msg) !bs = return $ SlowFail bs msg
-go_fast_end (Done x)   !bs = return $ FastDone bs x
+go_fast_end (D.Fail msg)   !bs = return $ SlowFail bs msg
+go_fast_end (D.Done x)     !bs = return $ FastDone bs x
 go_fast_end (PeekLength k) !bs = (k $! BS.length bs) >>= flip go_fast_end bs
 
 -- the next two cases only need the 1 byte token header
@@ -656,7 +668,7 @@ go_fast_end (ConsumeMapLenOrIndef k) !bs =
 -- so not including the current chunk.
 --
 go_slow :: DecodeAction s a -> ByteString -> ByteOffset
-        -> IncrementalDecoder s (ByteString, ByteOffset, a)
+        -> DecodeIncrementallyM s (ByteString, ByteOffset, a)
 go_slow da bs !offset = do
   slowpath <- liftST $ go_fast da bs
   case slowpath of
@@ -666,14 +678,16 @@ go_slow da bs !offset = do
 
     SlowConsumeTokenBytes bs' k len -> do
       (bstr, bs'') <- getTokenVarLen len bs' offset'
-      liftST (k bstr) >>= \da -> go_slow da bs'' (offset' + fromIntegral len)
+      da' <- liftST (k bstr)
+      go_slow da' bs'' (offset' + fromIntegral len)
       where
         !offset' = offset + fromIntegral (BS.length bs - BS.length bs')
 
     SlowConsumeTokenString bs' k len -> do
       (bstr, bs'') <- getTokenVarLen len bs' offset'
       let !str = T.decodeUtf8 bstr  --FIXME: utf8 validation
-      liftST (k str) >>= \da -> go_slow da bs'' (offset' + fromIntegral len)
+      da' <- liftST (k str)
+      go_slow da' bs'' (offset' + fromIntegral len)
       where
         !offset' = offset + fromIntegral (BS.length bs - BS.length bs')
 
@@ -706,7 +720,7 @@ go_slow da bs !offset = do
 -- token without need for further fixups.
 --
 go_slow_fixup :: DecodeAction s a -> ByteString -> ByteOffset
-              -> IncrementalDecoder s (ByteString, ByteOffset, a)
+              -> DecodeIncrementallyM s (ByteString, ByteOffset, a)
 go_slow_fixup da !bs !offset = do
     let !hdr = BS.head bs
         !sz  = tokenSize hdr
@@ -727,7 +741,7 @@ go_slow_fixup da !bs !offset = do
 -- new input buffers, so we have to decode that one before carrying on
 go_slow_overlapped :: DecodeAction s a -> Int -> ByteString -> ByteString
                    -> ByteOffset
-                   -> IncrementalDecoder s (ByteString, ByteOffset, a)
+                   -> DecodeIncrementallyM s (ByteString, ByteOffset, a)
 go_slow_overlapped da sz bs_cur bs_next !offset =
 
     -- we have:
@@ -775,7 +789,8 @@ go_slow_overlapped da sz bs_cur bs_next !offset =
                           else let !bstr = BS.take len bs'
                                    !bs'' = BS.drop len bs'
                                 in return (bstr, bs'')
-        liftST (k bstr) >>= \da -> go_slow da bs'' (offset' + fromIntegral len)
+        da' <- liftST (k bstr)
+        go_slow da' bs'' (offset' + fromIntegral len)
 
       SlowConsumeTokenString bs_empty k len ->
         assert (BS.null bs_empty) $ do
@@ -785,7 +800,8 @@ go_slow_overlapped da sz bs_cur bs_next !offset =
                                    !bs'' = BS.drop len bs'
                                 in return (bstr, bs'')
         let !str = T.decodeUtf8 bstr  --FIXME: utf8 validation
-        liftST (k str) >>= \da -> go_slow da bs'' (offset' + fromIntegral len)
+        da' <- liftST (k str)
+        go_slow da' bs'' (offset' + fromIntegral len)
 
       SlowFail bs_unconsumed msg ->
         decodeFail (bs_unconsumed <> bs') offset'' msg
@@ -802,7 +818,7 @@ go_slow_overlapped da sz bs_cur bs_next !offset =
 --TODO: also consider sharing or not sharing here, and possibly rechunking.
 
 getTokenVarLen :: Int -> ByteString -> ByteOffset
-               -> IncrementalDecoder s (ByteString, ByteString)
+               -> DecodeIncrementallyM s (ByteString, ByteString)
 getTokenVarLen len bs offset =
     assert (len > BS.length bs) $ do
     mbs <- needChunk
@@ -820,7 +836,7 @@ getTokenVarLen len bs offset =
                          offset
 
 getTokenVarLenSlow :: [ByteString] -> Int -> ByteOffset
-                   -> IncrementalDecoder s (ByteString, ByteString)
+                   -> DecodeIncrementallyM s (ByteString, ByteString)
 getTokenVarLenSlow bss n offset = do
     mbs <- needChunk
     case mbs of

@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP                #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE RankNTypes #-}
 
 -- |
 -- Module      : Data.Binary.Serialise.CBOR
@@ -32,6 +33,7 @@ module Data.Binary.Serialise.CBOR
     -- $primitives
   , serialiseIncremental
   , deserialiseIncremental
+  , DecodeIncrementally(..)
 
     -- * The @'Serialise'@ class
   , Serialise(..)
@@ -49,18 +51,17 @@ module Data.Binary.Serialise.CBOR
 #include "cbor.h"
 
 import           System.IO                        (Handle, IOMode (..), withFile)
-import           Data.Typeable                    (Typeable)
-import           Control.Exception                (Exception(..), throw, throwIO)
+import           Control.Exception                (throw, throwIO)
 import           Control.Monad.ST                 (ST, runST)
 
-import qualified Data.Binary.Get                  as Bin
 import qualified Data.ByteString.Builder          as BS
 import qualified Data.ByteString.Lazy             as BS
 import qualified Data.ByteString.Lazy.Internal    as BS
 
 import           Data.Binary.Serialise.CBOR.Class
 import qualified Data.Binary.Serialise.CBOR.Read  as CBOR.Read
-import           Data.Binary.Serialise.CBOR.Read  (DecodeIncrementally(..))
+import           Data.Binary.Serialise.CBOR.Read  (DecodeIncrementally(..),
+                                                   DeserialiseFailure)
 import qualified Data.Binary.Serialise.CBOR.Write as CBOR.Write
 
 --------------------------------------------------------------------------------
@@ -111,42 +112,28 @@ serialise = CBOR.Write.toLazyByteString . encode
 -- /Throws/: @'DeserialiseFailure'@ if the given external representation is
 -- invalid or does not correspond to a value of the expected type.
 deserialise :: Serialise a => BS.ByteString -> a
-deserialise bs0 =
-    runST (flip supplyAllInput bs0 =<< deserialiseIncremental)
-  where
-    supplyAllInput (IDone _ _ x) _bs = return x
-    supplyAllInput (IPartial k)   bs =
-      case bs of
-        BS.Chunk chunk bs' ->  k (Just chunk) >>= \d -> supplyAllInput d bs'
-        BS.Empty           ->  k Nothing      >>= \d -> supplyAllInput d BS.Empty
-    supplyAllInput (IFail _ off msg) _ =
-      throw (DeserialiseFailure off (show msg))
-
--- | An exception type that may be returned (by pure functions) or
--- thrown (by IO actions) that fail to deserialise a given input.
-data DeserialiseFailure =
-       DeserialiseFailure Bin.ByteOffset String
-  deriving (Show, Typeable)
-
-instance Exception DeserialiseFailure where
-#if MIN_VERSION_base(4,8,0)
-    displayException (DeserialiseFailure off msg) =
-      "Data.Binary.Serialise.CBOR: deserialising failed at offset "
-           ++ show off ++ " : " ++ msg
-#endif
+deserialise = either throw id
+            . deserialiseOrFail
 
 -- | Deserialise a Haskell value from the external binary representation,
 -- or get back a @'DeserialiseFailure'@.
 deserialiseOrFail :: Serialise a => BS.ByteString -> Either DeserialiseFailure a
-deserialiseOrFail bs0 = runST (flip supplyAllInput bs0 =<< deserialiseIncremental)
+deserialiseOrFail bs =
+    runDecodeIncrementally deserialiseIncremental bs
+
+
+runDecodeIncrementally :: (forall s. ST s (DecodeIncrementally s a))
+                       -> BS.ByteString -> Either DeserialiseFailure a
+runDecodeIncrementally d lbs =
+    runST (flip go lbs =<< d)
   where
-    supplyAllInput (IDone _ _ x) _bs = return (Right x)
-    supplyAllInput (IPartial k)   bs =
-      case bs of
-        BS.Chunk chunk bs' ->  k (Just chunk) >>= \d -> supplyAllInput d bs'
-        BS.Empty           ->  k Nothing      >>= \d -> supplyAllInput d BS.Empty
-    supplyAllInput (IFail _ offset msg) _ =
-        return (Left (DeserialiseFailure offset (show msg)))
+    go :: DecodeIncrementally s a -> BS.ByteString
+       -> ST s (Either DeserialiseFailure a)
+    go (Fail _ _ err) _                = return (Left err)
+    go (Done _ _ x)   _                = return (Right x)
+    go (Partial k)  BS.Empty          = k Nothing   >>= flip go BS.Empty
+    go (Partial k) (BS.Chunk bs lbs') = k (Just bs) >>= flip go lbs'
+
 
 --------------------------------------------------------------------------------
 -- File-based API
