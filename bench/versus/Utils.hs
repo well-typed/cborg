@@ -10,6 +10,7 @@ import           Control.Monad (when)
 import           System.FilePath
 import           System.Directory
 
+import qualified Data.ByteString        as B
 import qualified Data.ByteString.Lazy   as BS
 import qualified Codec.Compression.GZip as GZip
 
@@ -17,6 +18,7 @@ import           Macro.DeepSeq ()
 import qualified Macro.Load      as Load
 import qualified Macro.PkgBinary as PkgBinary
 import qualified Macro.PkgCereal as PkgCereal
+import qualified Macro.PkgStore  as PkgStore
 import qualified Macro.CBOR      as CBOR
 
 --------------------------------------------------------------------------------
@@ -68,6 +70,14 @@ prepBenchmarkFiles = do
         when (not exists) $ do
           let msg = "Creating " ++ file
           notice msg (BS.writeFile file bs)
+      -- Write a file to the temporary directory, if it does not exist.
+      -- Strict version.
+      writeS p bs = do
+        let file = destDir </> p
+        exists <- doesFileExist file
+        when (not exists) $ do
+          let msg = "Creating " ++ file
+          notice msg (B.writeFile file bs)
 
   -- Encode that dense data in several forms, and write those forms out
   -- to disk. TODO FIXME (aseipp): should we actually have the -small variant?
@@ -76,6 +86,7 @@ prepBenchmarkFiles = do
   write "binary.bin"     (PkgBinary.serialise _pkgs20k)
   write "cereal.bin"     (PkgCereal.serialise _pkgs20k)
   write "cbor.bin"       (CBOR.serialise      _pkgs20k)
+  writeS "store.bin"     (PkgStore.serialise  _pkgs20k)
 --write "cbor-small.bin" (CBOR.serialise      _pkgs1k)
 
   -- And before we finish: do a garbage collection to clean up anything left
