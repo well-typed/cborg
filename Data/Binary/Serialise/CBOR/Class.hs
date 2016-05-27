@@ -56,7 +56,7 @@ import qualified Data.Foldable                       as Foldable
 import qualified Data.ByteString                     as BS
 import qualified Data.Text                           as Text
 
--- TODO: more instances
+-- TODO FIXME: more instances
 --import qualified Data.Array                          as Array
 --import qualified Data.Array.Unboxed                  as UArray
 --import qualified Data.ByteString                     as BS.Lazy
@@ -1115,7 +1115,7 @@ instance (GSerialiseProd f, GSerialiseProd g) => GSerialiseDecode (f :*: g) wher
     gdecode = do
       let nF = nFields (Proxy :: Proxy (f :*: g))
       n <- decodeListLen
-      -- FIXME: signedness of list length
+      -- TODO FIXME: signedness of list length
       when (fromIntegral n /= nF + 1) $
         fail $ "Wrong number of fields: expected="++show nF++" got="++show n
       tag <- decodeWord
@@ -1137,7 +1137,7 @@ instance (GSerialiseSum f, GSerialiseSum g) => GSerialiseEncode (f :+: g) where
 instance (GSerialiseSum f, GSerialiseSum g) => GSerialiseDecode (f :+: g) where
     gdecode = do
         n <- decodeListLen
-        -- FIXME: Again signedness
+        -- TODO FIXME: Again signedness
         when (n == 0) $
           fail "Empty list encountered for sum type"
         nCon  <- decodeWord

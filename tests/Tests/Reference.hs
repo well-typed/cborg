@@ -254,7 +254,7 @@ specTestVector =
   , ("{_ \"Fun\": true, \"Amt\": -2}", [0xbf, 0x63, 0x46, 0x75, 0x6e, 0xf5, 0x63, 0x41, 0x6d, 0x74, 0x21, 0xff])
   ]
 
---TODO: test redundant encodings e.g.
+-- TODO FIXME: test redundant encodings e.g.
 -- bigint with zero-length bytestring
 -- bigint with leading zeros
 -- bigint using indefinate bytestring encoding

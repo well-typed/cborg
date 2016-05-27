@@ -7,7 +7,7 @@
 # This script alone is under the Apache 2.0 license. Thanks to
 # Phabricator for the sweet ASCII art.
 #
-# TODO: replace flames with a tea cup
+# TODO FIXME: replace flames with a tea cup
 
 set e
 unset CDPATH

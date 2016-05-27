@@ -145,8 +145,8 @@ runP :: LineNo -> String -> ReadP a -> String -> ParseResult a
 runP line fieldname p s =
   case [ x | (x,"") <- results ] of
     [a] -> ParseOk (utf8Warnings line fieldname s) a
-    --TODO: what is this double parse thing all about?
-    --      Can't we just do the all isSpace test the first time?
+    -- TODO FIXME: what is this double parse thing all about? Can't we
+    -- just do the all isSpace test the first time?
     []  -> case [ x | (x,ys) <- results, all isSpace ys ] of
              [a] -> ParseOk (utf8Warnings line fieldname s) a
              []  -> ParseFailed (NoParse fieldname line)
@@ -712,7 +712,7 @@ instance Text Version where
   parse = do
       branch <- Parse.sepBy1 digits (Parse.char '.')
       tags   <- Parse.many (Parse.char '-' >> Parse.munch1 Char.isAlphaNum)
-      return (Version branch tags)  --TODO: should we ignore the tags?
+      return (Version branch tags)  -- TODO FIXME: should we ignore the tags?
     where
       digits = do
         first <- Parse.satisfy Char.isDigit

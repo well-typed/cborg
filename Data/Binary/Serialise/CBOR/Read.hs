@@ -631,7 +631,7 @@ go_slow da bs !offset =
 
     SlowConsumeTokenString bs' k len -> do
       (bstr, bs'') <- getTokenVarLen len bs' offset'
-      let !str = T.decodeUtf8 bstr  --FIXME: utf8 validation
+      let !str = T.decodeUtf8 bstr  -- TODO FIXME: utf8 validation
       go_slow (k str) bs'' (offset' + fromIntegral len)
       where
         !offset' = offset + fromIntegral (BS.length bs - BS.length bs')
@@ -742,7 +742,7 @@ go_slow_overlapped da sz bs_cur bs_next !offset =
                           else let !bstr = BS.take len bs'
                                    !bs'' = BS.drop len bs'
                                 in return (bstr, bs'')
-        let !str = T.decodeUtf8 bstr  --FIXME: utf8 validation
+        let !str = T.decodeUtf8 bstr  -- TODO FIXME: utf8 validation
         go_slow (k str) bs'' (offset' + fromIntegral len)
 
       SlowFail bs_unconsumed msg ->
@@ -752,12 +752,13 @@ go_slow_overlapped da sz bs_cur bs_next !offset =
 
 
 
---TODO: we can do slightly better here. If we're returning a lazy string
--- (String, lazy Text, lazy ByteString) then we don't have to strictify here
--- and if we're returning a strict string perhaps we can still stream the utf8
--- validation/converstion
+-- TODO FIXME: we can do slightly better here. If we're returning a
+-- lazy string (String, lazy Text, lazy ByteString) then we don't have
+-- to strictify here and if we're returning a strict string perhaps we
+-- can still stream the utf8 validation/converstion
 
---TODO: also consider sharing or not sharing here, and possibly rechunking.
+-- TODO FIXME: also consider sharing or not sharing here, and possibly
+-- rechunking.
 
 getTokenVarLen :: Int -> ByteString -> ByteOffset
                -> IncrementalDecoder (ByteString, ByteString)
@@ -857,7 +858,7 @@ data LongToken a = Fits !a | TooLong !Int
   deriving Show
 
 
---TODO: check with 7.10 and file ticket:
+-- TODO FIXME: check with 7.10 and file ticket:
 -- a case analysis against 0x00 .. 0xff :: Word8 turns into a huge chain
 -- of >= tests. It could use a jump table, or at least it could use a binary
 -- division. Whereas for Int or Word it does the right thing.
@@ -893,7 +894,7 @@ tryConsumeWord hdr !bs = case fromIntegral hdr :: Word of
   0x18 -> DecodedToken 2 (withBsPtr grabWord8  (BS.unsafeTail bs))
   0x19 -> DecodedToken 3 (withBsPtr grabWord16 (BS.unsafeTail bs))
   0x1a -> DecodedToken 5 (withBsPtr grabWord32 (BS.unsafeTail bs))
-  0x1b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
+  0x1b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
   _    -> DecodeFailure
 
 
@@ -928,7 +929,7 @@ tryConsumeNegWord hdr !bs = case fromIntegral hdr :: Word of
   0x38 -> DecodedToken 2 (withBsPtr grabWord8  (BS.unsafeTail bs))
   0x39 -> DecodedToken 3 (withBsPtr grabWord16 (BS.unsafeTail bs))
   0x3a -> DecodedToken 5 (withBsPtr grabWord32 (BS.unsafeTail bs))
-  0x3b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
+  0x3b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
   _    -> DecodeFailure
 
 
@@ -962,8 +963,8 @@ tryConsumeInt hdr !bs = case fromIntegral hdr :: Word of
   0x17 -> DecodedToken 1 23
   0x18 -> DecodedToken 2 (fromIntegral (withBsPtr grabWord8  (BS.unsafeTail bs)))
   0x19 -> DecodedToken 3 (fromIntegral (withBsPtr grabWord16 (BS.unsafeTail bs)))
-  0x1a -> DecodedToken 5 (fromIntegral (withBsPtr grabWord32 (BS.unsafeTail bs))) --FIXME: overflow
-  0x1b -> DecodedToken 9 (fromIntegral (withBsPtr grabWord64 (BS.unsafeTail bs))) --FIXME: overflow
+  0x1a -> DecodedToken 5 (fromIntegral (withBsPtr grabWord32 (BS.unsafeTail bs))) -- TODO FIXME: overflow
+  0x1b -> DecodedToken 9 (fromIntegral (withBsPtr grabWord64 (BS.unsafeTail bs))) -- TODO FIXME: overflow
 
   -- Negative integers (type 1)
   0x20 -> DecodedToken 1 (-1)
@@ -992,8 +993,8 @@ tryConsumeInt hdr !bs = case fromIntegral hdr :: Word of
   0x37 -> DecodedToken 1 (-24)
   0x38 -> DecodedToken 2 (-1 - fromIntegral (withBsPtr grabWord8  (BS.unsafeTail bs)))
   0x39 -> DecodedToken 3 (-1 - fromIntegral (withBsPtr grabWord16 (BS.unsafeTail bs)))
-  0x3a -> DecodedToken 5 (-1 - fromIntegral (withBsPtr grabWord32 (BS.unsafeTail bs))) --FIXME: overflow
-  0x3b -> DecodedToken 9 (-1 - fromIntegral (withBsPtr grabWord64 (BS.unsafeTail bs))) --FIXME: overflow
+  0x3a -> DecodedToken 5 (-1 - fromIntegral (withBsPtr grabWord32 (BS.unsafeTail bs))) -- TODO FIXME: overflow
+  0x3b -> DecodedToken 9 (-1 - fromIntegral (withBsPtr grabWord64 (BS.unsafeTail bs))) -- TODO FIXME: overflow
   _    -> DecodeFailure
 
 
@@ -1169,8 +1170,8 @@ tryConsumeListLen hdr !bs = case fromIntegral hdr :: Word of
   0x97 -> DecodedToken 1 23
   0x98 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
   0x99 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
-  0x9a -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)) --FIXME: overflow
-  0x9b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
+  0x9a -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)) -- TODO FIXME: overflow
+  0x9b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
   _    -> DecodeFailure
 
 
@@ -1204,8 +1205,8 @@ tryConsumeMapLen hdr !bs = case fromIntegral hdr :: Word of
   0xb7 -> DecodedToken 1 23
   0xb8 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
   0xb9 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
-  0xba -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)) --FIXME: overflow
-  0xbb -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
+  0xba -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)) -- TODO FIXME: overflow
+  0xbb -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
   _    -> DecodeFailure
 
 
@@ -1254,8 +1255,8 @@ tryConsumeListLenOrIndef hdr !bs = case fromIntegral hdr :: Word of
   0x97 -> DecodedToken 1 23
   0x98 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
   0x99 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
-  0x9a -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)) --FIXME: overflow
-  0x9b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
+  0x9a -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)) -- TODO FIXME: overflow
+  0x9b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
   0x9f -> DecodedToken 1 (-1) -- indefinite length
   _    -> DecodeFailure
 
@@ -1291,8 +1292,8 @@ tryConsumeMapLenOrIndef hdr !bs = case fromIntegral hdr :: Word of
   0xb7 -> DecodedToken 1 23
   0xb8 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
   0xb9 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
-  0xba -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)) --FIXME: overflow
-  0xbb -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
+  0xba -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)) -- TODO FIXME: overflow
+  0xbb -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
   0xbf -> DecodedToken 1 (-1) -- indefinite length
   _    -> DecodeFailure
 
@@ -1329,7 +1330,7 @@ tryConsumeTag hdr !bs = case fromIntegral hdr :: Word of
   0xd8 -> DecodedToken 2 (withBsPtr grabWord8  (BS.unsafeTail bs))
   0xd9 -> DecodedToken 3 (withBsPtr grabWord16 (BS.unsafeTail bs))
   0xda -> DecodedToken 5 (withBsPtr grabWord32 (BS.unsafeTail bs))
-  0xdb -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
+  0xdb -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
   _    -> DecodeFailure
 
 --
@@ -1367,7 +1368,7 @@ tryConsumeWord64 hdr !bs = case fromIntegral hdr :: Word of
   0x18 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
   0x19 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
   0x1a -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs))
-  0x1b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
+  0x1b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
   _    -> DecodeFailure
 {-# INLINE tryConsumeWord64 #-}
 
@@ -1401,7 +1402,7 @@ tryConsumeNegWord64 hdr !bs = case fromIntegral hdr :: Word of
   0x38 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
   0x39 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
   0x3a -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs))
-  0x3b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
+  0x3b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
   _    -> DecodeFailure
 {-# INLINE tryConsumeNegWord64 #-}
 
@@ -1434,8 +1435,8 @@ tryConsumeInt64 hdr !bs = case fromIntegral hdr :: Word of
   0x17 -> DecodedToken 1 23
   0x18 -> DecodedToken 2 (fromIntegral (withBsPtr grabWord8  (BS.unsafeTail bs)))
   0x19 -> DecodedToken 3 (fromIntegral (withBsPtr grabWord16 (BS.unsafeTail bs)))
-  0x1a -> DecodedToken 5 (fromIntegral (withBsPtr grabWord32 (BS.unsafeTail bs))) --FIXME: overflow
-  0x1b -> DecodedToken 9 (fromIntegral (withBsPtr grabWord64 (BS.unsafeTail bs))) --FIXME: overflow
+  0x1a -> DecodedToken 5 (fromIntegral (withBsPtr grabWord32 (BS.unsafeTail bs))) -- TODO FIXME: overflow
+  0x1b -> DecodedToken 9 (fromIntegral (withBsPtr grabWord64 (BS.unsafeTail bs))) -- TODO FIXME: overflow
 
   -- Negative integers (type 1)
   0x20 -> DecodedToken 1 (-1)
@@ -1464,8 +1465,8 @@ tryConsumeInt64 hdr !bs = case fromIntegral hdr :: Word of
   0x37 -> DecodedToken 1 (-24)
   0x38 -> DecodedToken 2 (-1 - fromIntegral (withBsPtr grabWord8  (BS.unsafeTail bs)))
   0x39 -> DecodedToken 3 (-1 - fromIntegral (withBsPtr grabWord16 (BS.unsafeTail bs)))
-  0x3a -> DecodedToken 5 (-1 - fromIntegral (withBsPtr grabWord32 (BS.unsafeTail bs))) --FIXME: overflow
-  0x3b -> DecodedToken 9 (-1 - fromIntegral (withBsPtr grabWord64 (BS.unsafeTail bs))) --FIXME: overflow
+  0x3a -> DecodedToken 5 (-1 - fromIntegral (withBsPtr grabWord32 (BS.unsafeTail bs))) -- TODO FIXME: overflow
+  0x3b -> DecodedToken 9 (-1 - fromIntegral (withBsPtr grabWord64 (BS.unsafeTail bs))) -- TODO FIXME: overflow
   _    -> DecodeFailure
 {-# INLINE tryConsumeInt64 #-}
 
@@ -1498,8 +1499,8 @@ tryConsumeListLen64 hdr !bs = case fromIntegral hdr :: Word of
   0x97 -> DecodedToken 1 23
   0x98 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
   0x99 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
-  0x9a -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)) --FIXME: overflow
-  0x9b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
+  0x9a -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)) -- TODO FIXME: overflow
+  0x9b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
   _    -> DecodeFailure
 {-# INLINE tryConsumeListLen64 #-}
 
@@ -1532,8 +1533,8 @@ tryConsumeMapLen64 hdr !bs = case fromIntegral hdr :: Word of
   0xb7 -> DecodedToken 1 23
   0xb8 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
   0xb9 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
-  0xba -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)) --FIXME: overflow
-  0xbb -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
+  0xba -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)) -- TODO FIXME: overflow
+  0xbb -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
   _    -> DecodeFailure
 {-# INLINE tryConsumeMapLen64 #-}
 
@@ -1567,7 +1568,7 @@ tryConsumeTag64 hdr !bs = case fromIntegral hdr :: Word of
   0xd8 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
   0xd9 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
   0xda -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs))
-  0xdb -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) --FIXME: overflow
+  0xdb -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
   _    -> DecodeFailure
 {-# INLINE tryConsumeTag64 #-}
 #endif
@@ -1708,7 +1709,7 @@ readBytes32 bs
   = DecodedToken hdrsz $ TooLong n
   where
     hdrsz = 5
-    --FIXME: int overflow
+    -- TODO FIXME: int overflow
     n = fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)
 
 readBytes64 bs
@@ -1721,7 +1722,7 @@ readBytes64 bs
   = DecodedToken hdrsz $ TooLong n
   where
     hdrsz = 5
-    --FIXME: int overflow
+    -- TODO FIXME: int overflow
     n = fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)
 
 
@@ -1731,7 +1732,7 @@ readStringSmall n bs
   | n + hdrsz <= BS.length bs
   = DecodedToken (n+hdrsz) $ Fits $
       T.decodeUtf8 (BS.unsafeTake n (BS.unsafeDrop hdrsz bs))
-      --FIXME: utf8 validation
+      -- TODO FIXME: utf8 validation
 
   -- if n > bound then slow path, multi-chunk
   | otherwise
@@ -1745,7 +1746,7 @@ readString8 bs
   | n <= BS.length bs - hdrsz
   = DecodedToken (n+hdrsz) $ Fits $
       T.decodeUtf8 (BS.unsafeTake n (BS.unsafeDrop hdrsz bs))
-      --FIXME: utf8 validation
+      -- TODO FIXME: utf8 validation
 
   -- if n > bound then slow path, multi-chunk
   | otherwise
@@ -1758,7 +1759,7 @@ readString16 bs
   | n <= BS.length bs - hdrsz
   = DecodedToken (n+hdrsz) $ Fits $
       T.decodeUtf8 (BS.unsafeTake n (BS.unsafeDrop hdrsz bs))
-      --FIXME: utf8 validation
+      -- TODO FIXME: utf8 validation
 
   -- if n > bound then slow path, multi-chunk
   | otherwise
@@ -1771,28 +1772,28 @@ readString32 bs
   | n <= BS.length bs - hdrsz
   = DecodedToken (n+hdrsz) $ Fits $
       T.decodeUtf8 (BS.unsafeTake n (BS.unsafeDrop hdrsz bs))
-      --FIXME: utf8 validation
+      -- TODO FIXME: utf8 validation
 
   -- if n > bound then slow path, multi-chunk
   | otherwise
   = DecodedToken hdrsz $ TooLong n
   where
     hdrsz = 5
-    --FIXME: int overflow
+    -- TODO FIXME: int overflow
     n = fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)
 
 readString64 bs
   | n <= BS.length bs - hdrsz
   = DecodedToken (n+hdrsz) $ Fits $
       T.decodeUtf8 (BS.unsafeTake n (BS.unsafeDrop hdrsz bs))
-      --FIXME: utf8 validation
+      -- TODO FIXME: utf8 validation
 
   -- if n > bound then slow path, multi-chunk
   | otherwise
   = DecodedToken hdrsz $ TooLong n
   where
     hdrsz = 5
-    --FIXME: int overflow
+    -- TODO FIXME: int overflow
     n = fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)
 
 

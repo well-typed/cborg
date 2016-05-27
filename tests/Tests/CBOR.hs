@@ -275,8 +275,9 @@ testTree testCases =
         [ testProperty "from/to reference terms"        prop_fromToRefTerm
         , testProperty "to/from reference terms"        prop_toFromRefTerm
         , testProperty "rountrip de/encoding terms"     prop_encodeDecodeTermRoundtrip
-          --TODO: need to fix the generation of terms to give better size
-          -- distribution some get far too big for the splits properties.
+          -- TODO FIXME: need to fix the generation of terms to give
+          -- better size distribution some get far too big for the
+          -- splits properties.
         , localOption (QuickCheckMaxSize 30) $
           testProperty "decoding with all 2-chunks"     prop_encodeDecodeTermRoundtrip_splits2
         , localOption (QuickCheckMaxSize 20) $
