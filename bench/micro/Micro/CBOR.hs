@@ -11,7 +11,6 @@ import qualified Data.Binary.Serialise.CBOR as CBOR
 import Data.Monoid
 
 import qualified Data.ByteString.Lazy as BS
-import qualified Data.ByteString.Builder as BS
 
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative
