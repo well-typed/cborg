@@ -49,7 +49,7 @@ encodeValue  Null       = encodeNull
 --------------------------------------------------------------------------------
 -- Decoder from CBOR values to JSON values
 
-decodeValue :: Decoder Value
+decodeValue :: Decoder s Value
 decodeValue = do
     tkty <- peekTokenType
     case tkty of
@@ -69,11 +69,11 @@ decodeValue = do
       _           -> fail $ "unexpected CBOR token type for a JSON value: "
                          ++ show tkty
 
-decodeNumberIntegral :: Decoder Value
+decodeNumberIntegral :: Decoder s Value
 decodeNumberIntegral = Number . fromInteger <$> decode
 
-decodeNumberFloating :: Decoder Value
-decodeNumberFloating = Number . fromFloatDigits <$> (decode :: Decoder Double)
+decodeNumberFloating :: Decoder s Value
+decodeNumberFloating = Number . fromFloatDigits <$> (decode :: Decoder s Double)
 
 
 --------------------------------------------------------------------------------
@@ -105,7 +105,7 @@ cborToJson file = do
 
   bs <- LB.readFile file
   case (CBOR.Read.deserialiseFromBytes decodeValue bs) of
-    Left err -> fail $ "deserialization error: " ++ err
+    Left err -> fail $ "deserialization error: " ++ show err
     Right v  -> do
       let builder = Aeson.Pretty.encodePrettyToTextBuilder v
       T.putStrLn (T.toLazyText builder)
