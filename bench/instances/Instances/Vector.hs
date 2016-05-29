@@ -8,10 +8,13 @@ import           Data.Proxy
 import           Criterion.Main
 import qualified Data.Vector.Generic as VG
 import qualified Data.Vector.Unboxed as VU
+import qualified Data.Vector.Primitive as VP
 import qualified Data.Vector as V
 import qualified Data.ByteString.Lazy as BSL
 import           Data.Binary.Serialise.CBOR
 import           Control.DeepSeq (force)
+import           Data.Int (Int64)
+
 
 benchmarks :: [Benchmark]
 benchmarks =
@@ -27,6 +30,21 @@ benchmarks =
           , vectorDecode unboxed (42 :: Int) 5000
           , vectorDecode unboxed (42 :: Int) 50000
           , vectorDecode unboxed (42 :: Int) 500000
+          ]
+      ]
+    --TODO: Int case. For now use Int64.
+  , bgroup "primitive"
+      [ bgroup "encode"
+          [ vectorEncode prim (42 :: Int64) 500
+          , vectorEncode prim (42 :: Int64) 5000
+          , vectorEncode prim (42 :: Int64) 50000
+          , vectorEncode prim (42 :: Int64) 500000
+          ]
+      , bgroup "decode"
+          [ vectorDecode prim (42 :: Int64) 500
+          , vectorDecode prim (42 :: Int64) 5000
+          , vectorDecode prim (42 :: Int64) 50000
+          , vectorDecode prim (42 :: Int64) 500000
           ]
       ]
   , bgroup "boxed"
@@ -46,6 +64,7 @@ benchmarks =
   ]
   where
     unboxed = Proxy :: Proxy VU.Vector
+    prim    = Proxy :: Proxy VP.Vector
     boxed   = Proxy :: Proxy V.Vector
 
 --------------------------------------------------------------------------------
