@@ -2,6 +2,7 @@
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE DefaultSignatures   #-}
 {-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE FlexibleInstances   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
@@ -28,7 +29,6 @@ module Data.Binary.Serialise.CBOR.Class
 #include "cbor.h"
 
 import           Control.Applicative
-
 import           Control.Monad
 import           Data.Hashable
 import           Data.Int
@@ -62,6 +62,8 @@ import qualified Data.HashSet                        as HashSet
 import qualified Data.HashMap.Strict                 as HashMap
 import qualified Data.Vector                         as Vector
 import qualified Data.Vector.Unboxed                 as Vector.Unboxed
+import qualified Data.Vector.Mutable                 as MVector
+import qualified Data.Vector.Primitive               as Prim
 --import qualified Data.Text.Lazy                      as Text.Lazy
 import           Foreign.C.Types
 
@@ -81,6 +83,7 @@ import           GHC.Generics
 
 import           Data.Binary.Serialise.CBOR.Decoding
 import           Data.Binary.Serialise.CBOR.Encoding
+import           Data.Binary.Serialise.CBOR.ByteOrder
 
 
 --------------------------------------------------------------------------------
@@ -594,6 +597,100 @@ decodeContainerSkelWithReplicate decodeLen replicateFun fromList = do
            return $! fromList containers
 {-# INLINE decodeContainerSkelWithReplicate #-}
 
+{-
+decodePrimArray :: Int -> Decoder s a -> Decoder s (Prim.Array a)
+decodePrimArray size decodeElem = do
+    marr <- liftST $ Prim.newArray size undefElem
+    go marr 0 size
+    liftST $ Prim.unsafeFreezeArray marr
+  where
+    go !marr n lim
+      | n == lim  = return ()
+      | otherwise = do
+          x <- decodeElem
+          liftST $ Prim.writeArray marr n x
+          go marr (n+1) lim
+
+undefElem :: a
+undefElem = throw (UndefinedElement "decodePrimArray")
+-}
+decodeBoxedVector :: Int -> Decoder s a -> Decoder s (Vector.Vector a)
+decodeBoxedVector size decodeElem = do
+    marr <- liftST $ MVector.new size
+    c    <- liftST $ newCounter 0
+    let !lim = size
+        go = do
+          n <- liftST $ readCounter c
+          if n == lim
+            then return ()
+            else do
+              liftST $ writeCounter c (n+1)
+              x <- decodeElem
+              liftST $ MVector.unsafeWrite marr n x
+              go
+    go
+    liftST $ Vector.unsafeFreeze marr
+{-# INLINE decodeBoxedVector #-}
+
+instance Serialise (Prim.Vector Word8) where
+  encode = encodePrimVector 64
+  decode = decodePrimVector 64
+
+instance Serialise (Prim.Vector Word16) where
+  encode = encodePrimVector 69  --TODO: this is little endian only
+  decode = decodePrimVector 69  --TODO: this is little endian only
+
+instance Serialise (Prim.Vector Word32) where
+  encode = encodePrimVector 70  --TODO: this is little endian only
+  decode = decodePrimVector 70  --TODO: this is little endian only
+
+instance Serialise (Prim.Vector Word64) where
+  encode = encodePrimVector 71  --TODO: this is little endian only
+  decode = decodePrimVector 71  --TODO: this is little endian only
+
+instance Serialise (Prim.Vector Int8) where
+  encode = encodePrimVector 72
+  decode = decodePrimVector 72
+
+instance Serialise (Prim.Vector Int16) where
+  encode = encodePrimVector 77  --TODO: this is little endian only
+  decode = decodePrimVector 77  --TODO: this is little endian only
+
+instance Serialise (Prim.Vector Int32) where
+  encode = encodePrimVector 78  --TODO: this is little endian only
+  decode = decodePrimVector 78  --TODO: this is little endian only
+
+instance Serialise (Prim.Vector Int64) where
+  encode = encodePrimVector 79  --TODO: this is little endian only
+  decode = decodePrimVector 79  --TODO: this is little endian only
+
+instance Serialise (Prim.Vector Float) where
+  encode = encodePrimVector 85  --TODO: this is little endian only
+  decode = decodePrimVector 85  --TODO: this is little endian only
+
+instance Serialise (Prim.Vector Double) where
+  encode = encodePrimVector 86  --TODO: this is little endian only
+  decode = decodePrimVector 86  --TODO: this is little endian only
+
+encodePrimVector :: Prim.Prim a => Word -> Prim.Vector a -> Encoding
+encodePrimVector tag v =
+    encodeTag tag <>
+    encodeBytes (copyPrimVectorToByteString v)
+
+decodePrimVector :: Prim.Prim a => Word -> Decoder s (Prim.Vector a)
+decodePrimVector tag = do
+    t <- decodeTag
+    if t == tag
+      then do
+        bs <- decodeBytes
+        return $! copyByteStringToPrimVector bs
+      else fail "Expected type array"
+
+{-
+encodeUnboxedVector :: Vector.Unboxed.Unbox a => Word -> Vector.Unboxed.Vector a -> Encoding
+decodeUnboxedVector :: Vector.Unboxed.Unbox a => Word -> Decoder s (Vector.Unboxed.Vector a)
+-}
+
 instance (Serialise a) => Serialise (Sequence.Seq a) where
   encode = encodeContainerSkel
              encodeListLen
@@ -604,7 +701,7 @@ instance (Serialise a) => Serialise (Sequence.Seq a) where
              decodeListLen
              Sequence.replicateM
              mconcat
-
+{-
 instance (Serialise a) => Serialise (Vector.Vector a) where
   encode = encodeContainerSkel
              encodeListLen
@@ -616,6 +713,23 @@ instance (Serialise a) => Serialise (Vector.Vector a) where
              decodeListLen
              Vector.replicateM
              Vector.concat
+  {-# INLINE decode #-}
+-}
+--newtype VectorExperiment a = VectorExperiment { unwrapVectorExperiment :: Vector.Vector a }
+
+instance Serialise a => Serialise (Vector.Vector a) where
+  encode = encodeContainerSkel
+             encodeListLen
+             Vector.length
+             Vector.foldr
+             (\a b -> encode a <> b)
+--         . unwrapVectorExperiment
+  {-# INLINE encode #-}
+  decode = do
+    len <- decodeListLen
+    arr <- decodeBoxedVector len decode
+--    return (VectorExperiment arr)
+    return arr
   {-# INLINE decode #-}
 
 instance (Serialise a, Vector.Unboxed.Unbox a) =>

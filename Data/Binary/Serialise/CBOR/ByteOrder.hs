@@ -2,6 +2,7 @@
 {-# LANGUAGE MagicHash                #-}
 {-# LANGUAGE UnboxedTuples            #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE ScopedTypeVariables      #-}
 
 -- |
 -- Module      : Data.Binary.Serialise.CBOR.ByteOrder
@@ -29,20 +30,38 @@ module Data.Binary.Serialise.CBOR.ByteOrder
   , wordToFloat16     -- :: Word  -> Float
   , floatToWord16     -- :: Float -> Word16
 
-    -- * Float/Word conversion
+    -- * Float\/Word conversion
   , wordToFloat32     -- :: Word   -> Float
   , wordToFloat64     -- :: Word64 -> Double
+
+    -- * Simple mutable counters
+  , Counter
+  , newCounter
+  , readCounter
+  , writeCounter
+
+  -- * Array support
+  , copyByteStringToPrimVector
+  , copyByteStringToByteArray
+  , copyPrimVectorToByteString
+  , copyByteArrayToByteString
   ) where
 
 #include "cbor.h"
 
 import           GHC.Exts
+import           GHC.ST (ST(ST))
+import           GHC.IO (IO(IO))
 import           GHC.Word
 import           Foreign.C.Types
 import           Foreign.Ptr
 
 import           Data.ByteString (ByteString)
+import qualified Data.ByteString          as BS
 import qualified Data.ByteString.Internal as BS
+import           Data.Primitive.ByteArray as Prim
+import           Data.Primitive.Types     as Prim
+import           Data.Vector.Primitive    as Prim
 
 import           Foreign.ForeignPtr (withForeignPtr)
 
@@ -265,3 +284,78 @@ wordToFloat64# w# =
 --   poke (castPtr buf) w
 --   peek buf
 -- {-# INLINE toFloat #-}
+
+data Counter s = Counter (MutableByteArray# s)
+
+newCounter :: Int -> ST s (Counter s)
+newCounter (I# n#) =
+    ST (\s ->
+      case newByteArray# 8# s of
+        (# s', mba# #) ->
+          case writeIntArray# mba# 0# n# s' of
+            s'' -> (# s'', Counter mba# #))
+
+readCounter :: Counter s -> ST s Int
+readCounter (Counter mba#) =
+    ST (\s ->
+      case readIntArray# mba# 0# s of
+        (# s', n# #) -> (# s', I# n# #))
+
+writeCounter :: Counter s -> Int -> ST s ()
+writeCounter (Counter mba#) (I# n#) =
+    ST (\s ->
+      case writeIntArray# mba# 0# n# s of
+        s' -> (# s', () #))
+
+--incCounter c = 
+--decCounter c =
+
+{-# INLINE newCounter   #-}
+{-# INLINE readCounter  #-}
+{-# INLINE writeCounter #-}
+
+copyByteStringToPrimVector :: forall a. Prim a => BS.ByteString -> Prim.Vector a
+copyByteStringToPrimVector bs =
+    Prim.Vector 0 len (copyByteStringToByteArray bs)
+  where
+    len = BS.length bs `div` I# (Prim.sizeOf# (undefined :: a))
+
+copyByteStringToByteArray :: BS.ByteString -> Prim.ByteArray
+copyByteStringToByteArray (BS.PS fp off len) =
+    unsafeDupablePerformIO $
+      withForeignPtr fp $ \ptr -> do
+        mba <- Prim.newByteArray len
+        copyPtrToMutableByteArray (ptr `plusPtr` off) mba 0 len
+        Prim.unsafeFreezeByteArray mba
+
+--primVectorAsByteString ::
+
+--TODO: can do better here: can do non-copying for larger pinned arrays or
+-- copy directly into the builder buffer
+
+copyPrimVectorToByteString :: forall a. Prim a => Prim.Vector a -> BS.ByteString
+copyPrimVectorToByteString (Prim.Vector off len ba) =
+    copyByteArrayToByteString ba (off * s) (len * s)
+  where
+    s = I# (Prim.sizeOf# (undefined :: a))
+
+copyByteArrayToByteString :: Prim.ByteArray -> Int -> Int -> BS.ByteString
+copyByteArrayToByteString ba off len =
+    unsafeDupablePerformIO $ do
+      fp <- BS.mallocByteString len
+      withForeignPtr fp $ \ptr -> do
+        copyByteArrayToPtr ba off ptr len
+        return (BS.PS fp 0 len)
+
+copyPtrToMutableByteArray :: Ptr a -> MutableByteArray RealWorld -> Int -> Int -> IO ()
+copyPtrToMutableByteArray (Ptr addr#) (MutableByteArray mba#) (I# off#) (I# len#) =
+    IO (\s ->
+      case copyAddrToByteArray# addr# mba# off# len# s of
+        s' -> (# s', () #))
+
+copyByteArrayToPtr :: ByteArray -> Int -> Ptr a -> Int -> IO ()
+copyByteArrayToPtr (ByteArray ba#) (I# off#) (Ptr addr#) (I# len#) =
+    IO (\s ->
+      case copyByteArrayToAddr# ba# off# addr# len# s of
+        s' -> (# s', () #))
+
