@@ -20,15 +20,16 @@ module Data.Binary.Serialise.CBOR.Read
   ( deserialiseFromBytes   -- :: Decoder a -> ByteString -> Either String a
   , deserialiseIncremental -- :: Decoder a -> Decoder a
   , DeserialiseFailure(..)
+  , IDecode(..)
+  , ByteOffset
   ) where
 
 #include "cbor.h"
 
 import           Data.Binary.Serialise.CBOR.ByteOrder
-import           Data.Binary.Serialise.CBOR.Decoding
-         (Decoder, DecodeAction(..), TokenType(..), getDecodeAction)
-
-import qualified Data.Binary.Get as Bin (Decoder(..))
+import           Data.Binary.Serialise.CBOR.Decoding hiding (DecodeAction(Done, Fail))
+import           Data.Binary.Serialise.CBOR.Decoding (DecodeAction)
+import qualified Data.Binary.Serialise.CBOR.Decoding as D
 
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
@@ -64,7 +65,6 @@ import           System.IO.Unsafe               (unsafePerformIO)
 
 --------------------------------------------------------------------------------
 
-
 -- | An exception type that may be returned (by pure functions) or
 -- thrown (by IO actions) that fail to deserialise a given input.
 --
@@ -79,6 +79,27 @@ instance Exception DeserialiseFailure where
            ++ show off ++ " : " ++ msg
 #endif
 
+-- | An Incremental decoder, used to represent the result of
+-- attempting to run a decoder over a given input, and return a value
+-- of type @a@.
+data IDecode a
+  = -- | The decoder has consumed the available input and needs more
+    -- to continue. Provide @'Just'@ if more input is available and
+    -- @'Nothing'@ otherwise, and you will get a new @'IDecode'@.
+    Partial (Maybe BS.ByteString -> IDecode a)
+
+    -- | The decoder has successfully finished. Except for the output
+    -- value you also get any unused input as well as the number of
+    -- bytes consumed.
+  | Done !BS.ByteString {-# UNPACK #-} !ByteOffset a
+
+    -- | The decoder ran into an error. The decoder either used
+    -- @'fail'@ or was not provided enough input. Contains any
+    -- unconsumed input, the number of bytes consumed, and a
+    -- @'DeserialiseFailure'@ exception describing the reason why the
+    -- failure occurred.
+  | Fail !BS.ByteString {-# UNPACK #-} !ByteOffset DeserialiseFailure
+
 -- | Given a @'Decoder'@ and some @'LBS.ByteString'@ representing
 -- an encoded CBOR value, return @'Either'@ the decoded CBOR value
 -- or an error.
@@ -88,12 +109,12 @@ deserialiseFromBytes :: Decoder a -> LBS.ByteString -> Either String a
 deserialiseFromBytes =
     runBinDecoder . deserialiseIncremental
 
-runBinDecoder :: Bin.Decoder a -> LBS.ByteString -> Either String a
+runBinDecoder :: IDecode a -> LBS.ByteString -> Either String a
 runBinDecoder d lbs =
     case d of
-      Bin.Fail _ _ msg -> Left $ "decode fail: " ++ msg
-      Bin.Done _ _ x -> Right x
-      Bin.Partial k  -> case lbs of
+      Fail _ _ msg -> Left $ "decode fail: " ++ show msg
+      Done _ _ x -> Right x
+      Partial k  -> case lbs of
         LBS.Empty         -> runBinDecoder (k Nothing)   lbs
         LBS.Chunk bs lbs' -> runBinDecoder (k (Just bs)) lbs'
 
@@ -101,20 +122,20 @@ runBinDecoder d lbs =
 -- representing the result of the incremental decode.
 --
 -- @since 0.2.0.0
-deserialiseIncremental :: Decoder a -> Bin.Decoder a
+deserialiseIncremental :: Decoder a -> IDecode a
 deserialiseIncremental =
     runIncrementalDecoder . runDecodeAction . getDecodeAction
-
 
 ----------------------------------------------
 -- A monad for building incremental decoders
 --
 
+-- | Simple alias for @'Int64'@, used to make types more descriptive.
 type ByteOffset = Int64
 
 newtype IncrementalDecoder a = IncrementalDecoder {
        unIncrementalDecoder ::
-         forall r. (a -> Bin.Decoder r) -> Bin.Decoder r
+         forall r. (a -> IDecode r) -> IDecode r
      }
 
 instance Functor IncrementalDecoder where
@@ -133,15 +154,16 @@ instance Monad IncrementalDecoder where
                   unIncrementalDecoder (f x) k
 
 runIncrementalDecoder :: IncrementalDecoder (ByteString, ByteOffset, a)
-                      -> Bin.Decoder a
+                      -> IDecode a
 runIncrementalDecoder (IncrementalDecoder f) =
-  f (\(trailing, off, x) -> Bin.Done trailing off x)
+  f (\(trailing, off, x) -> Done trailing off x)
 
 decodeFail :: ByteString -> ByteOffset -> String -> IncrementalDecoder a
-decodeFail trailing off msg = IncrementalDecoder $ \_ -> Bin.Fail trailing off msg
+decodeFail trailing off msg = IncrementalDecoder $ \_ -> Fail trailing off exn
+  where exn = DeserialiseFailure off msg
 
 needChunk :: IncrementalDecoder (Maybe ByteString)
-needChunk = IncrementalDecoder $ \k -> Bin.Partial $ \mbs -> k mbs
+needChunk = IncrementalDecoder $ \k -> Partial $ \mbs -> k mbs
 
 --------------------------------------------
 -- The main decoder
@@ -149,8 +171,8 @@ needChunk = IncrementalDecoder $ \k -> Bin.Partial $ \mbs -> k mbs
 
 -- The top level entry point
 runDecodeAction :: DecodeAction a -> IncrementalDecoder (ByteString, ByteOffset, a)
-runDecodeAction (Fail msg) = decodeFail BS.empty 0 msg
-runDecodeAction (Done x)   = return (BS.empty, 0, x)
+runDecodeAction (D.Fail msg) = decodeFail BS.empty 0 msg
+runDecodeAction (D.Done x)   = return (BS.empty, 0, x)
 runDecodeAction da = do
     mbs <- needChunk
     case mbs of
@@ -394,8 +416,8 @@ go_fast (PeekTokenType k) !bs =
 
 go_fast (PeekLength k) !bs = go_fast (k $! BS.length bs) bs
 
-go_fast da@Fail{} !bs = go_fast_end da bs
-go_fast da@Done{} !bs = go_fast_end da bs
+go_fast da@D.Fail{} !bs = go_fast_end da bs
+go_fast da@D.Done{} !bs = go_fast_end da bs
 
 
 -- This variant of the fast path has to do a few more checks because we're
@@ -409,8 +431,8 @@ go_fast_end :: DecodeAction a -> ByteString -> SlowPath a
 
 -- these three cases don't need any input
 
-go_fast_end (Fail msg) !bs = SlowFail bs msg
-go_fast_end (Done x)   !bs = FastDone bs x
+go_fast_end (D.Fail msg) !bs = SlowFail bs msg
+go_fast_end (D.Done x)   !bs = FastDone bs x
 go_fast_end (PeekLength k) !bs = go_fast_end (k $! BS.length bs) bs
 
 -- the next two cases only need the 1 byte token header

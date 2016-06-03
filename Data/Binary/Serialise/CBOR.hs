@@ -31,6 +31,7 @@ module Data.Binary.Serialise.CBOR
     -- $primitives
   , serialiseIncremental
   , deserialiseIncremental
+  , CBOR.Read.IDecode(..)
 
     -- * The @'Serialise'@ class
   , Serialise(..)
@@ -50,7 +51,6 @@ module Data.Binary.Serialise.CBOR
 import           System.IO                        (Handle, IOMode (..), withFile)
 import           Control.Exception                (throw, throwIO)
 
-import qualified Data.Binary.Get                  as Bin
 import qualified Data.ByteString.Builder          as BS
 import qualified Data.ByteString.Lazy             as BS
 import qualified Data.ByteString.Lazy.Internal    as BS
@@ -87,7 +87,7 @@ serialiseIncremental = CBOR.Write.toBuilder . encode
 -- whole, not incrementally.
 --
 -- @since 0.2.0.0
-deserialiseIncremental :: Serialise a => Bin.Decoder a
+deserialiseIncremental :: Serialise a => CBOR.Read.IDecode a
 deserialiseIncremental = CBOR.Read.deserialiseIncremental decode
 
 --------------------------------------------------------------------------------
@@ -119,13 +119,12 @@ deserialise :: Serialise a => BS.ByteString -> a
 deserialise =
     supplyAllInput deserialiseIncremental
   where
-    supplyAllInput (Bin.Done _ _ x) _bs = x
-    supplyAllInput (Bin.Partial k)   bs =
+    supplyAllInput (CBOR.Read.Done _ _ x) _bs = x
+    supplyAllInput (CBOR.Read.Partial k)   bs =
       case bs of
         BS.Chunk chunk bs' ->  supplyAllInput (k (Just chunk)) bs'
         BS.Empty           ->  supplyAllInput (k Nothing)      BS.Empty
-    supplyAllInput (Bin.Fail _ off msg) _ =
-      throw (CBOR.Read.DeserialiseFailure off msg)
+    supplyAllInput (CBOR.Read.Fail _ _ exn) _ = throw exn
 
 -- | Deserialise a Haskell value from the external binary representation,
 -- or get back a @'DeserialiseFailure'@.
@@ -134,13 +133,12 @@ deserialise =
 deserialiseOrFail :: Serialise a => BS.ByteString -> Either CBOR.Read.DeserialiseFailure a
 deserialiseOrFail = supplyAllInput deserialiseIncremental
   where
-    supplyAllInput (Bin.Done _ _ x) _bs = Right x
-    supplyAllInput (Bin.Partial k)   bs =
+    supplyAllInput (CBOR.Read.Done _ _ x) _bs = Right x
+    supplyAllInput (CBOR.Read.Partial k)   bs =
       case bs of
         BS.Chunk chunk bs' ->  supplyAllInput (k (Just chunk)) bs'
         BS.Empty           ->  supplyAllInput (k Nothing)      BS.Empty
-    supplyAllInput (Bin.Fail _ offset msg) _ =
-        Left (CBOR.Read.DeserialiseFailure offset msg)
+    supplyAllInput (CBOR.Read.Fail _ _ exn) _ = Left exn
 
 --------------------------------------------------------------------------------
 -- File-based API

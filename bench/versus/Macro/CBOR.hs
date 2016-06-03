@@ -10,10 +10,9 @@ import Macro.Types
 
 import Data.Binary.Serialise.CBOR.Class
 import Data.Binary.Serialise.CBOR.Encoding hiding (Tokens(..))
-import Data.Binary.Serialise.CBOR.Decoding
+import Data.Binary.Serialise.CBOR.Decoding hiding (DecodeAction(Done, Fail))
 import Data.Binary.Serialise.CBOR.Read
 import Data.Binary.Serialise.CBOR.Write
-import qualified Data.Binary.Get as Bin
 import Data.Monoid
 
 import qualified Data.ByteString.Lazy as BS
@@ -33,12 +32,12 @@ deserialise :: BS.ByteString -> [GenericPackageDescription]
 --deserialise :: Serialise a => BS.ByteString -> a
 deserialise = feedAll (deserialiseIncremental decode)
   where
-    feedAll (Bin.Done _ _ x)    _ = x
-    feedAll (Bin.Partial k) lbs   = case lbs of
+    feedAll (Done _ _ x)    _ = x
+    feedAll (Partial k) lbs   = case lbs of
       BS.Chunk bs lbs' -> feedAll (k (Just bs)) lbs'
       BS.Empty         -> feedAll (k Nothing) BS.empty
-    feedAll (Bin.Fail _ pos msg) _ =
-      error ("Data.Binary.Get.runGet at position " ++ show pos ++ ": " ++ msg)
+    feedAll (Fail _ _ exn) _ =
+      error ("Macro.CBOR.deserialise exception " ++ show exn)
 
 deserialiseNull :: BS.ByteString -> ()
 deserialiseNull = feedAll (deserialiseIncremental decodeListNull)
@@ -50,12 +49,12 @@ deserialiseNull = feedAll (deserialiseIncremental decodeListNull)
                     else do !_ <- decode :: Decoder GenericPackageDescription
                             go
 
-    feedAll (Bin.Done _ _ x)    _ = x
-    feedAll (Bin.Partial k) lbs   = case lbs of
+    feedAll (Done _ _ x)    _ = x
+    feedAll (Partial k) lbs   = case lbs of
       BS.Chunk bs lbs' -> feedAll (k (Just bs)) lbs'
       BS.Empty         -> feedAll (k Nothing) BS.empty
-    feedAll (Bin.Fail _ pos msg) _ =
-      error ("Data.Binary.Get.runGet at position " ++ show pos ++ ": " ++ msg)
+    feedAll (Fail _ _ exn) _ =
+      error ("Macro.CBOR.deserialiseNull exception " ++ show exn)
 
 encodeCtr0 n     = encodeListLen 1 <> encode (n :: Word)
 encodeCtr1 n a   = encodeListLen 2 <> encode (n :: Word) <> encode a

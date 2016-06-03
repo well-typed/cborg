@@ -6,10 +6,9 @@ import Micro.Types
 
 import Data.Binary.Serialise.CBOR.Class
 import Data.Binary.Serialise.CBOR.Encoding
-import Data.Binary.Serialise.CBOR.Decoding
+import Data.Binary.Serialise.CBOR.Decoding hiding (DecodeAction(Done, Fail))
 import Data.Binary.Serialise.CBOR.Read
 import Data.Binary.Serialise.CBOR.Write
-import qualified Data.Binary.Get as Bin
 import Data.Monoid
 
 import qualified Data.ByteString.Lazy as BS
@@ -27,12 +26,12 @@ serialise = BS.toLazyByteString . toBuilder . encode
 deserialise :: BS.ByteString -> Tree
 deserialise = feedAll (deserialiseIncremental decode)
   where
-    feedAll (Bin.Done _ _ x)    _ = x
-    feedAll (Bin.Partial k) lbs   = case lbs of
+    feedAll (Done _ _ x)    _ = x
+    feedAll (Partial k) lbs   = case lbs of
       BS.Chunk bs lbs' -> feedAll (k (Just bs)) lbs'
       BS.Empty         -> feedAll (k Nothing) BS.empty
-    feedAll (Bin.Fail _ pos msg) _ =
-      error ("Data.Binary.Get.runGet at position " ++ show pos ++ ": " ++ msg)
+    feedAll (Fail _ _ exn) _ =
+      error ("Micro.CBOR.feedAll exception: " ++ show exn)
 
 encodeCtr0 :: Word -> Encoding
 encodeCtr2 :: (Serialise a, Serialise b) => Word -> a -> b -> Encoding
@@ -71,4 +70,3 @@ instance Serialise Tree where
       1 -> decodeCtrBody0 l Leaf
       2 -> decodeCtrBody2 l Fork
       x -> error $ "Serialise Tree: decode: impossible tag " ++ show x
-

@@ -85,7 +85,6 @@ library
   build-depends:
     array                   >= 0.4     && < 0.6,
     base                    >= 4.6     && < 5.0,
-    binary                  >= 0.7     && < 0.9,
     bytestring              >= 0.10.4  && < 0.11,
     ghc-prim                >= 0.3     && < 0.6,
     text                    >= 1.1     && < 1.3,

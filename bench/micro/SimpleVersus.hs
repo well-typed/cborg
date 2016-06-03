@@ -6,7 +6,6 @@ module SimpleVersus
 import           Control.DeepSeq
 import           Criterion.Main
 import qualified Data.Binary                      as Binary
-import qualified Data.Binary.Get                  as Binary
 import           Data.Binary.Serialise.CBOR.Class
 import           Data.Binary.Serialise.CBOR.Read
 import           Data.Binary.Serialise.CBOR.Write
@@ -52,9 +51,9 @@ binaryDeserialise = Binary.decode
 cerealDeserialise = (\(Right x) -> x) . Cereal.decodeLazy
 cborDeserialise bs = feedAll (deserialiseIncremental decode) bs
   where
-    feedAll (Binary.Done _ _ x)    _ = x
-    feedAll (Binary.Partial k) lbs   = case lbs of
+    feedAll (Done _ _ x)    _ = x
+    feedAll (Partial k) lbs   = case lbs of
       ByteString.Chunk bs' lbs' -> feedAll (k (Just bs')) lbs'
       ByteString.Empty          -> feedAll (k Nothing) ByteString.empty
-    feedAll (Binary.Fail _ pos msg) _ =
-      error ("Data.Binary.Get.runGet at position " ++ show pos ++ ": " ++ msg)
+    feedAll (Fail _ _ exn) _ =
+      error ("Micro.SimpleVersus.feedAll exception: " ++ show exn)
