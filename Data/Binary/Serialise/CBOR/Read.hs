@@ -1,7 +1,8 @@
-{-# LANGUAGE CPP          #-}
-{-# LANGUAGE MagicHash    #-}
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE RankNTypes   #-}
+{-# LANGUAGE CPP                #-}
+{-# LANGUAGE MagicHash          #-}
+{-# LANGUAGE BangPatterns       #-}
+{-# LANGUAGE RankNTypes         #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 -- |
 -- Module      : Data.Binary.Serialise.CBOR.Read
@@ -18,6 +19,7 @@
 module Data.Binary.Serialise.CBOR.Read
   ( deserialiseFromBytes   -- :: Decoder a -> ByteString -> Either String a
   , deserialiseIncremental -- :: Decoder a -> Decoder a
+  , DeserialiseFailure(..)
   ) where
 
 #include "cbor.h"
@@ -34,12 +36,13 @@ import           Control.Applicative
 import           GHC.Int
 
 import           Control.Monad (ap)
+import           Data.Typeable                    (Typeable)
 import           Data.Array.IArray
 import           Data.Array.Unboxed
 import qualified Data.Array.Base as A
 import           Data.Monoid
 import           Data.Bits
-import           Data.ByteString (ByteString)
+import           Data.ByteString                (ByteString)
 import qualified Data.ByteString                as BS
 import qualified Data.ByteString.Unsafe         as BS
 import qualified Data.ByteString.Lazy           as LBS
@@ -57,6 +60,23 @@ import qualified Data.ByteString.Internal       as BS
 import           Foreign.ForeignPtr             (withForeignPtr)
 import qualified GHC.Integer.GMP.Internals      as Gmp
 import           System.IO.Unsafe               (unsafePerformIO)
+#endif
+
+--------------------------------------------------------------------------------
+
+
+-- | An exception type that may be returned (by pure functions) or
+-- thrown (by IO actions) that fail to deserialise a given input.
+--
+-- @since 0.2.0.0
+data DeserialiseFailure = DeserialiseFailure ByteOffset String
+  deriving (Show, Typeable)
+
+instance Exception DeserialiseFailure where
+#if MIN_VERSION_base(4,8,0)
+    displayException (DeserialiseFailure off msg) =
+      "Data.Binary.Serialise.CBOR: deserialising failed at offset "
+           ++ show off ++ " : " ++ msg
 #endif
 
 -- | Given a @'Decoder'@ and some @'LBS.ByteString'@ representing

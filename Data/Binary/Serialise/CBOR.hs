@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP                #-}
-{-# LANGUAGE DeriveDataTypeable #-}
 
 -- |
 -- Module      : Data.Binary.Serialise.CBOR
@@ -26,7 +25,7 @@ module Data.Binary.Serialise.CBOR
   , deserialiseOrFail
 
     -- * Deserialisation exceptions
-  , DeserialiseFailure(..)
+  , CBOR.Read.DeserialiseFailure(..)
 
     -- * Incremental encoding interface
     -- $primitives
@@ -49,8 +48,7 @@ module Data.Binary.Serialise.CBOR
 #include "cbor.h"
 
 import           System.IO                        (Handle, IOMode (..), withFile)
-import           Data.Typeable                    (Typeable)
-import           Control.Exception                (Exception(..), throw, throwIO)
+import           Control.Exception                (throw, throwIO)
 
 import qualified Data.Binary.Get                  as Bin
 import qualified Data.ByteString.Builder          as BS
@@ -112,8 +110,9 @@ serialise = CBOR.Write.toLazyByteString . encode
 -- | Deserialise a Haskell value from the external binary representation
 -- (which must have been made using 'serialise' or related function).
 --
--- /Throws/: @'DeserialiseFailure'@ if the given external representation is
--- invalid or does not correspond to a value of the expected type.
+-- /Throws/: @'CBOR.Read.DeserialiseFailure'@ if the given external
+-- representation is invalid or does not correspond to a value of the
+-- expected type.
 --
 -- @since 0.2.0.0
 deserialise :: Serialise a => BS.ByteString -> a
@@ -126,28 +125,13 @@ deserialise =
         BS.Chunk chunk bs' ->  supplyAllInput (k (Just chunk)) bs'
         BS.Empty           ->  supplyAllInput (k Nothing)      BS.Empty
     supplyAllInput (Bin.Fail _ off msg) _ =
-      throw (DeserialiseFailure off msg)
-
--- | An exception type that may be returned (by pure functions) or
--- thrown (by IO actions) that fail to deserialise a given input.
---
--- @since 0.2.0.0
-data DeserialiseFailure =
-       DeserialiseFailure Bin.ByteOffset String
-  deriving (Show, Typeable)
-
-instance Exception DeserialiseFailure where
-#if MIN_VERSION_base(4,8,0)
-    displayException (DeserialiseFailure off msg) =
-      "Data.Binary.Serialise.CBOR: deserialising failed at offset "
-           ++ show off ++ " : " ++ msg
-#endif
+      throw (CBOR.Read.DeserialiseFailure off msg)
 
 -- | Deserialise a Haskell value from the external binary representation,
 -- or get back a @'DeserialiseFailure'@.
 --
 -- @since 0.2.0.0
-deserialiseOrFail :: Serialise a => BS.ByteString -> Either DeserialiseFailure a
+deserialiseOrFail :: Serialise a => BS.ByteString -> Either CBOR.Read.DeserialiseFailure a
 deserialiseOrFail = supplyAllInput deserialiseIncremental
   where
     supplyAllInput (Bin.Done _ _ x) _bs = Right x
@@ -156,7 +140,7 @@ deserialiseOrFail = supplyAllInput deserialiseIncremental
         BS.Chunk chunk bs' ->  supplyAllInput (k (Just chunk)) bs'
         BS.Empty           ->  supplyAllInput (k Nothing)      BS.Empty
     supplyAllInput (Bin.Fail _ offset msg) _ =
-        Left (DeserialiseFailure offset msg)
+        Left (CBOR.Read.DeserialiseFailure offset msg)
 
 --------------------------------------------------------------------------------
 -- File-based API
@@ -186,7 +170,7 @@ writeFileSerialise fname x =
 -- and attempt to decode it into a Haskell value using @'deserialise'@
 -- (the type of which is determined by the choice of the result type).
 --
--- /Throws/: @'DeserialiseFailure'@ iff the file fails to
+-- /Throws/: @'CBOR.Read.DeserialiseFailure'@ if the file fails to
 -- deserialise properly.
 --
 -- @since 0.2.0.0
