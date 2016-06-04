@@ -146,7 +146,7 @@ data DecodeAction a
     | ConsumeBreakOr        (Bool -> DecodeAction a)
 
     | PeekTokenType  (TokenType -> DecodeAction a)
-    | PeekLength     (Int -> DecodeAction a)
+    | PeekLength     (Int#      -> DecodeAction a)
 
     | Fail String
     | Done a
@@ -526,7 +526,7 @@ peekTokenType = Decoder (\k -> PeekTokenType (\tk -> k tk))
 --
 -- @since 0.2.0.0
 peekLength :: Decoder Int
-peekLength = Decoder (\k -> PeekLength (\len -> k len))
+peekLength = Decoder (\k -> PeekLength (\len# -> k (I# len#)))
 {-# INLINE peekLength #-}
 
 {-
