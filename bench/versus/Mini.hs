@@ -4,11 +4,13 @@ module Mini
 import           System.FilePath
 
 import           Criterion.Main
+import qualified Data.ByteString        as B
 import qualified Data.ByteString.Lazy   as BS
 
 import           Macro.DeepSeq ()
 import qualified Macro.PkgBinary as PkgBinary
 import qualified Macro.PkgCereal as PkgCereal
+import qualified Macro.PkgStore  as PkgStore
 import qualified Macro.CBOR as CBOR
 
 
@@ -22,6 +24,10 @@ benchmarks =
       , bgroup "cereal"
           [ envCereal $ \v ->
               bench "deserialise" $ nf PkgCereal.deserialise v
+          ]
+      , bgroup "store"
+          [ envStore $ \v ->
+              bench "deserialise" $ nf PkgStore.deserialise v
           ]
       , bgroup "cbor"
           [ envCBOR $ \v ->
@@ -45,11 +51,12 @@ benchmarks =
   ]
   where
     -- Helpers for using Criterion environments.
-    envBinary = env (readBin "binary")
-    envCereal = env (readBin "cereal")
-    envCBOR   = env (readBin "cbor")
+    envBinary = env (fmap BS.fromStrict (readBin "binary"))
+    envCereal = env (fmap BS.fromStrict (readBin "cereal"))
+    envStore  = env (readBin "store")
+    envCBOR   = env (fmap BS.fromStrict (readBin "cbor"))
 
     -- | Read one of the pre-encoded binary files out of the
     -- data directory.
-    readBin :: FilePath -> IO BS.ByteString
-    readBin f = BS.readFile ("bench" </> "data" </> f <.> "bin")
+    readBin :: FilePath -> IO B.ByteString
+    readBin f = B.readFile ("bench" </> "data" </> f <.> "bin")
