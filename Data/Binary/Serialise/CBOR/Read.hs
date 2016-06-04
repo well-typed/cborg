@@ -171,8 +171,10 @@ needChunk = IncrementalDecoder $ \k -> Partial $ \mbs -> k mbs
 
 -- The top level entry point
 runDecodeAction :: DecodeAction a -> IncrementalDecoder (ByteString, ByteOffset, a)
-runDecodeAction (D.Fail msg) = decodeFail BS.empty 0 msg
-runDecodeAction (D.Done x)   = return (BS.empty, 0, x)
+runDecodeAction (D.Fail msg)     = decodeFail BS.empty 0 msg
+runDecodeAction (D.Done x)       = return (BS.empty, 0, x)
+runDecodeAction (D.PeekLength k) = runDecodeAction (k 0#)
+
 runDecodeAction da = do
     mbs <- needChunk
     case mbs of
