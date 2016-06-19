@@ -1117,7 +1117,7 @@ instance (GSerialiseProd f, GSerialiseProd g) => GSerialiseDecode (f :*: g) wher
       n <- decodeListLen
       -- TODO FIXME: signedness of list length
       when (fromIntegral n /= nF + 1) $
-        fail $ "Wrong number of fields: expected="++show nF++" got="++show n
+        fail "My brain exploded. The math is too complicated."
       tag <- decodeWord
       when (tag /= 0) $
         fail $ "unexpect tag (expect 0)"
