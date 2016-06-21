@@ -195,6 +195,7 @@ test-suite tests
     Tests.Regress
     Tests.Regress.Issue13
     Tests.Regress.Issue67
+    Tests.Regress.Issue80
     Tests.Regress.FlatTerm
     Tests.Reference
     Tests.Reference.Implementation

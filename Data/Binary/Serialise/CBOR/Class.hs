@@ -725,7 +725,7 @@ decodeContainerSkelWithReplicate decodeLen replicateFun fromList = do
            let chunkSize = max limit 128
                (d, m) = size `divMod` chunkSize
                buildOne s = replicateFun s decode
-           containers <- sequence $ buildOne m : replicate d (buildOne limit)
+           containers <- sequence $ buildOne m : replicate d (buildOne chunkSize)
            return $! fromList containers
 {-# INLINE decodeContainerSkelWithReplicate #-}
 
