@@ -19,6 +19,7 @@ import qualified Data.ByteString.Lazy                as LB
 
 import qualified Data.Text.Lazy.IO                   as T
 import qualified Data.Text.Lazy.Builder              as T
+import qualified Data.Vector                         as V
 
 import qualified Data.Binary.Serialise.CBOR.Read     as CBOR.Read
 import qualified Data.Binary.Serialise.CBOR.Write    as CBOR.Write
@@ -60,14 +61,18 @@ decodeValue = do
       TypeInteger -> decodeNumberIntegral
       TypeFloat64 -> decodeNumberFloating
 
-      TypeString  -> String <$> decode
-      TypeListLen -> Array  <$> decode
-      TypeMapLen  -> Object <$> decode
+      TypeString       -> String <$> decode
+      TypeListLen      -> Array  <$> decode
+      TypeListLenIndef -> decodeIndefList
+      TypeMapLen       -> Object <$> decode
 
       TypeBool    -> Bool   <$> decodeBool
       TypeNull    -> Null   <$  decodeNull
       _           -> fail $ "unexpected CBOR token type for a JSON value: "
                          ++ show tkty
+
+decodeIndefList :: Decoder Value
+decodeIndefList = Array . V.fromList <$> decode
 
 decodeNumberIntegral :: Decoder Value
 decodeNumberIntegral = Number . fromInteger <$> decode
