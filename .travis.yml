@@ -27,6 +27,14 @@ matrix:
       compiler: ": #GHC HEAD"
       addons: {apt: {packages: [cabal-install-head,ghc-head], sources: [hvr-ghc]}}
 
+      # -- LLVM builds
+    - env: CABALVER=1.24 GHCVER=7.10.3 LLVMVER=3.5
+      compiler: ": #GHC 7.10.3/LLVM 3.5"
+      addons: {apt: {packages: [cabal-install-1.24,ghc-7.10.3,llvm-3.5-tools], sources: [hvr-ghc,ubuntu-toolchain-r-test,llvm-toolchain-precise-3.5]}}
+    - env: CABALVER=1.24 GHCVER=8.0.1 LLVMVER=3.7
+      compiler: ": #GHC 8.0.1/LLVM 3.7"
+      addons: {apt: {packages: [cabal-install-1.24,ghc-8.0.1,llvm-3.7-tools], sources: [hvr-ghc,ubuntu-toolchain-r-test,llvm-toolchain-precise-3.7]}}
+
   allow_failures:
     - env: CABALVER=head GHCVER=head
 
@@ -47,6 +55,7 @@ install:
    fi
  - travis_retry cabal update -v
  - sed -i 's/^jobs:/-- jobs:/' ${HOME}/.cabal/config
+ - ./scripts/prep-llvm.sh ${LLVMVER} # prep llvm if needed
  - cabal new-build ${TEST} ${BENCH} ${EXAMPLES} --dep
 
 # Here starts the actual work to be performed for the package under test;
