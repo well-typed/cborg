@@ -312,7 +312,7 @@ benchmark micro
     cereal-vector           >= 0.2     && < 0.3,
     store                   >= 0.2     && < 0.3
 
-benchmark vs-other-libs
+benchmark versus
   type:              exitcode-stdio-1.0
   hs-source-dirs:    bench/versus
   main-is:           Main.hs
