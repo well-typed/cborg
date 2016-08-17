@@ -34,7 +34,10 @@ import           Test.Tasty.QuickCheck hiding (Fixed(..))
 import           Test.QuickCheck.Instances ()
 import           Test.Tasty.HUnit
 import           GHC.Generics  (Generic)
-import qualified Data.ByteString as BS
+import qualified Data.Text            as Text
+import qualified Data.Text.Lazy       as Text.Lazy
+import qualified Data.ByteString      as BS
+import qualified Data.ByteString.Lazy as BS.Lazy
 import           System.Exit (ExitCode(..))
 
 import           Data.Binary.Serialise.CBOR
@@ -196,7 +199,10 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T (Maybe Int))
       , mkTest (T :: T (Either String Int))
       , mkTest (T :: T String)
+      , mkTest (T :: T Text.Text)
+      , mkTest (T :: T Text.Lazy.Text)
       , mkTest (T :: T BS.ByteString)
+      , mkTest (T :: T BS.Lazy.ByteString)
       , mkTest (T :: T [Int])
       , mkTest (T :: T UTCTime)
       , mkTest (T :: T Version)

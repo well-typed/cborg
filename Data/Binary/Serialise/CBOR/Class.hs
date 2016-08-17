@@ -59,7 +59,7 @@ import qualified Data.Text                           as Text
 -- TODO FIXME: more instances
 --import qualified Data.Array                          as Array
 --import qualified Data.Array.Unboxed                  as UArray
---import qualified Data.ByteString                     as BS.Lazy
+import qualified Data.ByteString.Lazy                as BS.Lazy
 import qualified Data.Map                            as Map
 import qualified Data.Sequence                       as Sequence
 import qualified Data.Set                            as Set
@@ -72,7 +72,7 @@ import qualified Data.Vector.Unboxed                 as Vector.Unboxed
 import qualified Data.Vector.Storable                as Vector.Storable
 import qualified Data.Vector.Primitive               as Vector.Primitive
 import qualified Data.Vector.Generic                 as Vector.Generic
---import qualified Data.Text.Lazy                      as Text.Lazy
+import qualified Data.Text.Lazy                      as Text.Lazy
 import           Foreign.C.Types
 
 import           Data.Time                           (UTCTime (..), addUTCTime)
@@ -278,6 +278,30 @@ instance Serialise Text.Text where
 instance Serialise BS.ByteString where
     encode = encodeBytes
     decode = decodeBytes
+
+encodeChunked :: Serialise c
+              => Encoding
+              -> ((c -> Encoding -> Encoding) -> Encoding -> a -> Encoding)
+              -> a
+              -> Encoding
+encodeChunked encodeIndef foldrChunks a =
+    encodeIndef
+ <> foldrChunks (\x r -> encode x <> r) encodeBreak a
+
+decodeChunked :: Serialise c => Decoder () -> ([c] -> a) -> Decoder a
+decodeChunked decodeIndef fromChunks = do
+  decodeIndef
+  decodeSequenceLenIndef (flip (:)) [] (fromChunks . reverse) decode
+
+-- | @since 0.2.0.0
+instance Serialise Text.Lazy.Text where
+    encode = encodeChunked encodeStringIndef Text.Lazy.foldrChunks
+    decode = decodeChunked decodeStringIndef Text.Lazy.fromChunks
+
+-- | @since 0.2.0.0
+instance Serialise BS.Lazy.ByteString where
+    encode = encodeChunked encodeBytesIndef BS.Lazy.foldrChunks
+    decode = decodeChunked decodeBytesIndef BS.Lazy.fromChunks
 
 -- | @since 0.2.0.0
 instance Serialise a => Serialise (Const a b) where
