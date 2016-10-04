@@ -123,12 +123,6 @@ prop_decodeTag1UTCTimeDouble = testCase "Decode tag 1 UTCTime (Double)" $
     dec = decode :: Decoder UTCTime
 
 --------------------------------------------------------------------------------
--- Extra orphan instances
-
-instance Arbitrary Version where
-  arbitrary = Version <$> listOf1 (choose (1, 15)) <*> pure []
-
---------------------------------------------------------------------------------
 -- TestTree API
 
 testTree :: TestTree

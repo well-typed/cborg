@@ -125,7 +125,7 @@ executable demo-aeson
     buildable: False
 
   build-depends:
-    aeson                   >= 0.7     && < 0.12,
+    aeson                   >= 0.7     && < 1.1,
     aeson-pretty            >= 0.7     && < 0.9,
     base                    >= 4.6     && < 5.0,
     bytestring              >= 0.10.4  && < 0.11,
@@ -214,13 +214,13 @@ test-suite tests
     hashable                >= 1.2     && < 2.0,
     binary-serialise-cbor,
 
-    aeson                   >= 0.7     && < 0.12,
+    aeson                   >= 0.7     && < 1.1,
     base64-bytestring       >= 1.0     && < 1.1,
     base16-bytestring       >= 0.1     && < 0.2,
     deepseq                 >= 1.0     && < 1.5,
     half                    >= 0.2     && < 0.3,
   --msgpack,
-    QuickCheck              >= 2.0     && < 2.9,
+    QuickCheck              >= 2.0     && < 2.10,
     scientific              >= 0.3     && < 0.4,
     tasty                   >= 0.11    && < 0.12,
     tasty-hunit             >= 0.9     && < 0.10,
@@ -305,7 +305,7 @@ benchmark micro
     vector                  >= 0.10    && < 0.12,
     binary-serialise-cbor,
 
-    aeson                   >= 0.7     && < 0.12,
+    aeson                   >= 0.7     && < 1.1,
     deepseq                 >= 1.0     && < 1.5,
     criterion               >= 1.0     && < 1.2,
     cereal                  >= 0.5.2.0 && < 0.6,
@@ -356,7 +356,7 @@ benchmark versus
     filepath                >= 1.0     && < 1.5,
     containers              >= 0.5     && < 0.6,
     deepseq                 >= 1.0     && < 1.5,
-    aeson                   >= 0.7     && < 0.12,
+    aeson                   >= 0.7     && < 1.1,
     cereal                  >= 0.5.2.0 && < 0.6,
   --msgpack                 >= 0.7     && < 0.8,
   --blaze-builder,
