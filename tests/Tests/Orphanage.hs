@@ -16,6 +16,7 @@ import           Data.Monoid as Monoid
 import           Foreign.C.Types
 import           System.Exit (ExitCode(..))
 import           GHC.Fingerprint.Type
+import           Data.Version
 
 import           Test.QuickCheck.Gen
 import           Test.QuickCheck.Arbitrary
@@ -32,6 +33,7 @@ import qualified Data.Vector.Primitive      as Vector.Primitive
 
 -- Tuples
 
+#if !MIN_VERSION_QuickCheck(2,9,0)
 instance ( Arbitrary a
          , Arbitrary b
          , Arbitrary c
@@ -62,6 +64,7 @@ instance ( Arbitrary a
   arbitrary = return (,,,,,,)
           <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
           <*> arbitrary <*> arbitrary <*> arbitrary
+#endif /* !MIN_VERSION_QuickCheck(2,9,0) */
 
 -- Foreign C types
 
@@ -167,6 +170,7 @@ instance Arbitrary CDouble where
 
 -- Miscellaneous types from base
 
+#if !MIN_VERSION_QuickCheck(2,9,0)
 instance Arbitrary a => Arbitrary (Monoid.Dual a) where
   arbitrary = fmap Monoid.Dual arbitrary
   shrink = map Monoid.Dual . shrink . Monoid.getDual
@@ -199,10 +203,6 @@ instance Arbitrary a => Arbitrary (Monoid.Last a) where
   arbitrary = fmap Monoid.Last arbitrary
   shrink = map Monoid.Last . shrink . Monoid.getLast
 
-instance Arbitrary a => Arbitrary (Down a) where
-  arbitrary = fmap Down arbitrary
-  shrink = map Down . shrink . (\(Down a) -> a)
-
 instance Arbitrary a => Arbitrary (ZipList a) where
   arbitrary = fmap ZipList arbitrary
   shrink = map ZipList . shrink . getZipList
@@ -210,12 +210,6 @@ instance Arbitrary a => Arbitrary (ZipList a) where
 instance Arbitrary a => Arbitrary (Const a b) where
   arbitrary = fmap Const arbitrary
   shrink = map Const . shrink . getConst
-
-instance Arbitrary ExitCode where
-  arbitrary = frequency [(1, return ExitSuccess), (3, fmap ExitFailure arbitrary)]
-
-  shrink (ExitFailure x) = ExitSuccess : [ ExitFailure x' | x' <- shrink x ]
-  shrink _        = []
 
 #if MIN_VERSION_base(4,8,0)
 instance Arbitrary (f a) => Arbitrary (Alt f a) where
@@ -225,7 +219,21 @@ instance Arbitrary (f a) => Arbitrary (Alt f a) where
 instance Arbitrary a => Arbitrary (Identity a) where
   arbitrary = fmap Identity arbitrary
   shrink (Identity a) = map Identity $ shrink a
-#endif
+#endif /* MIN_VERSION_base(4,8,0) */
+
+instance Arbitrary Version where
+  arbitrary = Version <$> listOf1 (choose (1, 15)) <*> pure []
+#endif /* !MIN_VERSION_QuickCheck(2,9,0) */
+
+instance Arbitrary a => Arbitrary (Down a) where
+  arbitrary = fmap Down arbitrary
+  shrink = map Down . shrink . (\(Down a) -> a)
+
+instance Arbitrary ExitCode where
+  arbitrary = frequency [(1, return ExitSuccess), (3, fmap ExitFailure arbitrary)]
+
+  shrink (ExitFailure x) = ExitSuccess : [ ExitFailure x' | x' <- shrink x ]
+  shrink _        = []
 
 #if !MIN_VERSION_base(4,8,0)
 deriving instance Typeable Const
