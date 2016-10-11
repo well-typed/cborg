@@ -34,11 +34,12 @@ deserialise = either throw id . deserialiseFromBytes decode
 deserialiseNull :: BS.ByteString -> ()
 deserialiseNull = either throw id . deserialiseFromBytes decodeListNull
   where
+    decodeListNull :: Decoder s ()
     decodeListNull = do decodeListLenIndef; go
 
     go = do stop <- decodeBreakOr
             if stop then return ()
-                    else do !_ <- decode :: Decoder GenericPackageDescription
+                    else do !_ <- decode :: Decoder s GenericPackageDescription
                             go
 
 encodeCtr0 n     = encodeListLen 1 <> encode (n :: Word)

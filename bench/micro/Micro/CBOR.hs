@@ -36,15 +36,15 @@ encodeCtr2 n a b = encodeListLen 3 <> encode (n :: Word) <> encode a <> encode b
 {-# INLINE decodeCtrBody0 #-}
 {-# INLINE decodeCtrBody2 #-}
 
-decodeCtrTag :: Decoder (Word, Int)
+decodeCtrTag :: Decoder s (Word, Int)
 decodeCtrTag = (\len tag -> (tag, len)) <$> decodeListLen <*> decodeWord
 
-decodeCtrBody0 :: Int -> a -> Decoder a
+decodeCtrBody0 :: Int -> a -> Decoder s a
 decodeCtrBody0 1 f = pure f
 decodeCtrBody0 x _ = error $ "decodeCtrBody0: impossible tag " ++ show x
 
 decodeCtrBody2
-  :: (Serialise a, Serialise b) => Int -> (a -> b -> c) -> Decoder c
+  :: (Serialise a, Serialise b) => Int -> (a -> b -> c) -> Decoder s c
 decodeCtrBody2 3 f = do x1 <- decode
                         x2 <- decode
                         return (f x1 x2)

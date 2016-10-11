@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP       #-}
 {-# LANGUAGE MagicHash #-}
+{-# LANGUAGE RankNTypes #-}
 
 -- |
 -- Module      : Data.Binary.Serialise.CBOR.FlatTerm
@@ -33,7 +34,7 @@ module Data.Binary.Serialise.CBOR.FlatTerm
 
     -- * Functions
   , toFlatTerm    -- :: Encoding -> FlatTerm
-  , fromFlatTerm  -- :: Decoder a -> FlatTerm -> Either String a
+  , fromFlatTerm  -- :: Decoder s a -> FlatTerm -> Either String a
   , validFlatTerm -- :: FlatTerm -> Bool
   ) where
 
@@ -56,6 +57,16 @@ import           GHC.Float (Float(F#), Double(D#), float2Double)
 import           Data.Word
 import           Data.Text (Text)
 import           Data.ByteString (ByteString)
+
+
+#if defined(USE_ST)
+import Control.Monad.ST
+#else
+import Control.Monad.Identity (Identity(..))
+type ST s a = Identity a
+runST :: (forall s. ST s a) -> a
+runST = runIdentity
+#endif
 
 --------------------------------------------------------------------------------
 
@@ -139,72 +150,75 @@ convFlatTerm  Enc.TkEnd             = []
 -- an ordinary value, or return an error.
 --
 -- @since 0.2.0.0
-fromFlatTerm :: Decoder a       -- ^ A @'Dec.Decoder'@ for a serialised value.
+fromFlatTerm :: (forall s. Decoder s a)
+                                -- ^ A @'Dec.Decoder'@ for a serialised value.
              -> FlatTerm        -- ^ The serialised @'FlatTerm'@.
              -> Either String a -- ^ The deserialised value, or an error.
-fromFlatTerm decoder ft = go (getDecodeAction decoder) ft
+fromFlatTerm decoder ft =
+    runST (getDecodeAction decoder >>= flip go ft)
   where
+    go :: DecodeAction s a -> FlatTerm -> ST s (Either String a)
     go (ConsumeWord k)    (TkInt     n : ts)
-        | n >= 0                             = go (k (unW# (fromIntegral n))) ts
+        | n >= 0                             = k (unW# (fromIntegral n)) >>= flip go ts
     go (ConsumeWord k)    (TkInteger n : ts)
-        | n >= 0                             = go (k (unW# (fromIntegral n))) ts
+        | n >= 0                             = k (unW# (fromIntegral n)) >>= flip go ts
     go (ConsumeWord8 k)   (TkInt     n : ts)
-        | n >= 0 && n <= maxWord8            = go (k (unW# (fromIntegral n))) ts
+        | n >= 0 && n <= maxWord8            = k (unW# (fromIntegral n)) >>= flip go ts
     go (ConsumeWord8 k)   (TkInteger n : ts)
-        | n >= 0 && n <= maxWord8            = go (k (unW# (fromIntegral n))) ts
+        | n >= 0 && n <= maxWord8            = k (unW# (fromIntegral n)) >>= flip go ts
     go (ConsumeWord16 k)  (TkInt     n : ts)
-        | n >= 0 && n <= maxWord16           = go (k (unW# (fromIntegral n))) ts
+        | n >= 0 && n <= maxWord16           = k (unW# (fromIntegral n)) >>= flip go ts
     go (ConsumeWord16 k)  (TkInteger n : ts)
-        | n >= 0 && n <= maxWord16           = go (k (unW# (fromIntegral n))) ts
+        | n >= 0 && n <= maxWord16           = k (unW# (fromIntegral n)) >>= flip go ts
     go (ConsumeWord32 k)  (TkInt     n : ts)
         -- NOTE: we have to be very careful about this branch
         -- on 32 bit machines, because maxBound :: Int < maxBound :: Word32
-        | intIsValidWord32 n                 = go (k (unW# (fromIntegral n))) ts
+        | intIsValidWord32 n                 = k (unW# (fromIntegral n)) >>= flip go ts
     go (ConsumeWord32 k)  (TkInteger n : ts)
-        | n >= 0 && n <= maxWord32           = go (k (unW# (fromIntegral n))) ts
+        | n >= 0 && n <= maxWord32           = k (unW# (fromIntegral n)) >>= flip go ts
     go (ConsumeNegWord k) (TkInt     n : ts)
-        | n <  0                             = go (k (unW# (fromIntegral (-1-n)))) ts
+        | n <  0                             = k (unW# (fromIntegral (-1-n))) >>= flip go ts
     go (ConsumeNegWord k) (TkInteger n : ts)
-        | n <  0                             = go (k (unW# (fromIntegral (-1-n)))) ts
-    go (ConsumeInt k)     (TkInt     n : ts) = go (k (unI# n)) ts
+        | n <  0                             = k (unW# (fromIntegral (-1-n))) >>= flip go ts
+    go (ConsumeInt k)     (TkInt     n : ts) = k (unI# n) >>= flip go ts
     go (ConsumeInt k)     (TkInteger n : ts)
-        | n <= maxInt                        = go (k (unI# (fromIntegral n))) ts
+        | n <= maxInt                        = k (unI# (fromIntegral n)) >>= flip go ts
     go (ConsumeInt8 k)    (TkInt     n : ts)
-        | n >= minInt8 && n <= maxInt8       = go (k (unI# n)) ts
+        | n >= minInt8 && n <= maxInt8       = k (unI# n) >>= flip go ts
     go (ConsumeInt8 k)    (TkInteger n : ts)
-        | n >= minInt8 && n <= maxInt8       = go (k (unI# (fromIntegral n))) ts
+        | n >= minInt8 && n <= maxInt8       = k (unI# (fromIntegral n)) >>= flip go ts
     go (ConsumeInt16 k)   (TkInt     n : ts)
-        | n >= minInt16 && n <= maxInt16     = go (k (unI# n)) ts
+        | n >= minInt16 && n <= maxInt16     = k (unI# n) >>= flip go ts
     go (ConsumeInt16 k)    (TkInteger n : ts)
-        | n >= minInt16 && n <= maxInt16     = go (k (unI# (fromIntegral n))) ts
+        | n >= minInt16 && n <= maxInt16     = k (unI# (fromIntegral n)) >>= flip go ts
     go (ConsumeInt32 k)    (TkInt     n : ts)
-        | n >= minInt32 && n <= maxInt32     = go (k (unI# n)) ts
+        | n >= minInt32 && n <= maxInt32     = k (unI# n) >>= flip go ts
     go (ConsumeInt32 k)    (TkInteger n : ts)
-        | n >= minInt32 && n <= maxInt32     = go (k (unI# (fromIntegral n))) ts
-    go (ConsumeInteger k) (TkInt     n : ts) = go (k (fromIntegral n)) ts
-    go (ConsumeInteger k) (TkInteger n : ts) = go (k n) ts
+        | n >= minInt32 && n <= maxInt32     = k (unI# (fromIntegral n)) >>= flip go ts
+    go (ConsumeInteger k) (TkInt     n : ts) = k (fromIntegral n) >>= flip go ts
+    go (ConsumeInteger k) (TkInteger n : ts) = k n >>= flip go ts
     go (ConsumeListLen k) (TkListLen n : ts)
-        | n <= maxInt                        = go (k (unI# (fromIntegral n))) ts
+        | n <= maxInt                        = k (unI# (fromIntegral n)) >>= flip go ts
     go (ConsumeMapLen  k) (TkMapLen  n : ts)
-        | n <= maxInt                        = go (k (unI# (fromIntegral n))) ts
+        | n <= maxInt                        = k (unI# (fromIntegral n)) >>= flip go ts
     go (ConsumeTag     k) (TkTag     n : ts)
-        | n <= maxWord                       = go (k (unW# (fromIntegral n))) ts
+        | n <= maxWord                       = k (unW# (fromIntegral n)) >>= flip go ts
 
 #if defined(ARCH_32bit)
     -- 64bit variants for 32bit machines
     go (ConsumeWord64    k) (TkInt       n : ts)
-      | n >= 0                                   = go (k (unW64# (fromIntegral n))) ts
+      | n >= 0                                   = k (unW64# (fromIntegral n)) >>= flip go ts
     go (ConsumeWord64    k) (TkInteger   n : ts)
-      | n >= 0                                   = go (k (unW64# (fromIntegral n))) ts
+      | n >= 0                                   = k (unW64# (fromIntegral n)) >>= flip go ts
     go (ConsumeNegWord64 k) (TkInt       n : ts)
-      | n < 0                                    = go (k (unW64# (fromIntegral (-1-n)))) ts
+      | n < 0                                    = k (unW64# (fromIntegral (-1-n))) >>= flip go ts
     go (ConsumeNegWord64 k) (TkInteger   n : ts)
-      | n < 0                                    = go (k (unW64# (fromIntegral (-1-n)))) ts
+      | n < 0                                    = k (unW64# (fromIntegral (-1-n))) >>= flip go ts
 
-    go (ConsumeInt64     k) (TkInt       n : ts) = go (k (unI64# (fromIntegral n))) ts
-    go (ConsumeInt64     k) (TkInteger   n : ts) = go (k (unI64# (fromIntegral n))) ts
+    go (ConsumeInt64     k) (TkInt       n : ts) = k (unI64# (fromIntegral n)) >>= flip go ts
+    go (ConsumeInt64     k) (TkInteger   n : ts) = k (unI64# (fromIntegral n)) >>= flip go ts
 
-    go (ConsumeTag64     k) (TkTag       n : ts) = go (k (unW64# n)) ts
+    go (ConsumeTag64     k) (TkTag       n : ts) = k (unW64# n) >>= flip go ts
 
     -- TODO FIXME (aseipp/dcoutts): are these going to be utilized?
     -- see fallthrough case below if/when fixed.
@@ -212,38 +226,38 @@ fromFlatTerm decoder ft = go (getDecodeAction decoder) ft
     go (ConsumeMapLen64  _) ts                   = unexpected "decodeMapLen64"  ts
 #endif
 
-    go (ConsumeFloat  k) (TkFloat16 f : ts) = go (k (unF# f)) ts
-    go (ConsumeFloat  k) (TkFloat32 f : ts) = go (k (unF# f)) ts
-    go (ConsumeDouble k) (TkFloat16 f : ts) = go (k (unD# (float2Double f))) ts
-    go (ConsumeDouble k) (TkFloat32 f : ts) = go (k (unD# (float2Double f))) ts
-    go (ConsumeDouble k) (TkFloat64 f : ts) = go (k (unD# f)) ts
-    go (ConsumeBytes  k) (TkBytes  bs : ts) = go (k bs) ts
-    go (ConsumeString k) (TkString st : ts) = go (k st) ts
-    go (ConsumeBool   k) (TkBool    b : ts) = go (k b) ts
-    go (ConsumeSimple k) (TkSimple  n : ts) = go (k (unW8# n)) ts
+    go (ConsumeFloat  k) (TkFloat16 f : ts) = k (unF# f) >>= flip go ts
+    go (ConsumeFloat  k) (TkFloat32 f : ts) = k (unF# f) >>= flip go ts
+    go (ConsumeDouble k) (TkFloat16 f : ts) = k (unD# (float2Double f)) >>= flip go ts
+    go (ConsumeDouble k) (TkFloat32 f : ts) = k (unD# (float2Double f)) >>= flip go ts
+    go (ConsumeDouble k) (TkFloat64 f : ts) = k (unD# f) >>= flip go ts
+    go (ConsumeBytes  k) (TkBytes  bs : ts) = k bs >>= flip go ts
+    go (ConsumeString k) (TkString st : ts) = k st >>= flip go ts
+    go (ConsumeBool   k) (TkBool    b : ts) = k b >>= flip go ts
+    go (ConsumeSimple k) (TkSimple  n : ts) = k (unW8# n) >>= flip go ts
 
-    go (ConsumeBytesIndef   da) (TkBytesBegin  : ts) = go da ts
-    go (ConsumeStringIndef  da) (TkStringBegin : ts) = go da ts
-    go (ConsumeListLenIndef da) (TkListBegin   : ts) = go da ts
-    go (ConsumeMapLenIndef  da) (TkMapBegin    : ts) = go da ts
-    go (ConsumeNull         da) (TkNull        : ts) = go da ts
+    go (ConsumeBytesIndef   da) (TkBytesBegin  : ts) = da >>= flip go ts
+    go (ConsumeStringIndef  da) (TkStringBegin : ts) = da >>= flip go ts
+    go (ConsumeListLenIndef da) (TkListBegin   : ts) = da >>= flip go ts
+    go (ConsumeMapLenIndef  da) (TkMapBegin    : ts) = da >>= flip go ts
+    go (ConsumeNull         da) (TkNull        : ts) = da >>= flip go ts
 
     go (ConsumeListLenOrIndef k) (TkListLen n : ts)
-        | n <= maxInt                               = go (k (unI# (fromIntegral n))) ts
-    go (ConsumeListLenOrIndef k) (TkListBegin : ts) = go (k (-1#)) ts
+        | n <= maxInt                               = k (unI# (fromIntegral n)) >>= flip go ts
+    go (ConsumeListLenOrIndef k) (TkListBegin : ts) = k (-1#) >>= flip go ts
     go (ConsumeMapLenOrIndef  k) (TkMapLen  n : ts)
-        | n <= maxInt                               = go (k (unI# (fromIntegral n))) ts
-    go (ConsumeMapLenOrIndef  k) (TkMapBegin  : ts) = go (k (-1#)) ts
-    go (ConsumeBreakOr        k) (TkBreak     : ts) = go (k True) ts
-    go (ConsumeBreakOr        k) ts@(_        : _ ) = go (k False) ts
+        | n <= maxInt                               = k (unI# (fromIntegral n)) >>= flip go ts
+    go (ConsumeMapLenOrIndef  k) (TkMapBegin  : ts) = k (-1#) >>= flip go ts
+    go (ConsumeBreakOr        k) (TkBreak     : ts) = k True >>= flip go ts
+    go (ConsumeBreakOr        k) ts@(_        : _ ) = k False >>= flip go ts
 
-    go (PeekTokenType k) ts@(tk:_) = go (k (tokenTypeOf tk)) ts
+    go (PeekTokenType k) ts@(tk:_) = k (tokenTypeOf tk) >>= flip go ts
     go (PeekTokenType _) ts        = unexpected "peekTokenType" ts
-    go (PeekAvailable k) ts        = go (k (unI# (length ts))) ts
+    go (PeekAvailable k) ts        = k (unI# (length ts)) >>= flip go ts
 
-    go (Fail msg) _  = Left msg
-    go (Done x)   [] = Right x
-    go (Done _)   ts = Left ("trailing tokens: " ++ show (take 5 ts))
+    go (Fail msg) _  = return $ Left msg
+    go (Done x)   [] = return $ Right x
+    go (Done _)   ts = return $ Left ("trailing tokens: " ++ show (take 5 ts))
 
     ----------------------------------------------------------------------------
     -- Fallthrough cases: unhandled token/DecodeAction combinations
@@ -290,8 +304,8 @@ fromFlatTerm decoder ft = go (getDecodeAction decoder) ft
     go (ConsumeMapLenOrIndef  _) ts = unexpected "decodeMapLenOrIndef"  ts
     go (ConsumeBreakOr        _) ts = unexpected "decodeBreakOr"        ts
 
-    unexpected name []      = Left $ name ++ ": unexpected end of input"
-    unexpected name (tok:_) = Left $ name ++ ": unexpected token " ++ show tok
+    unexpected name []      = return $ Left $ name ++ ": unexpected end of input"
+    unexpected name (tok:_) = return $ Left $ name ++ ": unexpected token " ++ show tok
 
 -- | Map a @'TermToken'@ to the underlying CBOR @'TokenType'@
 tokenTypeOf :: TermToken -> TokenType
