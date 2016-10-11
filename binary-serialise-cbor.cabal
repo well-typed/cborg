@@ -53,6 +53,11 @@ flag optimize-gmp
   manual: False
   description: Use optimized code paths for integer-gmp
 
+flag use-st
+  default: False
+  manual: True
+  description: Experimental use of ST monad for decoder
+
 --------------------------------------------------------------------------------
 -- Library
 
@@ -97,6 +102,12 @@ library
     cpp-options:            -DFLAG_OPTIMIZE_GMP
     build-depends:
       integer-gmp
+
+  -- hacking
+  if flag(use-st)
+    cpp-options:            -DUSE_ST
+  else
+    build-depends:          mtl
 
   if flag(newtime15)
     build-depends:

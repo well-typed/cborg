@@ -18,7 +18,7 @@
 --
 module Data.Binary.Serialise.CBOR.Read
   ( deserialiseFromBytes   -- :: Decoder a -> ByteString -> Either String a
-  , deserialiseIncremental -- :: Decoder a -> Decoder a
+  , deserialiseIncremental -- :: Decoder a -> ST s (IDecode s a)
   , DeserialiseFailure(..)
   , IDecode(..)
   , ByteOffset
@@ -37,7 +37,6 @@ import           Control.Applicative
 import           GHC.Int
 
 import           Control.Monad (ap)
-import           Data.Typeable                    (Typeable)
 import           Data.Array.IArray
 import           Data.Array.Unboxed
 import qualified Data.Array.Base as A
@@ -54,6 +53,7 @@ import           Data.Word
 import           GHC.Word
 import           GHC.Exts
 import           GHC.Float (float2Double)
+import           Data.Typeable
 import           Control.Exception
 
 #if defined(OPTIMIZE_GMP)
@@ -61,6 +61,15 @@ import qualified Data.ByteString.Internal       as BS
 import           Foreign.ForeignPtr             (withForeignPtr)
 import qualified GHC.Integer.GMP.Internals      as Gmp
 import           System.IO.Unsafe               (unsafePerformIO)
+#endif
+
+#if defined(USE_ST)
+import Control.Monad.ST
+#else
+import Control.Monad.Identity (Identity(..))
+type ST s a = Identity a
+runST :: (forall s. ST s a) -> a
+runST = runIdentity
 #endif
 
 --------------------------------------------------------------------------------
@@ -82,11 +91,11 @@ instance Exception DeserialiseFailure where
 -- | An Incremental decoder, used to represent the result of
 -- attempting to run a decoder over a given input, and return a value
 -- of type @a@.
-data IDecode a
+data IDecode s a
   = -- | The decoder has consumed the available input and needs more
     -- to continue. Provide @'Just'@ if more input is available and
     -- @'Nothing'@ otherwise, and you will get a new @'IDecode'@.
-    Partial (Maybe BS.ByteString -> IDecode a)
+    Partial (Maybe BS.ByteString -> ST s (IDecode s a))
 
     -- | The decoder has successfully finished. Except for the output
     -- value you also get any unused input as well as the number of
@@ -105,26 +114,32 @@ data IDecode a
 -- or an error.
 --
 -- @since 0.2.0.0
-deserialiseFromBytes :: Decoder a -> LBS.ByteString -> Either String a
-deserialiseFromBytes =
-    runBinDecoder . deserialiseIncremental
+deserialiseFromBytes :: Decoder a
+                     -> LBS.ByteString
+                     -> Either DeserialiseFailure a
+deserialiseFromBytes d lbs =
+    runIDecode (deserialiseIncremental d) lbs
 
-runBinDecoder :: IDecode a -> LBS.ByteString -> Either String a
-runBinDecoder d lbs =
-    case d of
-      Fail _ _ msg -> Left $ "decode fail: " ++ show msg
-      Done _ _ x -> Right x
-      Partial k  -> case lbs of
-        LBS.Empty         -> runBinDecoder (k Nothing)   lbs
-        LBS.Chunk bs lbs' -> runBinDecoder (k (Just bs)) lbs'
+runIDecode :: (forall s. ST s (IDecode s a))
+                       -> LBS.ByteString -> Either DeserialiseFailure a
+runIDecode d lbs =
+    runST (flip go lbs =<< d)
+  where
+    go :: IDecode s a -> LBS.ByteString
+       -> ST s (Either DeserialiseFailure a)
+    go (Fail _ _ err) _                = return (Left err)
+    go (Done _ _ x)   _                = return (Right x)
+    go (Partial k)  LBS.Empty          = k Nothing   >>= flip go LBS.Empty
+    go (Partial k) (LBS.Chunk bs lbs') = k (Just bs) >>= flip go lbs'
 
 -- | Run a @'Decoder'@ incrementally, returning a continuation
 -- representing the result of the incremental decode.
 --
 -- @since 0.2.0.0
-deserialiseIncremental :: Decoder a -> IDecode a
-deserialiseIncremental =
-    runIncrementalDecoder . runDecodeAction . getDecodeAction
+deserialiseIncremental :: Decoder a -> ST s (IDecode s a)
+deserialiseIncremental decoder =
+    let da = getDecodeAction decoder in
+    runIncrementalDecoder (runDecodeAction da)
 
 ----------------------------------------------
 -- A monad for building incremental decoders
@@ -133,19 +148,19 @@ deserialiseIncremental =
 -- | Simple alias for @'Int64'@, used to make types more descriptive.
 type ByteOffset = Int64
 
-newtype IncrementalDecoder a = IncrementalDecoder {
+newtype IncrementalDecoder s a = IncrementalDecoder {
        unIncrementalDecoder ::
-         forall r. (a -> IDecode r) -> IDecode r
+         forall r. (a -> ST s (IDecode s r)) -> ST s (IDecode s r)
      }
 
-instance Functor IncrementalDecoder where
+instance Functor (IncrementalDecoder s) where
     fmap f a = a >>= return . f
 
-instance Applicative IncrementalDecoder where
+instance Applicative (IncrementalDecoder s) where
     pure  = return
     (<*>) = ap
 
-instance Monad IncrementalDecoder where
+instance Monad (IncrementalDecoder s) where
     return x = IncrementalDecoder $ \k -> k x
 
     {-# INLINE (>>=) #-}
@@ -153,24 +168,27 @@ instance Monad IncrementalDecoder where
                 unIncrementalDecoder m $ \x ->
                   unIncrementalDecoder (f x) k
 
-runIncrementalDecoder :: IncrementalDecoder (ByteString, ByteOffset, a)
-                      -> IDecode a
+runIncrementalDecoder :: IncrementalDecoder s (ByteString, ByteOffset, a)
+                      -> ST s (IDecode s a)
 runIncrementalDecoder (IncrementalDecoder f) =
-  f (\(trailing, off, x) -> Done trailing off x)
+  f (\(trailing, off, x) -> return $ Done trailing off x)
 
-decodeFail :: ByteString -> ByteOffset -> String -> IncrementalDecoder a
-decodeFail trailing off msg = IncrementalDecoder $ \_ -> Fail trailing off exn
+decodeFail :: ByteString -> ByteOffset -> String -> IncrementalDecoder s a
+decodeFail trailing off msg = IncrementalDecoder $ \_ -> return $ Fail trailing off exn
   where exn = DeserialiseFailure off msg
 
-needChunk :: IncrementalDecoder (Maybe ByteString)
-needChunk = IncrementalDecoder $ \k -> Partial $ \mbs -> k mbs
+needChunk :: IncrementalDecoder s (Maybe ByteString)
+needChunk = IncrementalDecoder $ \k -> return $ Partial $ \mbs -> k mbs
+
+lift :: ST s a -> IncrementalDecoder s a
+lift action = IncrementalDecoder (\k -> action >>= k)
 
 --------------------------------------------
 -- The main decoder
 --
 
 -- The top level entry point
-runDecodeAction :: DecodeAction a -> IncrementalDecoder (ByteString, ByteOffset, a)
+runDecodeAction :: DecodeAction a -> IncrementalDecoder s (ByteString, ByteOffset, a)
 runDecodeAction (D.Fail msg)        = decodeFail BS.empty 0 msg
 runDecodeAction (D.Done x)          = return (BS.empty, 0, x)
 runDecodeAction (D.PeekAvailable k) = runDecodeAction (k 0#)
@@ -660,7 +678,7 @@ go_fast_end (ConsumeMapLenOrIndef k) !bs =
 -- so not including the current chunk.
 --
 go_slow :: DecodeAction a -> ByteString -> ByteOffset
-        -> IncrementalDecoder (ByteString, ByteOffset, a)
+        -> IncrementalDecoder s (ByteString, ByteOffset, a)
 go_slow da bs !offset =
   case go_fast da bs of
     FastDone bs' x -> return (bs', offset', x)
@@ -709,7 +727,7 @@ go_slow da bs !offset =
 -- token without need for further fixups.
 --
 go_slow_fixup :: DecodeAction a -> ByteString -> ByteOffset
-              -> IncrementalDecoder (ByteString, ByteOffset, a)
+              -> IncrementalDecoder s (ByteString, ByteOffset, a)
 go_slow_fixup da !bs !offset = do
     let !hdr = BS.head bs
         !sz  = tokenSize hdr
@@ -730,7 +748,7 @@ go_slow_fixup da !bs !offset = do
 -- new input buffers, so we have to decode that one before carrying on
 go_slow_overlapped :: DecodeAction a -> Int -> ByteString -> ByteString
                    -> ByteOffset
-                   -> IncrementalDecoder (ByteString, ByteOffset, a)
+                   -> IncrementalDecoder s (ByteString, ByteOffset, a)
 go_slow_overlapped da sz bs_cur bs_next !offset =
 
     -- we have:
@@ -805,7 +823,7 @@ go_slow_overlapped da sz bs_cur bs_next !offset =
 -- rechunking.
 
 getTokenVarLen :: Int -> ByteString -> ByteOffset
-               -> IncrementalDecoder (ByteString, ByteString)
+               -> IncrementalDecoder s (ByteString, ByteString)
 getTokenVarLen len bs offset =
     assert (len > BS.length bs) $ do
     mbs <- needChunk
@@ -823,7 +841,7 @@ getTokenVarLen len bs offset =
                          offset
 
 getTokenVarLenSlow :: [ByteString] -> Int -> ByteOffset
-                   -> IncrementalDecoder (ByteString, ByteString)
+                   -> IncrementalDecoder s (ByteString, ByteString)
 getTokenVarLenSlow bss n offset = do
     mbs <- needChunk
     case mbs of

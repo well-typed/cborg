@@ -7,13 +7,10 @@ import Micro.Types
 import Data.Binary.Serialise.CBOR.Class
 import Data.Binary.Serialise.CBOR.Encoding
 import Data.Binary.Serialise.CBOR.Decoding hiding (DecodeAction(Done, Fail))
-import Data.Binary.Serialise.CBOR.Read
-import Data.Binary.Serialise.CBOR.Write
+import qualified Data.Binary.Serialise.CBOR as CBOR
 import Data.Monoid
 
 import qualified Data.ByteString.Lazy as BS
-import qualified Data.ByteString.Lazy.Internal as BS
-import qualified Data.ByteString.Builder as BS
 
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative
@@ -21,17 +18,10 @@ import Data.Word
 #endif
 
 serialise :: Tree -> BS.ByteString
-serialise = BS.toLazyByteString . toBuilder . encode
+serialise = CBOR.serialise
 
 deserialise :: BS.ByteString -> Tree
-deserialise = feedAll (deserialiseIncremental decode)
-  where
-    feedAll (Done _ _ x)    _ = x
-    feedAll (Partial k) lbs   = case lbs of
-      BS.Chunk bs lbs' -> feedAll (k (Just bs)) lbs'
-      BS.Empty         -> feedAll (k Nothing) BS.empty
-    feedAll (Fail _ _ exn) _ =
-      error ("Micro.CBOR.feedAll exception: " ++ show exn)
+deserialise = CBOR.deserialise
 
 encodeCtr0 :: Word -> Encoding
 encodeCtr2 :: (Serialise a, Serialise b) => Word -> a -> b -> Encoding

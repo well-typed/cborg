@@ -16,9 +16,9 @@ import Data.Binary.Serialise.CBOR.Write
 import Data.Monoid
 
 import qualified Data.ByteString.Lazy as BS
-import qualified Data.ByteString.Lazy.Internal as BS
 import qualified Data.ByteString.Builder as BS
 
+import Control.Exception (throw)
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative
 import Data.Word
@@ -29,18 +29,10 @@ serialise :: [GenericPackageDescription] -> BS.ByteString
 serialise = BS.toLazyByteString . toBuilder . encode
 
 deserialise :: BS.ByteString -> [GenericPackageDescription]
---deserialise :: Serialise a => BS.ByteString -> a
-deserialise = feedAll (deserialiseIncremental decode)
-  where
-    feedAll (Done _ _ x)    _ = x
-    feedAll (Partial k) lbs   = case lbs of
-      BS.Chunk bs lbs' -> feedAll (k (Just bs)) lbs'
-      BS.Empty         -> feedAll (k Nothing) BS.empty
-    feedAll (Fail _ _ exn) _ =
-      error ("Macro.CBOR.deserialise exception " ++ show exn)
+deserialise = either throw id . deserialiseFromBytes decode
 
 deserialiseNull :: BS.ByteString -> ()
-deserialiseNull = feedAll (deserialiseIncremental decodeListNull)
+deserialiseNull = either throw id . deserialiseFromBytes decodeListNull
   where
     decodeListNull = do decodeListLenIndef; go
 
@@ -48,13 +40,6 @@ deserialiseNull = feedAll (deserialiseIncremental decodeListNull)
             if stop then return ()
                     else do !_ <- decode :: Decoder GenericPackageDescription
                             go
-
-    feedAll (Done _ _ x)    _ = x
-    feedAll (Partial k) lbs   = case lbs of
-      BS.Chunk bs lbs' -> feedAll (k (Just bs)) lbs'
-      BS.Empty         -> feedAll (k Nothing) BS.empty
-    feedAll (Fail _ _ exn) _ =
-      error ("Macro.CBOR.deserialiseNull exception " ++ show exn)
 
 encodeCtr0 n     = encodeListLen 1 <> encode (n :: Word)
 encodeCtr1 n a   = encodeListLen 2 <> encode (n :: Word) <> encode a
