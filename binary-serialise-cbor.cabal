@@ -91,7 +91,7 @@ library
     containers              >= 0.5     && < 0.6,
     unordered-containers    >= 0.2     && < 0.3,
     hashable                >= 1.2     && < 2.0,
-    vector                  >= 0.10    && < 0.12
+    vector                  >= 0.10    && < 0.13
 
   if flag(optimize-gmp)
     cpp-options:            -DFLAG_OPTIMIZE_GMP
