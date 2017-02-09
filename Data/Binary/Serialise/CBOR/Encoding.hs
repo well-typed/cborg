@@ -62,6 +62,8 @@ import qualified Data.Text       as T
 
 import           Prelude         hiding (encodeFloat)
 
+import {-# SOURCE #-} qualified Data.Binary.Serialise.CBOR.FlatTerm as FlatTerm
+
 -- | An intermediate form used during serialisation, specified as a
 -- @'Monoid'@. It supports efficient concatenation, and is equivalent
 -- to a specialised @'Data.Monoid.Endo' 'Tokens'@ type.
@@ -76,6 +78,9 @@ import           Prelude         hiding (encodeFloat)
 --
 -- @since 0.2.0.0
 newtype Encoding = Encoding (Tokens -> Tokens)
+
+instance Show Encoding where
+  show = show . FlatTerm.toFlatTerm
 
 -- | A flattened representation of a term, which is independent
 -- of any underlying binary representation, but which we later
