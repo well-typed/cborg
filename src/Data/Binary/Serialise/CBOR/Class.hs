@@ -81,11 +81,12 @@ import qualified Numeric.Half                        as Half
 
 import           Data.Time                           (UTCTime (..), addUTCTime)
 import           Data.Time.Calendar                  (fromGregorian)
+import           Data.Time.Clock.POSIX               (POSIXTime, utcTimeToPOSIXSeconds,
+                                                      posixSecondsToUTCTime)
 #if MIN_VERSION_time(1,5,0)
-import           Data.Time.Format                    (defaultTimeLocale,
-                                                      formatTime, parseTimeM)
+import           Data.Time.Format                    (defaultTimeLocale, parseTimeM)
 #else
-import           Data.Time.Format                    (formatTime, parseTime)
+import           Data.Time.Format                    (parseTime)
 import           System.Locale                       (defaultTimeLocale)
 #endif
 import           System.Exit                         (ExitCode(..))
@@ -1296,10 +1297,24 @@ instance Serialise TypeRep where
 --
 -- CBOR has some special encodings for times/timestamps
 
--- | @since 0.2.0.0
+-- | 'UTCTime' is encoded using the extended time format which is currently in
+-- Internet Draft state,
+-- https://tools.ietf.org/html/draft-bormann-cbor-time-tag-00.
+--
+-- @since 0.2.0.0
 instance Serialise UTCTime where
-    encode d = encodeTag 0
-            <> encode (formatUTCrfc3339 d)
+    encode t =
+        encodeTag 1000
+        <> encodeMapLen 2
+        <> encodeWord 1 <> encodeInt64 secs
+        <> encodeInt (-12) <> encodeWord64 psecs
+      where
+        (secs, frac) = case properFraction $ utcTimeToPOSIXSeconds t of
+                         -- fractional part must be positive
+                         (secs', frac')
+                           | frac' < 0  -> (secs' - 1, frac' + 1)
+                           | otherwise -> (secs', frac')
+        psecs = round $ frac * 1000000000000
 
     decode = do
       tag <- decodeTag
@@ -1308,6 +1323,7 @@ instance Serialise UTCTime where
                 case parseUTCrfc3339 (Text.unpack str) of
                   Just t  -> return $! forceUTCTime t
                   Nothing -> fail "Could not parse RFC3339 date"
+
         1 -> do
           tt <- peekTokenType
           case tt of
@@ -1320,7 +1336,27 @@ instance Serialise UTCTime where
             TypeFloat32 -> utcFromReal <$> decodeFloat
             TypeFloat64 -> utcFromReal <$> decodeDouble
             _ -> fail "Expected numeric type following tag 1 (epoch offset)"
-        _ -> fail "Expected timestamp (tag 0 or 1)"
+
+        -- Extended time
+        1000 -> do
+          len <- decodeMapLen
+          when (len /= 2) $ fail "Expected list of length two (UTCTime)"
+
+          k0 <- decodeInt
+          when (k0 /= 1) $ fail "Expected key 1 in extended time"
+          v0 <- decodeInt64
+
+          k1 <- decodeInt
+          when (k1 /= (-12)) $ fail "Expected key -12 in extended time"
+          v1 <- decodeWord64
+          let psecs :: Pico
+              psecs = realToFrac v1 / 1000000000000
+
+              dt :: POSIXTime
+              dt = realToFrac v0 + realToFrac psecs
+          return $! forceUTCTime (posixSecondsToUTCTime dt)
+
+        _ -> fail "Expected timestamp (tag 0, 1, or 40)"
 
 epoch :: UTCTime
 epoch = UTCTime (fromGregorian 1970 1 1) 0
@@ -1333,14 +1369,9 @@ utcFromIntegral i = addUTCTime (fromIntegral i) epoch
 utcFromReal :: Real a => a -> UTCTime
 utcFromReal f = addUTCTime (fromRational (toRational f)) epoch
 
--- | @'UTCTime'@ formatting, into a regular @'String'@.
-formatUTCrfc3339 :: UTCTime -> String
 
 -- | @'UTCTime'@ parsing, from a regular @'String'@.
 parseUTCrfc3339  :: String -> Maybe UTCTime
-
--- Format UTC as timezone 'Z', but on parsing accept 'Z' or any numeric offset
-formatUTCrfc3339 = formatTime       defaultTimeLocale "%Y-%m-%dT%H:%M:%S%QZ"
 #if MIN_VERSION_time(1,5,0)
 parseUTCrfc3339  = parseTimeM False defaultTimeLocale "%Y-%m-%dT%H:%M:%S%Q%Z"
 #else
