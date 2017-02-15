@@ -4,6 +4,10 @@
 {-# LANGUAGE RankNTypes         #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 
+-- Bump up from the default 1.5, otherwise our decoder fast path is no good.
+-- We went over the threshold when we switched to using ST.
+{-# OPTIONS_GHC -funfolding-keeness-factor=2.0 #-}
+
 -- |
 -- Module      : Data.Binary.Serialise.CBOR.Read
 -- Copyright   : (c) Duncan Coutts 2015
