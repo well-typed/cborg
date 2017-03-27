@@ -41,6 +41,7 @@ import           Control.Applicative
 import           GHC.Int
 
 import           Control.Monad (ap)
+import           Control.Monad.ST
 import           Data.Array.IArray
 import           Data.Array.Unboxed
 import qualified Data.Array.Base as A
@@ -67,14 +68,6 @@ import qualified GHC.Integer.GMP.Internals      as Gmp
 import           System.IO.Unsafe               (unsafePerformIO)
 #endif
 
-#if defined(USE_ST)
-import Control.Monad.ST
-#else
-import Control.Monad.Identity (Identity(..))
-type ST s a = Identity a
-runST :: (forall s. ST s a) -> a
-runST = runIdentity
-#endif
 
 --------------------------------------------------------------------------------
 

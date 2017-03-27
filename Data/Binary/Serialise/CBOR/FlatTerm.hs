@@ -57,16 +57,8 @@ import           GHC.Float (Float(F#), Double(D#), float2Double)
 import           Data.Word
 import           Data.Text (Text)
 import           Data.ByteString (ByteString)
+import           Control.Monad.ST
 
-
-#if defined(USE_ST)
-import Control.Monad.ST
-#else
-import Control.Monad.Identity (Identity(..))
-type ST s a = Identity a
-runST :: (forall s. ST s a) -> a
-runST = runIdentity
-#endif
 
 --------------------------------------------------------------------------------
 

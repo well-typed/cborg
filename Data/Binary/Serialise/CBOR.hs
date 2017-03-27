@@ -49,6 +49,7 @@ module Data.Binary.Serialise.CBOR
 
 #include "cbor.h"
 
+import           Control.Monad.ST
 import           System.IO                        (Handle, IOMode (..), withFile)
 import           Control.Exception                (throw, throwIO)
 
@@ -60,14 +61,6 @@ import           Data.Binary.Serialise.CBOR.Class
 import qualified Data.Binary.Serialise.CBOR.Read  as CBOR.Read
 import qualified Data.Binary.Serialise.CBOR.Write as CBOR.Write
 
-#if defined(USE_ST)
-import Control.Monad.ST
-#else
-import Control.Monad.Identity (Identity(..))
-type ST s a = Identity a
-runST :: (forall s. ST s a) -> a
-runST = runIdentity
-#endif
 
 --------------------------------------------------------------------------------
 
