@@ -120,14 +120,14 @@ serialise = CBOR.Write.toLazyByteString . encode
 -- @since 0.2.0.0
 deserialise :: Serialise a => BS.ByteString -> a
 deserialise bs0 =
-    runST (flip supplyAllInput bs0 =<< deserialiseIncremental)
+    runST (supplyAllInput bs0 =<< deserialiseIncremental)
   where
-    supplyAllInput (CBOR.Read.Done _ _ x) _bs = return x
-    supplyAllInput (CBOR.Read.Partial k)   bs =
+    supplyAllInput _bs (CBOR.Read.Done _ _ x) = return x
+    supplyAllInput  bs (CBOR.Read.Partial k)  =
       case bs of
-        BS.Chunk chunk bs' -> k (Just chunk) >>= \d -> supplyAllInput d bs'
-        BS.Empty           -> k Nothing      >>= \d -> supplyAllInput d BS.Empty
-    supplyAllInput (CBOR.Read.Fail _ _ exn) _ = throw exn
+        BS.Chunk chunk bs' -> k (Just chunk) >>= supplyAllInput bs'
+        BS.Empty           -> k Nothing      >>= supplyAllInput BS.Empty
+    supplyAllInput _ (CBOR.Read.Fail _ _ exn) = throw exn
 
 -- | Deserialise a Haskell value from the external binary representation,
 -- or get back a @'DeserialiseFailure'@.
@@ -135,14 +135,14 @@ deserialise bs0 =
 -- @since 0.2.0.0
 deserialiseOrFail :: Serialise a => BS.ByteString -> Either CBOR.Read.DeserialiseFailure a
 deserialiseOrFail bs0 =
-    runST (flip supplyAllInput bs0 =<< deserialiseIncremental)
+    runST (supplyAllInput bs0 =<< deserialiseIncremental)
   where
-    supplyAllInput (CBOR.Read.Done _ _ x) _bs = return (Right x)
-    supplyAllInput (CBOR.Read.Partial k)   bs =
+    supplyAllInput _bs (CBOR.Read.Done _ _ x) = return (Right x)
+    supplyAllInput  bs (CBOR.Read.Partial k)  =
       case bs of
-        BS.Chunk chunk bs' -> k (Just chunk) >>= \d -> supplyAllInput d bs'
-        BS.Empty           -> k Nothing      >>= \d -> supplyAllInput d BS.Empty
-    supplyAllInput (CBOR.Read.Fail _ _ exn) _ = return (Left exn)
+        BS.Chunk chunk bs' -> k (Just chunk) >>= supplyAllInput bs'
+        BS.Empty           -> k Nothing      >>= supplyAllInput BS.Empty
+    supplyAllInput _ (CBOR.Read.Fail _ _ exn) = return (Left exn)
 
 --------------------------------------------------------------------------------
 -- File-based API
