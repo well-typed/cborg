@@ -129,7 +129,7 @@ encodeTerm (TDouble   f)  = encodeDouble  f
 -- | Decode some arbitrary CBOR value into a @'Term'@.
 --
 -- @since 0.2.0.0
-decodeTerm :: Decoder Term
+decodeTerm :: Decoder s Term
 decodeTerm = do
     tkty <- peekTokenType
     case tkty of
@@ -206,7 +206,7 @@ decodeTerm = do
 --------------------------------------------------------------------------------
 -- Internal utilities
 
-decodeBytesIndefLen :: [BS.ByteString] -> Decoder Term
+decodeBytesIndefLen :: [BS.ByteString] -> Decoder s Term
 decodeBytesIndefLen acc = do
     stop <- decodeBreakOr
     if stop then return $! TBytesI (LBS.fromChunks (reverse acc))
@@ -214,7 +214,7 @@ decodeBytesIndefLen acc = do
                     decodeBytesIndefLen (bs : acc)
 
 
-decodeStringIndefLen :: [T.Text] -> Decoder Term
+decodeStringIndefLen :: [T.Text] -> Decoder s Term
 decodeStringIndefLen acc = do
     stop <- decodeBreakOr
     if stop then return $! TStringI (LT.fromChunks (reverse acc))
@@ -222,7 +222,7 @@ decodeStringIndefLen acc = do
                     decodeStringIndefLen (str : acc)
 
 
-decodeListN :: Int -> [Term] -> Decoder Term
+decodeListN :: Int -> [Term] -> Decoder s Term
 decodeListN !n acc =
     case n of
       0 -> return $! TList (reverse acc)
@@ -230,7 +230,7 @@ decodeListN !n acc =
               decodeListN (n-1) (t : acc)
 
 
-decodeListIndefLen :: [Term] -> Decoder Term
+decodeListIndefLen :: [Term] -> Decoder s Term
 decodeListIndefLen acc = do
     stop <- decodeBreakOr
     if stop then return $! TListI (reverse acc)
@@ -238,7 +238,7 @@ decodeListIndefLen acc = do
                     decodeListIndefLen (tm : acc)
 
 
-decodeMapN :: Int -> [(Term, Term)] -> Decoder Term
+decodeMapN :: Int -> [(Term, Term)] -> Decoder s Term
 decodeMapN !n acc =
     case n of
       0 -> return $! TMap (reverse acc)
@@ -247,7 +247,7 @@ decodeMapN !n acc =
               decodeMapN (n-1) ((tm, tm') : acc)
 
 
-decodeMapIndefLen :: [(Term, Term)] -> Decoder Term
+decodeMapIndefLen :: [(Term, Term)] -> Decoder s Term
 decodeMapIndefLen acc = do
     stop <- decodeBreakOr
     if stop then return $! TMapI (reverse acc)

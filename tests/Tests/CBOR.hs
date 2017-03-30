@@ -28,6 +28,7 @@ import           Tests.Reference (TestCase(..))
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
 #endif
+import           Control.Exception (throw)
 
 
 externalTestCase :: TestCase -> Assertion
@@ -123,10 +124,7 @@ serialise :: Term -> LBS.ByteString
 serialise = toLazyByteString . encodeTerm
 
 deserialise :: LBS.ByteString -> Term
-deserialise encoded =
-    case deserialiseFromBytes decodeTerm encoded of
-      Left msg   -> error $ "deserialise: " ++ msg
-      Right term -> term
+deserialise = either throw id . deserialiseFromBytes decodeTerm
 
 ------------------------------------------------------------------------------
 

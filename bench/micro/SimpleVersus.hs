@@ -6,12 +6,9 @@ module SimpleVersus
 import           Control.DeepSeq
 import           Criterion.Main
 import qualified Data.Binary                      as Binary
-import           Data.Binary.Serialise.CBOR.Class
-import           Data.Binary.Serialise.CBOR.Read
-import           Data.Binary.Serialise.CBOR.Write
+import qualified Data.Binary.Serialise.CBOR       as CBOR
 import qualified Data.ByteString                  as ByteStringStrict
 import qualified Data.ByteString.Lazy             as ByteString
-import qualified Data.ByteString.Lazy.Internal    as ByteString
 import qualified Data.Serialize                   as Cereal
 import qualified Data.Store                       as Store
 import           Data.Vector.Serialize            ()
@@ -48,7 +45,7 @@ benchmarks =
 binarySerialise, cborSerialise, cerealSerialise
   :: Unboxed.Vector Int -> ByteString.ByteString
 binarySerialise = Binary.encode
-cborSerialise = toLazyByteString . encode
+cborSerialise   = CBOR.serialise
 cerealSerialise = Cereal.encodeLazy
 storeSerialise :: Unboxed.Vector Int -> ByteStringStrict.ByteString
 storeSerialise = Store.encode
@@ -57,14 +54,7 @@ binaryDeserialise, cborDeserialise, cerealDeserialise
   :: ByteString.ByteString -> Unboxed.Vector Int
 binaryDeserialise = Binary.decode
 cerealDeserialise = (\(Right x) -> x) . Cereal.decodeLazy
-cborDeserialise bs = feedAll (deserialiseIncremental decode) bs
-  where
-    feedAll (Done _ _ x)    _ = x
-    feedAll (Partial k) lbs   = case lbs of
-      ByteString.Chunk bs' lbs' -> feedAll (k (Just bs')) lbs'
-      ByteString.Empty          -> feedAll (k Nothing) ByteString.empty
-    feedAll (Fail _ _ exn) _ =
-      error ("Micro.SimpleVersus.feedAll exception: " ++ show exn)
+cborDeserialise   = CBOR.deserialise
 
 storeDeserialise :: ByteStringStrict.ByteString -> Unboxed.Vector Int
 storeDeserialise = (\(Right x) -> x) . Store.decode

@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP                #-}
+{-# LANGUAGE RankNTypes         #-}
 
 -- |
 -- Module      : Data.Binary.Serialise.CBOR
@@ -48,6 +49,7 @@ module Data.Binary.Serialise.CBOR
 
 #include "cbor.h"
 
+import           Control.Monad.ST
 import           System.IO                        (Handle, IOMode (..), withFile)
 import           Control.Exception                (throw, throwIO)
 
@@ -58,6 +60,7 @@ import qualified Data.ByteString.Lazy.Internal    as BS
 import           Data.Binary.Serialise.CBOR.Class
 import qualified Data.Binary.Serialise.CBOR.Read  as CBOR.Read
 import qualified Data.Binary.Serialise.CBOR.Write as CBOR.Write
+
 
 --------------------------------------------------------------------------------
 
@@ -87,7 +90,7 @@ serialiseIncremental = CBOR.Write.toBuilder . encode
 -- whole, not incrementally.
 --
 -- @since 0.2.0.0
-deserialiseIncremental :: Serialise a => CBOR.Read.IDecode a
+deserialiseIncremental :: Serialise a => ST s (CBOR.Read.IDecode s a)
 deserialiseIncremental = CBOR.Read.deserialiseIncremental decode
 
 --------------------------------------------------------------------------------
@@ -116,29 +119,30 @@ serialise = CBOR.Write.toLazyByteString . encode
 --
 -- @since 0.2.0.0
 deserialise :: Serialise a => BS.ByteString -> a
-deserialise =
-    supplyAllInput deserialiseIncremental
+deserialise bs0 =
+    runST (supplyAllInput bs0 =<< deserialiseIncremental)
   where
-    supplyAllInput (CBOR.Read.Done _ _ x) _bs = x
-    supplyAllInput (CBOR.Read.Partial k)   bs =
+    supplyAllInput _bs (CBOR.Read.Done _ _ x) = return x
+    supplyAllInput  bs (CBOR.Read.Partial k)  =
       case bs of
-        BS.Chunk chunk bs' ->  supplyAllInput (k (Just chunk)) bs'
-        BS.Empty           ->  supplyAllInput (k Nothing)      BS.Empty
-    supplyAllInput (CBOR.Read.Fail _ _ exn) _ = throw exn
+        BS.Chunk chunk bs' -> k (Just chunk) >>= supplyAllInput bs'
+        BS.Empty           -> k Nothing      >>= supplyAllInput BS.Empty
+    supplyAllInput _ (CBOR.Read.Fail _ _ exn) = throw exn
 
 -- | Deserialise a Haskell value from the external binary representation,
 -- or get back a @'DeserialiseFailure'@.
 --
 -- @since 0.2.0.0
 deserialiseOrFail :: Serialise a => BS.ByteString -> Either CBOR.Read.DeserialiseFailure a
-deserialiseOrFail = supplyAllInput deserialiseIncremental
+deserialiseOrFail bs0 =
+    runST (supplyAllInput bs0 =<< deserialiseIncremental)
   where
-    supplyAllInput (CBOR.Read.Done _ _ x) _bs = Right x
-    supplyAllInput (CBOR.Read.Partial k)   bs =
+    supplyAllInput _bs (CBOR.Read.Done _ _ x) = return (Right x)
+    supplyAllInput  bs (CBOR.Read.Partial k)  =
       case bs of
-        BS.Chunk chunk bs' ->  supplyAllInput (k (Just chunk)) bs'
-        BS.Empty           ->  supplyAllInput (k Nothing)      BS.Empty
-    supplyAllInput (CBOR.Read.Fail _ _ exn) _ = Left exn
+        BS.Chunk chunk bs' -> k (Just chunk) >>= supplyAllInput bs'
+        BS.Empty           -> k Nothing      >>= supplyAllInput BS.Empty
+    supplyAllInput _ (CBOR.Read.Fail _ _ exn) = return (Left exn)
 
 --------------------------------------------------------------------------------
 -- File-based API

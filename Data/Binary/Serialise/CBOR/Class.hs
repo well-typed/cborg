@@ -115,8 +115,8 @@ class Serialise a where
     -- | Definition of a given @'Decoder'@ for a type.
     --
     -- @since 0.2.0.0
-    decode  :: Decoder a
-    default decode :: (Generic a, GSerialiseDecode (Rep a)) => Decoder a
+    decode  :: Decoder s a
+    default decode :: (Generic a, GSerialiseDecode (Rep a)) => Decoder s a
     decode = to <$> gdecode
 
     -- | Utility to support specialised encoding for some list type -
@@ -130,7 +130,7 @@ class Serialise a where
     -- used for @'Char'@/@'String'@ instances in this package.
     --
     -- @since 0.2.0.0
-    decodeList :: Decoder [a]
+    decodeList :: Decoder s [a]
     decodeList = defaultDecodeList
 
 --------------------------------------------------------------------------------
@@ -152,7 +152,7 @@ defaultEncodeList xs = encodeListLenIndef
 -- | Default @'Decoder'@ for list types.
 --
 -- @since 0.2.0.0
-defaultDecodeList :: Serialise a => Decoder [a]
+defaultDecodeList :: Serialise a => Decoder s [a]
 defaultDecodeList = do
     mn <- decodeListLenOrIndef
     case mn of
@@ -288,7 +288,7 @@ encodeChunked encodeIndef foldrChunks a =
     encodeIndef
  <> foldrChunks (\x r -> encode x <> r) encodeBreak a
 
-decodeChunked :: Serialise c => Decoder () -> ([c] -> a) -> Decoder a
+decodeChunked :: Serialise c => Decoder s () -> ([c] -> a) -> Decoder s a
 decodeChunked decodeIndef fromChunks = do
   decodeIndef
   decodeSequenceLenIndef (flip (:)) [] (fromChunks . reverse) decode
@@ -724,13 +724,13 @@ encodeContainerSkel encodeLen size foldr f  c =
 
 decodeContainerSkelWithReplicate
   :: (Serialise a)
-  => Decoder Int
+  => Decoder s Int
      -- ^ How to get the size of the container
-  -> (Int -> Decoder a -> Decoder container)
+  -> (Int -> Decoder s a -> Decoder s container)
      -- ^ replicateM for the container
   -> ([container] -> container)
      -- ^ concat for the container
-  -> Decoder container
+  -> Decoder s container
 decodeContainerSkelWithReplicate decodeLen replicateFun fromList = do
     -- Look at how much data we have at the moment and use it as the limit for
     -- the size of a single call to replicateFun. We don't want to use
@@ -783,7 +783,7 @@ encodeVector = encodeContainerSkel
 --
 -- @since 0.2.0.0
 decodeVector :: (Serialise a, Vector.Generic.Vector v a)
-             => Decoder (v a)
+             => Decoder s (v a)
 decodeVector = decodeContainerSkelWithReplicate
     decodeListLen
     Vector.Generic.replicateM
@@ -831,7 +831,7 @@ encodeSetSkel size foldr =
 {-# INLINE encodeSetSkel #-}
 
 decodeSetSkel :: Serialise a
-              => ([a] -> s) -> Decoder s
+              => ([a] -> c) -> Decoder s c
 decodeSetSkel fromList = do
   n <- decodeListLen
   fmap fromList (replicateM n decode)
@@ -867,7 +867,7 @@ encodeMapSkel size foldrWithKey =
 
 decodeMapSkel :: (Serialise k, Serialise v)
               => ([(k,v)] -> m)
-              -> Decoder m
+              -> Decoder s m
 decodeMapSkel fromList = do
   n <- decodeMapLen
   let decodeEntry = do
@@ -1072,7 +1072,7 @@ class GSerialiseEncode f where
 -- | @since 0.2.0.0
 class GSerialiseDecode f where
     -- | @since 0.2.0.0
-    gdecode  :: Decoder (f a)
+    gdecode  :: Decoder s (f a)
 
 -- | @since 0.2.0.0
 instance GSerialiseEncode V1 where
@@ -1178,7 +1178,7 @@ class GSerialiseProd f where
     -- | Encode fields sequentially without writing header
     encodeSeq :: f a -> Encoding
     -- | Decode fields sequentially without reading header
-    gdecodeSeq :: Decoder (f a)
+    gdecodeSeq :: Decoder s (f a)
 
 -- | @since 0.2.0.0
 instance (GSerialiseProd f, GSerialiseProd g) => GSerialiseProd (f :*: g) where
@@ -1223,11 +1223,11 @@ class GSerialiseSum f where
     encodeSum   :: f a  -> Encoding
 
     -- | Decode field
-    decodeSum     :: Word -> Decoder (f a)
+    decodeSum     :: Word -> Decoder s (f a)
     -- | Number of constructors
     nConstructors :: Proxy f -> Word
     -- | Number of fields for given constructor number
-    fieldsForCon  :: Proxy f -> Word -> Decoder Word
+    fieldsForCon  :: Proxy f -> Word -> Decoder s Word
 
 
 -- | @since 0.2.0.0
