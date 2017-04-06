@@ -25,6 +25,8 @@ matrix:
       addons: {apt: {packages: [cabal-install-head,ghc-7.10.3], sources: [hvr-ghc]}}
     - compiler: "ghc-8.0.2"
       addons: {apt: {packages: [cabal-install-head,ghc-8.0.1], sources: [hvr-ghc]}}
+    - compiler: "ghc-8.2.1"
+      addons: {apt: {packages: [cabal-install-head,ghc-8.0.1], sources: [hvr-ghc]}}
     - compiler: "ghc-head"
       addons: {apt: {packages: [cabal-install-head,ghc-head], sources: [hvr-ghc]}}
 
@@ -38,6 +40,7 @@ matrix:
 
   allow_failures:
     - compiler: "ghc-head"
+    - compiler: "ghc-8.2.1"
 
 before_install:
  - HC=${CC}
