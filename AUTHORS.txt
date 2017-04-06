@@ -8,16 +8,22 @@ builder actions) came from Simon Meier.
 People who contributed code, ideas or lively discussion include, in no
 particular order:
 
-  Adam Gundry        <adam [@at] well-typed [.dot] com>
-  Alex Mason         <alex [.dot] mason [@at] nicta [.dot] com [.dot] au>
-  Alexey Khudyakov   <alexey [.dot] skladnoy [@at] gmail [.dot] com>
-  Arian van Putten   <aeroboy94 [@at] gmail [.dot] com>
-  Austin Seipp       <austin [@at] well-typed [.dot] com>
-  Ben Gamari         <ben [@at] well-typed [.dot] com>
-  Michal Terepeta    <michal [.dot] terepeta [@at] gmail [.dot] com>
-  Ondrej Palkovsky   <palkovsky [.dot] ondrej [@at] gmail [.dot] com>
-  Tobias Florek      <tob [@at] butter [.dot] sh>
-  Tom Hunger         <tehunger [@at] gmail [.dot] com>
+  Adam Gundry            <adam [@at] well-typed [.dot] com>
+  Alexander Vershilov    <alexander [.dot] vershilov [@at] gmail [.dot] com>
+  Alexey Khudyakov       <alexey [.dot] skladnoy [@at] gmail [.dot] com>
+  Alex Mason             <alex [.dot] mason [@at] nicta [.dot] com [.dot] au>
+  Arian van Putten       <aeroboy94 [@at] gmail [.dot] com>
+  Austin Seipp           <austin [@at] well-typed [.dot] com>
+  Ben Gamari             <ben [@at] well-typed [.dot] com>
+  Greg Horn              <gregmainland [@at] gmail [.dot] com>
+  Herbert Valerio Riedel <hvr [@at] gnu [.dot] org>
+  Michael De La Rue      <githubcbor [.dot] mddlr [@at] 9ox [.dot] net>
+  Michal Terepeta        <michal [.dot] terepeta [@at] gmail [.dot] com>
+  Ondrej Palkovsky       <palkovsky [.dot] ondrej [@at] gmail [.dot] com>
+  Tobias Florek          <tob [@at] butter [.dot] sh>
+  Tom Hunger             <tehunger [@at] gmail [.dot] com>
+  Travis Whitaker        <pi [.dot] boy [.dot] travis [@at] gmail [.dot] com>
+  William Casarin        <bill [@at] casarin [.dot] me>
 
 This package includes code from the 'half' package, particularly the C code
 in cbits/half.c. Thanks to Edward Kmett for this.
