@@ -51,6 +51,7 @@ import           Data.Functor.Identity
 
 #if MIN_VERSION_base(4,9,0)
 import qualified Data.Semigroup                      as Semigroup
+import qualified Data.List.NonEmpty                  as NonEmpty
 #endif
 
 import qualified Data.Foldable                       as Foldable
@@ -160,6 +161,19 @@ defaultDecodeList = do
       Nothing -> decodeSequenceLenIndef (flip (:)) [] reverse   decode
       Just n  -> decodeSequenceLenN     (flip (:)) [] reverse n decode
 
+--------------------------------------------------------------------------------
+-- Another case: NonEmpty lists
+
+#if MIN_VERSION_base(4,9,0)
+-- | @since 0.2.0.0
+instance Serialise a => Serialise (NonEmpty.NonEmpty a) where
+  encode = defaultEncodeList . NonEmpty.toList
+  decode = do
+    l <- defaultDecodeList
+    case NonEmpty.nonEmpty l of
+      Nothing -> fail "Expected a NonEmpty list, but an empty list was found!"
+      Just xs -> return xs
+#endif
 
 --------------------------------------------------------------------------------
 -- Primitive and integral instances
