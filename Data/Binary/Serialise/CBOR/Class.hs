@@ -705,6 +705,58 @@ instance ( Serialise a, Serialise b, Serialise c, Serialise d, Serialise e
                 return (a, b, c, d, e, f, g)
 
 -- | @since 0.2.0.0
+instance ( Serialise a, Serialise b, Serialise c, Serialise d, Serialise e
+         , Serialise f, Serialise g, Serialise h
+         ) => Serialise (a,b,c,d,e,f,g,h) where
+    encode (a,b,c,d,e,f,g,h) = encodeListLen 8
+                            <> encode a
+                            <> encode b
+                            <> encode c
+                            <> encode d
+                            <> encode e
+                            <> encode f
+                            <> encode g
+                            <> encode h
+
+    decode = do decodeListLenOf 8
+                !a <- decode
+                !b <- decode
+                !c <- decode
+                !d <- decode
+                !e <- decode
+                !f <- decode
+                !g <- decode
+                !h <- decode
+                return (a, b, c, d, e, f, g, h)
+
+-- | @since 0.2.0.0
+instance ( Serialise a, Serialise b, Serialise c, Serialise d, Serialise e
+         , Serialise f, Serialise g, Serialise h, Serialise i
+         ) => Serialise (a,b,c,d,e,f,g,h,i) where
+    encode (a,b,c,d,e,f,g,h,i) = encodeListLen 9
+                              <> encode a
+                              <> encode b
+                              <> encode c
+                              <> encode d
+                              <> encode e
+                              <> encode f
+                              <> encode g
+                              <> encode h
+                              <> encode i
+
+    decode = do decodeListLenOf 9
+                !a <- decode
+                !b <- decode
+                !c <- decode
+                !d <- decode
+                !e <- decode
+                !f <- decode
+                !g <- decode
+                !h <- decode
+                !i <- decode
+                return (a, b, c, d, e, f, g, h, i)
+
+-- | @since 0.2.0.0
 instance Serialise a => Serialise (Maybe a) where
     encode Nothing  = encodeListLen 0
     encode (Just x) = encodeListLen 1 <> encode x
