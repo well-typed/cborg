@@ -45,6 +45,7 @@ import           Data.Ratio
 import           Data.Ord
 
 #if MIN_VERSION_base(4,8,0)
+import           Numeric.Natural
 import           Data.Functor.Identity
 #endif
 
@@ -227,6 +228,13 @@ instance Serialise Word64 where
 instance Serialise Integer where
     encode = encodeInteger
     decode = decodeInteger
+
+#if MIN_VERSION_base(4,8,0)
+-- | @since 0.2.0.0
+instance Serialise Natural where
+    encode = encodeInteger . toInteger
+    decode = fmap fromInteger decodeInteger
+#endif
 
 -- | @since 0.2.0.0
 instance Serialise Float where
@@ -1210,7 +1218,6 @@ instance (i ~ S, GSerialiseProd f) => GSerialiseProd (M1 i c f) where
     encodeSeq  (M1 f) = encodeSeq f
     gdecodeSeq        = M1 <$> gdecodeSeq
 
-
 -- | Serialization of sum types
 --
 -- @since 0.2.0.0
@@ -1228,7 +1235,6 @@ class GSerialiseSum f where
     nConstructors :: Proxy f -> Word
     -- | Number of fields for given constructor number
     fieldsForCon  :: Proxy f -> Word -> Decoder s Word
-
 
 -- | @since 0.2.0.0
 instance (GSerialiseSum f, GSerialiseSum g) => GSerialiseSum (f :+: g) where
@@ -1254,7 +1260,6 @@ instance (GSerialiseSum f, GSerialiseSum g) => GSerialiseSum (f :+: g) where
                    | otherwise = R1 <$> decodeSum (nCon - nL)
       where
         nL = nConstructors (Proxy :: Proxy f)
-
 
 -- | @since 0.2.0.0
 instance (i ~ C, GSerialiseProd f) => GSerialiseSum (M1 i c f) where
