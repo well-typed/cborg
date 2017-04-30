@@ -90,7 +90,15 @@ import           System.Exit                         (ExitCode(..))
 
 import           Prelude hiding (decodeFloat, encodeFloat, foldr)
 import qualified Prelude
+#if MIN_VERSION_base(4,10,0)
+import           Type.Reflection
+import           Type.Reflection.Unsafe
+import           GHC.Fingerprint
+import           GHC.Exts (VecCount(..), VecElem(..), RuntimeRep(..))
+import           Data.Kind (Type)
+#else
 import           Data.Typeable.Internal
+#endif
 import           GHC.Generics
 
 import           Data.Binary.Serialise.CBOR.Decoding
@@ -1002,7 +1010,22 @@ instance Serialise Fingerprint where
 
 -- | @since 0.2.0.0
 instance Serialise TyCon where
-#if MIN_VERSION_base(4,9,0)
+#if MIN_VERSION_base(4,10,0)
+  encode tc
+    = encodeListLen 6
+   <> encodeWord 0
+   <> encode (tyConPackage tc)
+   <> encode (tyConModule tc)
+   <> encode (tyConName tc)
+   <> encode (tyConKindArgs tc)
+   <> encode (tyConKindRep tc)
+  decode = do
+    decodeListLenOf 6
+    tag <- decodeWord
+    case tag of
+      0 -> mkTyCon <$> decode <*> decode <*> decode <*> decode <*> decode
+      _ -> fail "unexpected tag"
+#elif MIN_VERSION_base(4,9,0)
   encode tycon
     = encodeListLen 4
    <> encodeWord 0
@@ -1018,6 +1041,7 @@ instance Serialise TyCon where
    <> encode name
 #endif
 
+#if !MIN_VERSION_base(4,10,0)
   decode = do
     decodeListLenOf 4
     tag <- decodeWord
@@ -1027,6 +1051,183 @@ instance Serialise TyCon where
               !name    <- decode
               return $! mkTyCon3 pkg modname name
       _ -> fail "unexpected tag"
+#endif
+
+#if MIN_VERSION_base(4,10,0)
+-- | @since 0.2.0.0
+instance Serialise VecCount where
+  encode c = encodeListLen 1 <> encodeWord (fromIntegral $ fromEnum c)
+  decode = do
+    decodeListLenOf 1
+    toEnum . fromIntegral <$> decodeWord
+
+-- | @since 0.2.0.0
+instance Serialise VecElem where
+  encode e = encodeListLen 1 <> encodeWord (fromIntegral $ fromEnum e)
+  decode = do
+    decodeListLenOf 1
+    toEnum . fromIntegral <$> decodeWord
+
+-- | @since 0.2.0.0
+instance Serialise RuntimeRep where
+  encode rr =
+    case rr of
+      VecRep a b    -> encodeListLen 3 <> encodeWord 0 <> encode a <> encode b
+      TupleRep reps -> encodeListLen 2 <> encodeWord 1 <> encode reps
+      SumRep reps   -> encodeListLen 2 <> encodeWord 2 <> encode reps
+      LiftedRep     -> encodeListLen 1 <> encodeWord 3
+      UnliftedRep   -> encodeListLen 1 <> encodeWord 4
+      IntRep        -> encodeListLen 1 <> encodeWord 5
+      WordRep       -> encodeListLen 1 <> encodeWord 6
+      Int64Rep      -> encodeListLen 1 <> encodeWord 7
+      Word64Rep     -> encodeListLen 1 <> encodeWord 8
+      AddrRep       -> encodeListLen 1 <> encodeWord 9
+      FloatRep      -> encodeListLen 1 <> encodeWord 10
+      DoubleRep     -> encodeListLen 1 <> encodeWord 11
+
+  decode = do
+    len <- decodeListLen
+    tag <- decodeWord
+    case tag of
+      0  | len == 3 -> VecRep <$> decode <*> decode
+      1  | len == 2 -> TupleRep <$> decode
+      2  | len == 2 -> SumRep <$> decode
+      3  | len == 1 -> pure LiftedRep
+      4  | len == 1 -> pure UnliftedRep
+      5  | len == 1 -> pure IntRep
+      6  | len == 1 -> pure WordRep
+      7  | len == 1 -> pure Int64Rep
+      8  | len == 1 -> pure Word64Rep
+      9  | len == 1 -> pure AddrRep
+      10 | len == 1 -> pure FloatRep
+      11 | len == 1 -> pure DoubleRep
+      _             -> fail "Data.Serialise.Binary.CBOR.getRuntimeRep: invalid tag"
+
+-- | @since 0.2.0.0
+instance Serialise KindRep where
+  encode rep =
+    case rep of
+      KindRepTyConApp tc k  -> encodeListLen 3 <> encodeWord 0 <> encode tc <> encode k
+      KindRepVar bndr       -> encodeListLen 2 <> encodeWord 1 <> encode bndr
+      KindRepApp a b        -> encodeListLen 3 <> encodeWord 2 <> encode a <> encode b
+      KindRepFun a b        -> encodeListLen 3 <> encodeWord 3 <> encode a <> encode b
+      KindRepTYPE r         -> encodeListLen 2 <> encodeWord 4 <> encode r
+      KindRepTypeLit sort r -> encodeListLen 3 <> encodeWord 5 <> encode sort <> encode r
+
+  decode = do
+    len <- decodeListLen
+    tag <- decodeWord
+    case tag of
+      0 | len == 3 -> KindRepTyConApp <$> decode <*> decode
+      1 | len == 2 -> KindRepVar <$> decode
+      2 | len == 3 -> KindRepApp <$> decode <*> decode
+      3 | len == 3 -> KindRepFun <$> decode <*> decode
+      4 | len == 2 -> KindRepTYPE <$> decode
+      5 | len == 3 -> KindRepTypeLit <$> decode <*> decode
+      _            -> fail "Data.Serialise.Binary.CBOR.getKindRep: invalid tag"
+
+-- | @since 0.2.0.0
+instance Serialise TypeLitSort where
+  encode n
+    = encodeListLen 1
+   <> case n of
+        TypeLitSymbol -> encodeWord 0
+        TypeLitNat    -> encodeWord 1
+  decode = do
+    decodeListLenOf 1
+    tag <- decodeWord
+    case tag of
+      0 -> pure TypeLitSymbol
+      1 -> pure TypeLitNat
+      _ -> fail "Data.Serialise.Binary.CBOR.putTypeLitSort: invalid tag"
+
+decodeSomeTypeRep :: Decoder SomeTypeRep
+decodeSomeTypeRep = do
+    len <- decodeListLen
+    tag <- decodeWord
+    case tag of
+      0 | len == 1 ->
+              return $! SomeTypeRep (typeRep :: TypeRep Type)
+      1 | len == 2 -> do
+              !con <- decode
+              !ks <- decode
+              return $! SomeTypeRep $ mkTrCon con ks
+      2 | len == 2 -> do
+              SomeTypeRep f <- decodeSomeTypeRep
+              SomeTypeRep x <- decodeSomeTypeRep
+              case typeRepKind f of
+                Fun arg res ->
+                    case arg `eqTypeRep` typeRepKind x of
+                      Just HRefl -> do
+                          case typeRepKind res `eqTypeRep` (typeRep :: TypeRep Type) of
+                            Just HRefl -> return $! SomeTypeRep (mkTrApp f x)
+                            _          -> failure "Kind mismatch" []
+                      _ -> failure "Kind mismatch"
+                           [ "Found argument of kind:      " ++ show (typeRepKind x)
+                           , "Where the constructor:       " ++ show f
+                           , "Expects an argument of kind: " ++ show arg
+                           ]
+                _ -> failure "Applied non-arrow type"
+                     [ "Applied type: " ++ show f
+                     , "To argument:  " ++ show x
+                     ]
+      3 | len == 2 -> do
+              SomeTypeRep arg <- decodeSomeTypeRep
+              SomeTypeRep res <- decodeSomeTypeRep
+              case typeRepKind arg `eqTypeRep` (typeRep :: TypeRep Type) of
+                Just HRefl ->
+                    case  typeRepKind res `eqTypeRep` (typeRep :: TypeRep Type) of
+                      Just HRefl -> return $! SomeTypeRep $ Fun arg res
+                      Nothing -> failure "Kind mismatch" []
+                Nothing -> failure "Kind mismatch" []
+      _ -> failure "unexpected tag" []
+  where
+    failure description info =
+        fail $ unlines $ [ "Data.Binary.Serialise.CBOR.Class.decodeSomeTypeRep: "++description ]
+                         ++ map ("    "++) info
+
+encodeTypeRep :: TypeRep a -> Encoding
+encodeTypeRep rep  -- Handle Type specially since it's so common
+  | Just HRefl <- rep `eqTypeRep` (typeRep :: TypeRep Type)
+  = encodeListLen 1
+ <> encodeWord 0
+encodeTypeRep (Con' con ks)
+  = encodeListLen 3
+ <> encodeWord 1
+ <> encode con
+ <> encode ks
+encodeTypeRep (App f x)
+  = encodeListLen 3
+ <> encodeWord 2
+ <> encodeTypeRep f
+ <> encodeTypeRep x
+encodeTypeRep (Fun arg res)
+  = encodeListLen 3
+ <> encodeWord 3
+ <> encodeTypeRep arg
+ <> encodeTypeRep res
+encodeTypeRep _ = error "Data.Binary.Serialise.CBOR.Class.encodeTypeRep: Impossible"
+
+-- | @since 0.2.0.0
+instance Typeable a => Serialise (TypeRep (a :: k)) where
+  encode = encodeTypeRep
+  decode = do
+      SomeTypeRep rep <- decodeSomeTypeRep
+      case rep `eqTypeRep` expected of
+        Just HRefl -> pure rep
+        Nothing    -> fail $ unlines
+                      [ "Data.Binary.Serialise.CBOR.Class.decode(TypeRep): Type mismatch"
+                      , "    Deserialized type: " ++ show rep
+                      , "    Expected type:     " ++ show expected
+                      ]
+    where expected = typeRep :: TypeRep a
+
+-- | @since 0.2.0.0
+instance Serialise SomeTypeRep where
+  encode (SomeTypeRep rep) = encodeTypeRep rep
+  decode = decodeSomeTypeRep
+
+#else
 
 -- | @since 0.2.0.0
 instance Serialise TypeRep where
@@ -1067,6 +1268,8 @@ instance Serialise TypeRep where
               return $! TypeRep fp tycon tyrep
       _ -> fail "unexpected tag"
 #endif
+
+#endif /* !MIN_VERBOSE_base(4,10,0) */
 
 --------------------------------------------------------------------------------
 -- Time instances
