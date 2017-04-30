@@ -35,7 +35,7 @@ matrix:
     - env: LLVMVER=3.5
       compiler: "ghc-7.10.3"
       addons: {apt: {packages: [cabal-install-head,ghc-7.10.3,llvm-3.5-tools], sources: [hvr-ghc,ubuntu-toolchain-r-test,llvm-toolchain-precise-3.5]}}
-    - env: LLVMVER=3.7
+    - env: LLVMVER=3.7 BENCH=--disable-benchmarks
       compiler: "ghc-8.0.2"
       addons: {apt: {packages: [cabal-install-head,ghc-8.0.2,llvm-3.7-tools], sources: [hvr-ghc,ubuntu-toolchain-r-test,llvm-toolchain-precise-3.7]}}
 
