@@ -7,27 +7,30 @@
 [![BSD3](https://img.shields.io/badge/License-BSD-blue.svg)](https://en.wikipedia.org/wiki/BSD_License)
 [![Haskell](https://img.shields.io/badge/Language-Haskell-yellowgreen.svg)](https://www.haskell.org)
 
+**NOTE**: Currently this library has not been released to the public Hackage
+server, as the API is still considered to be in flux. However, the on-disk
+formats are relatively stable, and the code has seen _substantial_ production
+use by Well-Typed, as well as a number of outsiders and independent companies
+(with near-universal positive results), for well over a year.
+
+---
+
 This package provides pure, efficient serialization of Haskell values directly
 into `ByteString`s for storage or transmission purposes. By providing a set of
 type class instances, you can also serialise any custom data type you have as
 well.
 
-The underlying binary format used is the 'Concise Binary Object
-Representation', or CBOR, specified in `RFC 7049`. As a result, serialised
-Haskell values have implicit structure outside of the Haskell program itself,
-meaning they can be inspected or analyzed with custom tools.
+The underlying binary format used is the 'Concise Binary Object Representation',
+or CBOR, specified in `RFC 7049`. As a result, serialised Haskell values have
+implicit structure outside of the Haskell program itself, meaning they can be
+inspected or analyzed with custom tools.
 
 This package is eventually intended to essentially replace the venerable
-`binary` library. Aside from having a more concise format that has an
-explicit structure, it's multiple times faster than competing libraries
-as well in both the encode and decode paths. However, the current API only
-provides CBOR serialization; it does not provide an independent notion of
-parsing arbitrary binary data. This has yet to be designed or implemented.
-
-**NOTE**: Currently this library has not been released to the public Hackage
-server, although it has seen real production use (with good results).
-Experimentation is encouraged, with a healthy dose of careful inspection and
-analysis.
+`binary` library. Aside from having a more concise format that has an explicit
+structure, it's multiple times faster than competing libraries as well in both
+the encode and decode paths. However, the current API only provides CBOR
+serialization; it does not provide an independent notion of parsing arbitrary
+binary data. This has yet to be designed or implemented.
 
 # Installation
 
