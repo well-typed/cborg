@@ -42,6 +42,7 @@ CHECK=`git grep -i serialize           | \
        grep -v "instance (Serialize"   | \
        grep -v "Data.Serialize"        | \
        grep -v "Data.Vector.Serialize" | \
+       grep -v "Deserialized type: "   | \
        grep -v "git grep"`
 
 if [[ ! -z "${CHECK}" ]]; then
