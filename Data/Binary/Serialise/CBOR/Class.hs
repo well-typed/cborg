@@ -255,7 +255,11 @@ instance Serialise Integer where
 -- | @since 0.2.0.0
 instance Serialise Natural where
     encode = encodeInteger . toInteger
-    decode = fmap fromInteger decodeInteger
+    decode = do
+      n <- decodeInteger
+      if n >= 0
+        then return (fromInteger n)
+        else fail "Expected non-negative Natural; but got a negative number"
 #endif
 
 -- | @since 0.2.0.0
