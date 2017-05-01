@@ -21,7 +21,6 @@ import qualified Macro.PkgAesonGeneric as PkgAesonGeneric
 import qualified Macro.PkgAesonTH as PkgAesonTH
 import qualified Macro.PkgStore as PkgStore
 
---import qualified Macro.PkgMsgpack as PkgMsgpack
 import qualified Macro.CBOR as CBOR
 
 readBigTestData :: IO [Types.GenericPackageDescription]
@@ -46,8 +45,6 @@ benchmarks =
       , bench "aeson generic" (whnf perfEncodeAesonGeneric tstdata)
       , bench "aeson TH"      (whnf perfEncodeAesonTH      tstdata)
       , bench "read/show"     (whnf perfEncodeReadShow     tstdata)
---      , bench "msgpack lib"   (whnf perfEncodeMsgpack      tstdata)
---      , bench "new msgpack"   (whnf perfEncodeNewMsgPack   tstdata)
       , bench "cbor"          (whnf perfEncodeCBOR         tstdata)
       , bench "store"         (whnf perfEncodeStore        tstdata)
       ]
@@ -65,10 +62,6 @@ benchmarks =
             ]
       , env (return $ combineChunks $ ReadShow.serialise tstdata)
         $ \tstdataS -> bench "read/show" (whnf perfDecodeReadShow tstdataS)
---      , bench "msgpack lib"   (whnf perfDecodeMsgpack      tstdataM)
-
---      , env (return $ NewMsgpack.serialise tstdata) $ \tstdataN ->
---        bench "new msgpack"   (whnf perfDecodeNewMsgPack   tstdataN)
       , env (return $ PkgStore.serialise tstdata)
         $ \tstdataR -> bench "store" (whnf perfDecodeStore tstdataR)
       , env (return $ combineChunks $ CBOR.serialise tstdata)
@@ -89,12 +82,6 @@ benchmarks =
 
       , env (return $ combineChunks $ ReadShow.serialise tstdata)
       $ \tstdataS -> bench "read/show" (nf perfDecodeReadShow tstdataS)
-
---      , bench "msgpack lib"   (nf perfDecodeMsgpack      tstdataM)
-
---      , env (return $ NewMsgpack.serialise tstdata) $ \tstdataN ->
---        bench "new msgpack"   (nf perfDecodeNewMsgPack   tstdataN)
-
       , env (return $ PkgStore.serialise tstdata)
       $ \tstdataR -> bench "store" (nf perfDecodeStore tstdataR)
       , env (return $ combineChunks $ CBOR.serialise tstdata)
@@ -113,8 +100,6 @@ benchmarks =
     perfEncodeAesonGeneric = BS.length . PkgAesonGeneric.serialise
     perfEncodeAesonTH      = BS.length . PkgAesonTH.serialise
     perfEncodeReadShow     = BS.length . ReadShow.serialise
-    --perfEncodeMsgpack      = BS.length . PkgMsgpack.serialise
-    --perfEncodeNewMsgPack   = BS.length . NewMsgpack.serialise
     perfEncodeCBOR         = BS.length . CBOR.serialise
 
     perfDecodeBinary, perfDecodeCereal, perfDecodeAesonGeneric,
@@ -122,14 +107,11 @@ benchmarks =
       perfDecodeCBOR
       :: BS.ByteString -> [Types.GenericPackageDescription]
 
-
     perfDecodeBinary       = PkgBinary.deserialise
     perfDecodeCereal       = PkgCereal.deserialise
     perfDecodeAesonGeneric = PkgAesonGeneric.deserialise
     perfDecodeAesonTH      = PkgAesonTH.deserialise
     perfDecodeReadShow     = ReadShow.deserialise
-    --perfDecodeMsgpack      = PkgMsgpack.deserialise
-    --perfDecodeNewMsgPack   = NewMsgpack.deserialise
     perfDecodeCBOR        = CBOR.deserialise
 
     perfDecodeStore :: B.ByteString -> [Types.GenericPackageDescription]

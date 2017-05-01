@@ -218,7 +218,6 @@ test-suite tests
     base16-bytestring       >= 0.1     && < 0.2,
     deepseq                 >= 1.0     && < 1.5,
     half                    >= 0.2     && < 0.3,
-  --msgpack,
     QuickCheck              >= 2.0     && < 2.10,
     scientific              >= 0.3     && < 0.4,
     tasty                   >= 0.11    && < 0.12,
@@ -291,7 +290,6 @@ benchmark micro
     Micro.PkgBinary
     Micro.PkgCereal
     Micro.PkgStore
-  --Micro.PkgMsgpack
     Micro.CBOR
 
     SimpleVersus
@@ -338,7 +336,6 @@ benchmark versus
     Macro.PkgBinary
     Macro.PkgCereal
     Macro.PkgStore
-  --Macro.PkgMsgpack
     Macro.CBOR
 
   build-depends:
@@ -357,9 +354,6 @@ benchmark versus
     deepseq                 >= 1.0     && < 1.5,
     aeson                   >= 0.7     && < 1.1,
     cereal                  >= 0.5.2.0 && < 0.6,
-  --msgpack                 >= 0.7     && < 0.8,
-  --blaze-builder,
-  --attoparsec,
     half                    >= 0.2     && < 0.3,
     tar                     >= 0.4     && < 0.6,
     zlib                    >= 0.5     && < 0.7,
