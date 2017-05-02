@@ -482,6 +482,10 @@ instance Serialise a => Serialise (Semigroup.Last a) where
 instance Serialise a => Serialise (Semigroup.Option a) where
   encode = encode . Semigroup.getOption
   decode = fmap Semigroup.Option decode
+
+instance Serialise a => Serialise (Semigroup.WrappedMonoid a) where
+  encode = encode . Semigroup.unwrapMonoid
+  decode = fmap Semigroup.WrapMonoid decode
 #endif
 
 --------------------------------------------------------------------------------
