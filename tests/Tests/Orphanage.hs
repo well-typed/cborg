@@ -7,6 +7,11 @@ module Tests.Orphanage where
 #if MIN_VERSION_base(4,8,0)
 import           Data.Functor.Identity
 #endif
+
+#if MIN_VERSION_base(4,9,0)
+import qualified Data.Semigroup as Semigroup
+#endif
+
 import           Data.Typeable
 
 import           Control.Applicative
@@ -224,6 +229,32 @@ instance Arbitrary a => Arbitrary (Identity a) where
 instance Arbitrary Version where
   arbitrary = Version <$> listOf1 (choose (1, 15)) <*> pure []
 #endif /* !MIN_VERSION_QuickCheck(2,9,0) */
+
+#if MIN_VERSION_base(4,9,0)
+instance Arbitrary a => Arbitrary (Semigroup.Min a) where
+  arbitrary = fmap Semigroup.Min arbitrary
+  shrink = map Semigroup.Min . shrink . Semigroup.getMin
+
+instance Arbitrary a => Arbitrary (Semigroup.Max a) where
+  arbitrary = fmap Semigroup.Max arbitrary
+  shrink = map Semigroup.Max . shrink . Semigroup.getMax
+
+instance Arbitrary a => Arbitrary (Semigroup.First a) where
+  arbitrary = fmap Semigroup.First arbitrary
+  shrink = map Semigroup.First . shrink . Semigroup.getFirst
+
+instance Arbitrary a => Arbitrary (Semigroup.Last a) where
+  arbitrary = fmap Semigroup.Last arbitrary
+  shrink = map Semigroup.Last . shrink . Semigroup.getLast
+
+instance Arbitrary a => Arbitrary (Semigroup.Option a) where
+  arbitrary = fmap Semigroup.Option arbitrary
+  shrink = map Semigroup.Option . shrink . Semigroup.getOption
+
+instance Arbitrary a => Arbitrary (Semigroup.WrappedMonoid a) where
+  arbitrary = fmap Semigroup.WrapMonoid arbitrary
+  shrink = map Semigroup.WrapMonoid . shrink . Semigroup.unwrapMonoid
+#endif
 
 instance Arbitrary a => Arbitrary (Down a) where
   arbitrary = fmap Down arbitrary

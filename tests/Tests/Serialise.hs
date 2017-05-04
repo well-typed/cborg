@@ -11,6 +11,12 @@ module Tests.Serialise
 
 #if MIN_VERSION_base(4,8,0)
 import           Data.Functor.Identity
+import           Numeric.Natural
+#endif
+
+#if MIN_VERSION_base(4,9,0)
+import           Data.List.NonEmpty ( NonEmpty )
+import qualified Data.Semigroup as Semigroup
 #endif
 
 import           Data.Complex
@@ -148,6 +154,16 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T Integer)
       , mkTest (T :: T Float)
       , mkTest (T :: T Double)
+      , mkTest (T :: T [()])
+#if MIN_VERSION_base(4,9,0)
+      , mkTest (T :: T (NonEmpty ()))
+      , mkTest (T :: T (Semigroup.Min ()))
+      , mkTest (T :: T (Semigroup.Max ()))
+      , mkTest (T :: T (Semigroup.First ()))
+      , mkTest (T :: T (Semigroup.Last ()))
+      , mkTest (T :: T (Semigroup.Option ()))
+      , mkTest (T :: T (Semigroup.WrappedMonoid ()))
+#endif
 #if MIN_VERSION_base(4,7,0)
       , mkTest (T :: T (Fixed E0))
       , mkTest (T :: T (Fixed E1))
@@ -215,6 +231,7 @@ testTree = testGroup "Serialise class"
 #if MIN_VERSION_base(4,8,0)
       , mkTest (T :: T (Alt Maybe Int))
       , mkTest (T :: T (Identity ()))
+      , mkTest (T :: T Natural)
 #endif
       , mkTest (T :: T (Sum Int))
       , mkTest (T :: T (Product Int))
