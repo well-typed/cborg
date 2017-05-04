@@ -38,13 +38,14 @@ module Data.Binary.Serialise.CBOR.ByteOrder
 
 import           GHC.Exts
 import           GHC.Word
-import           Foreign.C.Types
 import           Foreign.Ptr
 
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Internal as BS
 
 import           Foreign.ForeignPtr (withForeignPtr)
+
+import qualified Numeric.Half as Half
 
 #if !MIN_VERSION_bytestring(0,10,6)
 import           System.IO.Unsafe (unsafeDupablePerformIO)
@@ -187,19 +188,13 @@ withBsPtr f (BS.PS x off _) =
 
 -- | Convert a @'Word'@ to a half-sized @'Float'@.
 wordToFloat16 :: Word -> Float
-wordToFloat16 = halfToFloat . fromIntegral
+wordToFloat16 = \x -> Half.fromHalf (Half.Half (fromIntegral x))
 {-# INLINE wordToFloat16 #-}
 
 -- | Convert a half-sized @'Float'@ to a @'Word'@.
 floatToWord16 :: Float -> Word16
-floatToWord16 = fromIntegral . floatToHalf
+floatToWord16 = \x -> fromIntegral (Half.getHalf (Half.toHalf x))
 {-# INLINE floatToWord16 #-}
-
-foreign import ccall unsafe "hs_binary_halfToFloat"
-  halfToFloat :: CUShort -> Float
-
-foreign import ccall unsafe "hs_binary_floatToHalf"
-  floatToHalf :: Float -> CUShort
 
 --------------------------------------------------------------------------------
 -- Casting words to floats

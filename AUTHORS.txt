@@ -15,6 +15,7 @@ particular order:
   Arian van Putten       <aeroboy94 [@at] gmail [.dot] com>
   Austin Seipp           <austin [@at] well-typed [.dot] com>
   Ben Gamari             <ben [@at] well-typed [.dot] com>
+  Edward Kmett           <ekmett [@at] gmail [.dot] com>
   Greg Horn              <gregmainland [@at] gmail [.dot] com>
   Herbert Valerio Riedel <hvr [@at] gnu [.dot] org>
   Michael De La Rue      <githubcbor [.dot] mddlr [@at] 9ox [.dot] net>
@@ -24,6 +25,3 @@ particular order:
   Tom Hunger             <tehunger [@at] gmail [.dot] com>
   Travis Whitaker        <pi [.dot] boy [.dot] travis [@at] gmail [.dot] com>
   William Casarin        <bill [@at] casarin [.dot] me>
-
-This package includes code from the 'half' package, particularly the C code
-in cbits/half.c. Thanks to Edward Kmett for this.
