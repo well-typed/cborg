@@ -52,6 +52,11 @@ flag optimize-gmp
   manual: False
   description: Use optimized code paths for integer-gmp
 
+flag hpc
+  default: False
+  manual: True
+  description: Enable HPC for libraries, tools, and tests.
+
 --------------------------------------------------------------------------------
 -- Library
 
@@ -60,6 +65,9 @@ library
   ghc-options:       -Wall
   include-dirs:      src/cbits
   hs-source-dirs:    src
+
+  if flag(hpc)
+    ghc-options:     -fhpc
 
   exposed-modules:
     Data.Binary.Serialise.CBOR
@@ -111,6 +119,7 @@ library
 
 executable cbor-tool
   default-language:  Haskell2010
+  ghc-options:       -Wall -fhpc
   ghc-options:       -Wall
   hs-source-dirs:    src/tool
   main-is:           Main.hs
@@ -122,6 +131,9 @@ executable cbor-tool
     buildable: True
   else
     buildable: False
+
+  if flag(hpc)
+    ghc-options:     -fhpc
 
   build-depends:
     aeson                   >= 0.7     && < 1.1,
@@ -154,6 +166,9 @@ test-suite tests
 
   default-language:  Haskell2010
   ghc-options:       -Wall -fno-warn-orphans
+
+  if flag(hpc)
+    ghc-options:     -fhpc
 
   other-modules:
     Tests.CBOR
