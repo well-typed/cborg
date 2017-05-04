@@ -76,6 +76,7 @@ import qualified Data.Vector.Primitive               as Vector.Primitive
 import qualified Data.Vector.Generic                 as Vector.Generic
 import qualified Data.Text.Lazy                      as Text.Lazy
 import           Foreign.C.Types
+import qualified Numeric.Half                        as Half
 
 import           Data.Time                           (UTCTime (..), addUTCTime)
 import           Data.Time.Calendar                  (fromGregorian)
@@ -271,6 +272,11 @@ instance Serialise Float where
 instance Serialise Double where
     encode = encodeDouble
     decode = decodeDouble
+
+-- | @since 0.2.0.0
+instance Serialise Half.Half where
+    encode = encodeFloat16 . Half.fromHalf
+    decode = fmap Half.toHalf decodeFloat
 
 --------------------------------------------------------------------------------
 -- Core types
