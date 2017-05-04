@@ -1,5 +1,6 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
 {-# LANGUAGE CPP          #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}  -- instance Serialise Value
+{-# LANGUAGE BangPatterns #-}
 module Main
   ( main -- :: IO ()
   ) where
@@ -11,14 +12,16 @@ import           Text.Printf                         ( printf )
 import           Control.Applicative
 #endif
 
-import           Data.Aeson                          ( Value(..) )
+import           Data.Aeson                          ( Value(..), Object )
 import qualified Data.Aeson                          as Aeson
 import           Data.Aeson.Encode.Pretty            as Aeson.Pretty
 import           Data.Scientific
 import qualified Data.ByteString.Lazy                as LB
+import qualified Data.HashMap.Lazy                   as HM
 
-import qualified Data.Text.Lazy.IO                   as T
-import qualified Data.Text.Lazy.Builder              as T
+import qualified Data.Text                           as T
+import qualified Data.Text.Lazy.IO                   as LT
+import qualified Data.Text.Lazy.Builder              as LT
 import qualified Data.Vector                         as V
 
 import           Data.Binary.Serialise.CBOR.Class
@@ -34,22 +37,22 @@ import           Data.Binary.Serialise.CBOR.Term     ( decodeTerm, encodeTerm )
 
 instance Serialise Value where
   encode = encodeValue
-  decode = decodeValue
+  decode = decodeValue False -- not lenient by default, so JSON is always valid
 
 -- | Encode a JSON value into CBOR.
 encodeValue :: Value -> Encoding
 encodeValue (Object vs) = encode vs
 encodeValue (Array  vs) = encode vs
-encodeValue (String s)  = encode s
+encodeValue (String s)  = encodeString s
 encodeValue (Number n)  = case floatingOrInteger n of
                             Left  d -> encode (d::Double)
                             Right i -> encode (i::Integer)
-encodeValue (Bool   b)  = encode b
+encodeValue (Bool   b)  = encodeBool b
 encodeValue  Null       = encodeNull
 
 -- | Decode an arbitrary CBOR value into JSON.
-decodeValue :: Decoder s Value
-decodeValue = do
+decodeValue :: Bool -> Decoder s Value
+decodeValue lenient = do
     tkty <- peekTokenType
     case tkty of
       TypeUInt    -> decodeNumberIntegral
@@ -58,25 +61,51 @@ decodeValue = do
       TypeNInt64  -> decodeNumberIntegral
       TypeInteger -> decodeNumberIntegral
       TypeFloat64 -> decodeNumberFloating
-
-      TypeString       -> String <$> decode
-      TypeListLen      -> Array  <$> decode
-      TypeListLenIndef -> decodeIndefList
-      TypeMapLen       -> Object <$> decode
-
       TypeBool    -> Bool   <$> decodeBool
       TypeNull    -> Null   <$  decodeNull
+      TypeString  -> String <$> decodeString
+
+      TypeListLen      -> decodeListLen >>= flip (decodeListN lenient) []
+      TypeListLenIndef -> decodeListLenIndef >> (decodeListIndef lenient) []
+      TypeMapLen       -> decodeMapLen >>= flip (decodeMapN lenient) HM.empty
+
       _           -> fail $ "unexpected CBOR token type for a JSON value: "
                          ++ show tkty
-
-decodeIndefList :: Decoder s Value
-decodeIndefList = Array . V.fromList <$> decode
 
 decodeNumberIntegral :: Decoder s Value
 decodeNumberIntegral = Number . fromInteger <$> decode
 
 decodeNumberFloating :: Decoder s Value
 decodeNumberFloating = Number . fromFloatDigits <$> (decode :: Decoder s Double)
+
+decodeListN :: Bool -> Int -> [Value] -> Decoder s Value
+decodeListN !lenient !n acc =
+    case n of
+      0 -> return $! Array (V.fromList (reverse acc))
+      _ -> do !t <- decodeValue lenient
+              decodeListN lenient (n-1) (t : acc)
+
+decodeListIndef :: Bool -> [Value] -> Decoder s Value
+decodeListIndef !lenient acc = do
+    stop <- decodeBreakOr
+    if stop then return $! Array (V.fromList (reverse acc))
+            else do !tm <- decodeValue lenient
+                    decodeListIndef lenient (tm : acc)
+
+decodeMapN :: Bool -> Int -> Object -> Decoder s Value
+decodeMapN !lenient !n acc =
+    case n of
+      0 -> return $! Object acc
+      _ -> do
+        !tk <- decodeValue lenient >>= \v -> case v of
+                 String s           -> return s
+                 -- These cases are only allowed when --lenient is passed,
+                 -- as printing them as strings may result in key collisions.
+                 Number d | lenient -> return $ T.pack (show d)
+                 Bool   b | lenient -> return $ T.pack (show b)
+                 _        -> fail "Could not decode map key type"
+        !tv  <- decodeValue lenient
+        decodeMapN lenient (n-1) (HM.insert tk tv acc)
 
 --------------------------------------------------------------------------------
 -- CBOR <-> JSON conversion
@@ -94,14 +123,14 @@ jsonToCbor file = do
       LB.writeFile cborFile (CBOR.Write.toLazyByteString encVal)
 
 -- | Convert a CBOR file to JSON, and echo it to @stdout@.
-cborToJson :: FilePath -> IO ()
-cborToJson file = do
+cborToJson :: Bool -> FilePath -> IO ()
+cborToJson lenient file = do
   bs <- LB.readFile file
-  case (CBOR.Read.deserialiseFromBytes decodeValue bs) of
+  case (CBOR.Read.deserialiseFromBytes (decodeValue lenient) bs) of
     Left err -> fail $ "deserialization error: " ++ (show err)
     Right v  -> do
       let builder = Aeson.Pretty.encodePrettyToTextBuilder v
-      T.putStrLn (T.toLazyText builder)
+      LT.putStrLn (LT.toLazyText builder)
 
 --------------------------------------------------------------------------------
 -- Dumping code
@@ -140,13 +169,22 @@ main = do
         , ""
         , "  Actions:"
         , ""
-        , "  dump [--json|--hex|--pretty|--term] <file>"
+        , "  dump [--json|--hex|--pretty|--term] [--lenient] <file>"
         , "    Read the CBOR values inside <file> and dump them in the"
         , "    specified format. --json will dump JSON files, while --hex"
         , "    will dump the output in hexadecimal format. --pretty will"
         , "    use the internal 'Encoding' pretty-printer. --term is the"
         , "    internal 'Term' format type. You must specify either"
         , "    --json, --hex, -pretty, or --term (there is no default)."
+        , ""
+        , "    When printing CBOR as JSON, the only valid type for JSON"
+        , "    object keys is a UTF8 string. If you have a CBOR map that"
+        , "    uses non-String types for keys, this will cause the decoder"
+        , "    to fail when creating JSON. Use the --lenient option to"
+        , "    remove this restriction -- this will allow numbers to also"
+        , "    be valid as CBOR keys, by printing them as strings. However,"
+        , "    this may risk collision of some keys as CBOR is more general,"
+        , "    result in in invalid JSON -- so use it with caution."
         , ""
         , "  encode [--json] <file>"
         , "    Read the <file> in a specified format and dump a copy of"
@@ -157,7 +195,8 @@ main = do
 
   args <- getArgs
   case args of
-    ("dump"   : "--json"   : file : _) -> cborToJson         file
+    ("dump"   : "--json"   : "--lenient" : file : _) -> cborToJson True file
+    ("dump"   : "--json"   : file : _)               -> cborToJson False file
     ("dump"   : "--hex"    : file : _) -> dumpAsHex          file
     ("dump"   : "--pretty" : file : _) -> dumpCborFile True  file
     ("dump"   : "--term"   : file : _) -> dumpCborFile False file
