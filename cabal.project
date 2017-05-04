@@ -1,4 +1,4 @@
 packages: ./
 
-tests: True
-benchmarks: True
+tests: False
+benchmarks: False
