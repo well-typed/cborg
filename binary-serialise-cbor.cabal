@@ -28,7 +28,7 @@ description:
 extra-source-files:
   tests/test-vectors/appendix_a.json
   tests/test-vectors/README.md
-  cbits/cbor.h
+  src/cbits/cbor.h
 
 source-repository head
   type: git
@@ -58,8 +58,9 @@ flag optimize-gmp
 library
   default-language:  Haskell2010
   ghc-options:       -Wall
-  c-sources:         cbits/half.c
-  include-dirs:      cbits
+  c-sources:         src/cbits/half.c
+  include-dirs:      src/cbits
+  hs-source-dirs:    src
 
   exposed-modules:
     Data.Binary.Serialise.CBOR
