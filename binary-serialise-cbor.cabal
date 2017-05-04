@@ -119,7 +119,6 @@ library
 
 executable cbor-tool
   default-language:  Haskell2010
-  ghc-options:       -Wall -fhpc
   ghc-options:       -Wall
   hs-source-dirs:    src/tool
   main-is:           Main.hs
