@@ -8,10 +8,11 @@
 [![Haskell](https://img.shields.io/badge/Language-Haskell-yellowgreen.svg)](https://www.haskell.org)
 
 **NOTE**: Currently this library has not been released to the public Hackage
-server, as the API is still considered to be in flux (the on-disk formats should
-remain stable.) And the code has seen _substantial_ production use by
-Well-Typed, as well as a number of outsiders and independent companies (with
-near-universal positive results), for well over a year.
+server, as the API is still considered to be in flux -- while the on-disk
+formats should remain stable. Despite that, the code has seen _substantial_
+production use by Well-Typed, as well as a number of outsiders and independent
+companies. We've had near-universal positive results with it, so you should
+feel relatively safe in experimenting.
 
 ---
 
