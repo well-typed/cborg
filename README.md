@@ -64,10 +64,10 @@ $ cabal test
 $ stack test
 ```
 
-Note: the `stack.yaml` file is currently synchronized to **LTS-8.8**. Further
-compilers and other LTS releases are currently not supported with Stack
-at the moment, but the build *is* tested with older compilers and Cabal
-libraries (through Travis CI).
+Note: the `stack.yaml` file is currently synchronized to **LTS-8.13**. Further
+compilers and other LTS releases are currently not supported with Stack at the
+moment, but the build *is* tested with older compilers and Cabal libraries
+(through Travis CI).
 
 [contribute]: https://github.com/well-typed/binary-serialise-cbor/blob/master/CONTRIBUTING.md
 [issue tracker]: http://github.com/well-typed/binary-serialise-cbor/issues
