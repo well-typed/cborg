@@ -29,7 +29,7 @@ getHackageIndexLocation :: IO FilePath
 getHackageIndexLocation = do
   cabalDir <- getAppUserDataDirectory "cabal"
   let dir = cabalDir </> "packages" </> "hackage.haskell.org"
-  return (dir </> "00-index.tar.gz")
+  return (dir </> "01-index.tar.gz")
 
 -- | Copy the hackage index to a local directory. Returns the path to the
 -- directory containing the file, and the file path itself.
@@ -38,7 +38,7 @@ copyHackageIndex = do
   hackageIndex <- getHackageIndexLocation
 
   let dataDir = "bench" </> "data"
-      dest    = dataDir </> "00-index.tar.gz"
+      dest    = dataDir </> "01-index.tar.gz"
 
   -- Create the data dir, and copy the index.
   -- We do not try to create the 'bench' directory since it should exist.

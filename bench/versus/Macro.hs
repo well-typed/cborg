@@ -26,7 +26,7 @@ import qualified Macro.CBOR as CBOR
 readBigTestData :: IO [Types.GenericPackageDescription]
 readBigTestData = do
     Right pkgs_ <- fmap (Load.readPkgIndex . GZip.decompress)
-                        (BS.readFile "bench/data/00-index.tar.gz")
+                        (BS.readFile "bench/data/01-index.tar.gz")
     let tstdata  = take 100 pkgs_
     return tstdata
 
