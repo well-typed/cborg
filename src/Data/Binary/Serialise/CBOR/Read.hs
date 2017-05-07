@@ -28,8 +28,6 @@ module Data.Binary.Serialise.CBOR.Read
   , ByteOffset
   ) where
 
-#include "cbor.h"
-
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
 #endif
@@ -55,13 +53,6 @@ import           GHC.Exts
 import           GHC.Float (float2Double)
 import           Data.Typeable
 import           Control.Exception
-
-#if defined(OPTIMIZE_GMP)
-import qualified Data.ByteString.Internal       as BS
-import           Foreign.ForeignPtr             (withForeignPtr)
-import qualified GHC.Integer.GMP.Internals      as Gmp
-import           System.IO.Unsafe               (unsafePerformIO)
-#endif
 
 import           Data.Binary.Serialise.CBOR.Decoding hiding (DecodeAction(Done, Fail))
 import           Data.Binary.Serialise.CBOR.Decoding (DecodeAction)
@@ -1955,32 +1946,3 @@ readBigNInt bs
 
     | otherwise
     = DecodedToken 1 BigNIntNeedHeader
-
-
-nintegerFromBytes :: BS.ByteString -> Integer
-nintegerFromBytes bs = -1 - uintegerFromBytes bs
-
-#if defined(OPTIMIZE_GMP)
-uintegerFromBytes :: BS.ByteString -> Integer
-uintegerFromBytes (BS.PS fp (I# off#) (I# len#)) =
-  -- This should be safe since we're simply reading from ByteString (which is
-  -- immutable) and GMP allocates a new memory for the Integer, i.e., there is
-  -- no mutation involved.
-  unsafePerformIO $
-      withForeignPtr fp $ \(Ptr addr#) ->
-          let addrOff# = addr# `plusAddr#` off#
-          -- The last parmaeter (`1#`) tells the import function to use big
-          -- endian encoding.
-          in Gmp.importIntegerFromAddr addrOff# (int2Word# len#) 1#
-#else
-uintegerFromBytes :: BS.ByteString -> Integer
-uintegerFromBytes bs =
-    case BS.uncons bs of
-      Nothing        -> 0
-      Just (w0, ws0) -> go (fromIntegral w0) ws0
-  where
-    go !acc ws =
-      case BS.uncons ws of
-        Nothing       -> acc
-        Just (w, ws') -> go (acc `shiftL` 8 + fromIntegral w) ws'
-#endif

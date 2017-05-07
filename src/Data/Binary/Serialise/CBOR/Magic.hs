@@ -34,6 +34,10 @@ module Data.Binary.Serialise.CBOR.Magic
   , wordToFloat32     -- :: Word   -> Float
   , wordToFloat64     -- :: Word64 -> Double
 
+    -- * @'Integer'@ utilities
+  , nintegerFromBytes -- :: ByteString -> Integer
+  , uintegerFromBytes -- :: ByteString -> Integer
+
     -- * Simple mutable counters
   , Counter           -- :: * -> *
   , newCounter        -- :: Int -> ST s (Counter s)
@@ -53,9 +57,13 @@ module Data.Binary.Serialise.CBOR.Magic
 
 import           GHC.Exts
 import           GHC.ST (ST(ST))
-import           GHC.IO (IO(IO), unsafeDupablePerformIO)
+import           GHC.IO (IO(IO), unsafeDupablePerformIO, unsafePerformIO)
 import           GHC.Word
 import           Foreign.Ptr
+
+#if defined(OPTIMIZE_GMP)
+import qualified GHC.Integer.GMP.Internals      as Gmp
+#endif
 
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString          as BS
@@ -264,6 +272,39 @@ wordToFloat64# w# =
             case readDoubleArray# mba# 0# s'' of
               (# _, f# #) -> f#
 {-# NOINLINE wordToFloat64# #-}
+
+--------------------------------------------------------------------------------
+-- Integer utilities
+
+-- | Create a negative @'Integer'@ out of a raw @'BS.ByteString'@.
+nintegerFromBytes :: BS.ByteString -> Integer
+nintegerFromBytes bs = -1 - uintegerFromBytes bs
+
+-- | Create an @'Integer'@ out of a raw @'BS.ByteString'@.
+uintegerFromBytes :: BS.ByteString -> Integer
+
+#if defined(OPTIMIZE_GMP)
+uintegerFromBytes (BS.PS fp (I# off#) (I# len#)) =
+  -- This should be safe since we're simply reading from ByteString (which is
+  -- immutable) and GMP allocates a new memory for the Integer, i.e., there is
+  -- no mutation involved.
+  unsafePerformIO $
+      withForeignPtr fp $ \(Ptr addr#) ->
+          let addrOff# = addr# `plusAddr#` off#
+          -- The last parmaeter (`1#`) tells the import function to use big
+          -- endian encoding.
+          in Gmp.importIntegerFromAddr addrOff# (int2Word# len#) 1#
+#else
+uintegerFromBytes bs =
+    case BS.uncons bs of
+      Nothing        -> 0
+      Just (w0, ws0) -> go (fromIntegral w0) ws0
+  where
+    go !acc ws =
+      case BS.uncons ws of
+        Nothing       -> acc
+        Just (w, ws') -> go (acc `shiftL` 8 + fromIntegral w) ws'
+#endif
 
 --------------------------------------------------------------------------------
 -- Mutable counters
