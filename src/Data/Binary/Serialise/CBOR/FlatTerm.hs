@@ -4,7 +4,7 @@
 
 -- |
 -- Module      : Data.Binary.Serialise.CBOR.FlatTerm
--- Copyright   : (c) Duncan Coutts 2015
+-- Copyright   : (c) Duncan Coutts 2015-2017
 -- License     : BSD3-style (see LICENSE.txt)
 --
 -- Maintainer  : duncan@community.haskell.org

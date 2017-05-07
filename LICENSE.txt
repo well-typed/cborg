@@ -1,5 +1,5 @@
-Copyright (c) 2015 Duncan Coutts,
-              2015 Well-Typed LLP,
+Copyright (c) 2015-2017 Duncan Coutts,
+              2015-2017 Well-Typed LLP,
               2015 IRIS Connect Ltd.
 
 All rights reserved.
