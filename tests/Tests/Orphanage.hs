@@ -13,12 +13,13 @@ import qualified Data.Semigroup as Semigroup
 #endif
 
 #if !MIN_VERSION_QuickCheck(2,9,0)
+import           Data.Version
+
 #if MIN_VERSION_base(4,8,0)
 import           Data.Functor.Identity
-#endif
-
+#else
 import           Data.Monoid as Monoid
-import           Data.Version
+#endif
 #endif
 
 import           Data.Typeable
@@ -275,11 +276,11 @@ instance Arbitrary ExitCode where
 deriving instance Typeable Const
 deriving instance Typeable ZipList
 deriving instance Typeable Down
-deriving instance Typeable Sum
-deriving instance Typeable All
-deriving instance Typeable Any
-deriving instance Typeable Product
-deriving instance Typeable Dual
+deriving instance Typeable Monoid.Sum
+deriving instance Typeable Monoid.All
+deriving instance Typeable Monoid.Any
+deriving instance Typeable Monoid.Product
+deriving instance Typeable Monoid.Dual
 deriving instance Typeable Fingerprint
 
 deriving instance Show a => Show (Const a b)
