@@ -304,7 +304,7 @@ uintegerFromBytes bs =
     go !acc ws =
       case BS.uncons ws of
         Nothing       -> acc
-        Just (w, ws') -> go (acc `shiftL` 8 + fromIntegral w) ws'
+        Just (w, ws') -> go (acc `unsafeShiftL` 8 + fromIntegral w) ws'
 #endif
 
 --------------------------------------------------------------------------------
