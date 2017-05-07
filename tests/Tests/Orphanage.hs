@@ -4,7 +4,8 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Tests.Orphanage where
 
-#if MIN_VERSION_base(4,8,0)
+#if !MIN_VERSION_base(4,8,0)
+import           Control.Applicative
 import           Data.Functor.Identity
 #endif
 
@@ -12,16 +13,17 @@ import           Data.Functor.Identity
 import qualified Data.Semigroup as Semigroup
 #endif
 
+#if !MIN_VERSION_QuickCheck(2,9,0)
+import           Data.Monoid as Monoid
+import           Data.Version
+#endif
+
 import           Data.Typeable
 
-import           Control.Applicative
-
 import           Data.Ord
-import           Data.Monoid as Monoid
 import           Foreign.C.Types
 import           System.Exit (ExitCode(..))
 import           GHC.Fingerprint.Type
-import           Data.Version
 
 import           Test.QuickCheck.Gen
 import           Test.QuickCheck.Arbitrary
