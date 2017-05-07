@@ -28,6 +28,8 @@ module Data.Binary.Serialise.CBOR.Read
   , ByteOffset
   ) where
 
+#include "cbor.h"
+
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
 #endif
