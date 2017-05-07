@@ -5,7 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables      #-}
 
 -- |
--- Module      : Data.Binary.Serialise.CBOR.ByteOrder
+-- Module      : Data.Binary.Serialise.CBOR.Magic
 -- Copyright   : (c) Duncan Coutts 2015
 -- License     : BSD3-style (see LICENSE.txt)
 --
@@ -13,10 +13,10 @@
 -- Stability   : experimental
 -- Portability : non-portable (GHC extensions)
 --
--- An internal module for doing efficient, fiddly, low-level byte buffoonery
--- and other nonsense.
+-- An internal module for doing magical, low-level, and unholy things
+-- in the name of efficiency.
 --
-module Data.Binary.Serialise.CBOR.ByteOrder
+module Data.Binary.Serialise.CBOR.Magic
   ( -- * Word utilities
     grabWord8         -- :: Ptr () -> Word
   , grabWord16        -- :: Ptr () -> Word

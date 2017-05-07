@@ -50,8 +50,8 @@ import           GHC.Word
 #endif
 #endif
 
-import           Data.Binary.Serialise.CBOR.ByteOrder
 import           Data.Binary.Serialise.CBOR.Encoding
+import           Data.Binary.Serialise.CBOR.Magic
 
 --------------------------------------------------------------------------------
 

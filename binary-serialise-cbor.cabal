@@ -71,12 +71,12 @@ library
 
   exposed-modules:
     Data.Binary.Serialise.CBOR
-    Data.Binary.Serialise.CBOR.ByteOrder
     Data.Binary.Serialise.CBOR.Class
     Data.Binary.Serialise.CBOR.Decoding
     Data.Binary.Serialise.CBOR.Encoding
     Data.Binary.Serialise.CBOR.FlatTerm
     Data.Binary.Serialise.CBOR.IO
+    Data.Binary.Serialise.CBOR.Magic
     Data.Binary.Serialise.CBOR.Pretty
     Data.Binary.Serialise.CBOR.Properties
     Data.Binary.Serialise.CBOR.Read

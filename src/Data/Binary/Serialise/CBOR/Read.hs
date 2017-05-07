@@ -30,11 +30,6 @@ module Data.Binary.Serialise.CBOR.Read
 
 #include "cbor.h"
 
-import           Data.Binary.Serialise.CBOR.ByteOrder
-import           Data.Binary.Serialise.CBOR.Decoding hiding (DecodeAction(Done, Fail))
-import           Data.Binary.Serialise.CBOR.Decoding (DecodeAction)
-import qualified Data.Binary.Serialise.CBOR.Decoding as D
-
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
 #endif
@@ -68,6 +63,10 @@ import qualified GHC.Integer.GMP.Internals      as Gmp
 import           System.IO.Unsafe               (unsafePerformIO)
 #endif
 
+import           Data.Binary.Serialise.CBOR.Decoding hiding (DecodeAction(Done, Fail))
+import           Data.Binary.Serialise.CBOR.Decoding (DecodeAction)
+import qualified Data.Binary.Serialise.CBOR.Decoding as D
+import           Data.Binary.Serialise.CBOR.Magic
 
 --------------------------------------------------------------------------------
 
