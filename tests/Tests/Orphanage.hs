@@ -4,9 +4,8 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Tests.Orphanage where
 
-#if MIN_VERSION_base(4,8,0) && !MIN_VERSION_base(4,9,0)
+#if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
-import           Data.Functor.Identity
 #endif
 
 #if MIN_VERSION_base(4,9,0)
@@ -14,6 +13,10 @@ import qualified Data.Semigroup as Semigroup
 #endif
 
 #if !MIN_VERSION_QuickCheck(2,9,0)
+#if MIN_VERSION_base(4,8,0)
+import           Data.Functor.Identity
+#endif
+
 import           Data.Monoid as Monoid
 import           Data.Version
 #endif
