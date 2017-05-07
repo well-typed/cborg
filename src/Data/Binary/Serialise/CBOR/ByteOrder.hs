@@ -2,6 +2,7 @@
 {-# LANGUAGE MagicHash                #-}
 {-# LANGUAGE UnboxedTuples            #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE ScopedTypeVariables      #-}
 
 -- |
 -- Module      : Data.Binary.Serialise.CBOR.ByteOrder
@@ -29,27 +30,43 @@ module Data.Binary.Serialise.CBOR.ByteOrder
   , wordToFloat16     -- :: Word  -> Float
   , floatToWord16     -- :: Float -> Word16
 
-    -- * Float/Word conversion
+    -- * Float\/Word conversion
   , wordToFloat32     -- :: Word   -> Float
   , wordToFloat64     -- :: Word64 -> Double
+
+    -- * Simple mutable counters
+  , Counter           -- :: * -> *
+  , newCounter        -- :: Int -> ST s (Counter s)
+  , readCounter       -- :: Counter s -> ST s Int
+  , writeCounter      -- :: Counter s -> Int -> ST s ()
+  , incCounter        -- :: Counter s -> ST s ()
+  , decCounter        -- :: Counter s -> ST s ()
+
+    -- * Array support
+  , copyByteStringToPrimVector
+  , copyByteStringToByteArray
+  , copyPrimVectorToByteString
+  , copyByteArrayToByteString
   ) where
 
 #include "cbor.h"
 
 import           GHC.Exts
+import           GHC.ST (ST(ST))
+import           GHC.IO (IO(IO), unsafeDupablePerformIO)
 import           GHC.Word
 import           Foreign.Ptr
 
 import           Data.ByteString (ByteString)
+import qualified Data.ByteString          as BS
 import qualified Data.ByteString.Internal as BS
+import           Data.Primitive.ByteArray as Prim
+import           Data.Primitive.Types     as Prim
+import           Data.Vector.Primitive    as Prim
 
 import           Foreign.ForeignPtr (withForeignPtr)
 
 import qualified Numeric.Half as Half
-
-#if !MIN_VERSION_bytestring(0,10,6)
-import           System.IO.Unsafe (unsafeDupablePerformIO)
-#endif
 
 #if !defined(HAVE_BYTESWAP_PRIMOPS) || !defined(MEM_UNALIGNED_OPS)
 import           Data.Bits ((.|.), unsafeShiftL)
@@ -264,3 +281,126 @@ wordToFloat64# w# =
 --   poke (castPtr buf) w
 --   peek buf
 -- {-# INLINE toFloat #-}
+
+--------------------------------------------------------------------------------
+-- Mutable counters
+
+-- | An efficient, mutable counter. Designed to be used inside
+-- @'ST'@ or other primitive monads, hence it carries an abstract
+-- rank-2 @s@ type parameter.
+data Counter s = Counter (MutableByteArray# s)
+
+-- | Create a new counter with a starting @'Int'@ value.
+newCounter :: Int -> ST s (Counter s)
+newCounter (I# n#) =
+    ST (\s ->
+      case newByteArray# 8# s of
+        (# s', mba# #) ->
+          case writeIntArray# mba# 0# n# s' of
+            s'' -> (# s'', Counter mba# #))
+{-# INLINE newCounter   #-}
+
+-- | Read the current value of a @'Counter'@.
+readCounter :: Counter s -> ST s Int
+readCounter (Counter mba#) =
+    ST (\s ->
+      case readIntArray# mba# 0# s of
+        (# s', n# #) -> (# s', I# n# #))
+{-# INLINE readCounter  #-}
+
+-- | Write a new value into the @'Counter'@.
+writeCounter :: Counter s -> Int -> ST s ()
+writeCounter (Counter mba#) (I# n#) =
+    ST (\s ->
+      case writeIntArray# mba# 0# n# s of
+        s' -> (# s', () #))
+{-# INLINE writeCounter #-}
+
+-- | Increment a @'Counter'@ by one.
+incCounter :: Counter s -> ST s ()
+incCounter c = do
+  x <- readCounter c
+  writeCounter c (x+1)
+{-# INLINE incCounter #-}
+
+-- | Decrement a @'Counter'@ by one.
+decCounter :: Counter s -> ST s ()
+decCounter c = do
+  x <- readCounter c
+  writeCounter c (x-1)
+{-# INLINE decCounter #-}
+
+--------------------------------------------------------------------------------
+-- Array support
+
+-- | Copy a @'BS.ByteString'@ and create a primitive @'Prim.Vector'@ from it.
+copyByteStringToPrimVector :: forall a. Prim a => BS.ByteString -> Prim.Vector a
+copyByteStringToPrimVector bs =
+    Prim.Vector 0 len (copyByteStringToByteArray bs)
+  where
+    len = BS.length bs `div` I# (Prim.sizeOf# (undefined :: a))
+
+-- | Copy a @'BS.ByteString'@ and create a primitive @'Prim.ByteArray'@ from it.
+copyByteStringToByteArray :: BS.ByteString -> Prim.ByteArray
+copyByteStringToByteArray (BS.PS fp off len) =
+    unsafeDupablePerformIO $
+      withForeignPtr fp $ \ptr -> do
+        mba <- Prim.newByteArray len
+        copyPtrToMutableByteArray (ptr `plusPtr` off) mba 0 len
+        Prim.unsafeFreezeByteArray mba
+
+-- TODO FIXME: can do better here: can do non-copying for larger pinned arrays
+-- or copy directly into the builder buffer
+
+-- | Copy a @'Prim.Vector'@ and create a @'BS.ByteString'@ from it.
+copyPrimVectorToByteString :: forall a. Prim a => Prim.Vector a -> BS.ByteString
+copyPrimVectorToByteString (Prim.Vector off len ba) =
+    copyByteArrayToByteString ba (off * s) (len * s)
+  where
+    s = I# (Prim.sizeOf# (undefined :: a))
+
+-- | Copy a @'Prim.ByteArray'@ at a certain offset and length into a
+-- @'BS.ByteString'@.
+copyByteArrayToByteString :: Prim.ByteArray
+                          -- ^ @'Prim.ByteArray'@ to copy from.
+                          -> Int
+                          -- ^ Offset into the @'Prim.ByteArray'@ to start with.
+                          -> Int
+                          -- ^ Length of the data to copy.
+                          -> BS.ByteString
+copyByteArrayToByteString ba off len =
+    unsafeDupablePerformIO $ do
+      fp <- BS.mallocByteString len
+      withForeignPtr fp $ \ptr -> do
+        copyByteArrayToPtr ba off ptr len
+        return (BS.PS fp 0 len)
+
+-- | Copy the data pointed to by a @'Ptr'@ into a @'MutableByteArray'.
+copyPtrToMutableByteArray :: Ptr a
+                          -- ^ @'Ptr'@ to buffer to copy from.
+                          -> MutableByteArray RealWorld
+                          -- ^ @'MutableByteArray'@ to copy into.
+                          -> Int
+                          -- ^ Offset to start copying from.
+                          -> Int
+                          -- ^ Length of the data to copy.
+                          -> IO ()
+copyPtrToMutableByteArray (Ptr addr#) (MutableByteArray mba#) (I# off#) (I# len#) =
+    IO (\s ->
+      case copyAddrToByteArray# addr# mba# off# len# s of
+        s' -> (# s', () #))
+
+-- | Copy a @'ByteArray'@ into a @'Ptr'@ with a given offset and length.
+copyByteArrayToPtr :: ByteArray
+                   -- ^ @'ByteArray'@ to copy.
+                   -> Int
+                   -- ^ Offset into the @'ByteArray'@ of where to start copying.
+                   -> Ptr a
+                   -- ^ Pointer to destination buffer.
+                   -> Int
+                   -- ^ Length of the data to copy into the destination buffer.
+                   -> IO ()
+copyByteArrayToPtr (ByteArray ba#) (I# off#) (Ptr addr#) (I# len#) =
+    IO (\s ->
+      case copyByteArrayToAddr# ba# off# addr# len# s of
+        s' -> (# s', () #))
