@@ -25,6 +25,10 @@ module Data.Binary.Serialise.CBOR.Magic
   , grabWord64        -- :: Ptr () -> Word64
 
     -- * @'ByteString'@ utilities
+  , eatTailWord8      -- :: ByteString -> Word
+  , eatTailWord16     -- :: ByteString -> Word
+  , eatTailWord32     -- :: ByteString -> Word
+  , eatTailWord64     -- :: ByteString -> Word64
   , withBsPtr         -- :: (Ptr b -> a) -> ByteString -> a
 
     -- * Half-floats
@@ -69,6 +73,7 @@ import qualified GHC.Integer.GMP.Internals      as Gmp
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString          as BS
 import qualified Data.ByteString.Internal as BS
+import qualified Data.ByteString.Unsafe   as BS
 import           Data.Primitive.ByteArray as Prim
 import           Data.Primitive.Types     as Prim
 import           Data.Vector.Primitive    as Prim
@@ -195,6 +200,42 @@ grabWord64 (Ptr ip#) =
 
 --------------------------------------------------------------------------------
 -- ByteString shennanigans
+
+-- | Take the tail of a @'ByteString'@ (i.e. drop the first byte) and read the
+-- resulting byte(s) as an 8-bit word value. The input @'ByteString'@ MUST be at
+-- least 2 bytes long: one byte to drop from the front, and one to read as a
+-- @'Word'@ value. This is not checked, and failure to ensure this will result
+-- in undefined behavior.
+eatTailWord8 :: ByteString -> Word
+eatTailWord8 xs = withBsPtr grabWord8 (BS.unsafeTail xs)
+{-# INLINE eatTailWord8 #-}
+
+-- | Take the tail of a @'ByteString'@ (i.e. drop the first byte) and read the
+-- resulting byte(s) as a 16-bit word value. The input @'ByteString'@ MUST be at
+-- least 3 bytes long: one byte to drop from the front, and two to read as a
+-- 16-bit @'Word'@ value. This is not checked, and failure to ensure this will
+-- result in undefined behavior.
+eatTailWord16 :: ByteString -> Word
+eatTailWord16 xs = withBsPtr grabWord16 (BS.unsafeTail xs)
+{-# INLINE eatTailWord16 #-}
+
+-- | Take the tail of a @'ByteString'@ (i.e. drop the first byte) and read the
+-- resulting byte(s) as a 32-bit word value. The input @'ByteString'@ MUST be at
+-- least 5 bytes long: one byte to drop from the front, and four to read as a
+-- 32-bit @'Word'@ value. This is not checked, and failure to ensure this will
+-- result in undefined behavior.
+eatTailWord32 :: ByteString -> Word
+eatTailWord32 xs = withBsPtr grabWord32 (BS.unsafeTail xs)
+{-# INLINE eatTailWord32 #-}
+
+-- | Take the tail of a @'ByteString'@ (i.e. drop the first byte) and read the
+-- resulting byte(s) as a 64-bit word value. The input @'ByteString'@ MUST be at
+-- least 9 bytes long: one byte to drop from the front, and eight to read as a
+-- 64-bit @'Word64'@ value. This is not checked, and failure to ensure this will
+-- result in undefined behavior.
+eatTailWord64 :: ByteString -> Word64
+eatTailWord64 xs = withBsPtr grabWord64 (BS.unsafeTail xs)
+{-# INLINE eatTailWord64 #-}
 
 -- | Unsafely take a @'Ptr'@ to a @'ByteString'@ and do unholy things
 -- with it.
