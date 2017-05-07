@@ -6,20 +6,11 @@ module Tests.Orphanage where
 
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
+import           Data.Monoid as Monoid
 #endif
 
 #if MIN_VERSION_base(4,9,0)
 import qualified Data.Semigroup as Semigroup
-#endif
-
-#if !MIN_VERSION_QuickCheck(2,9,0)
-import           Data.Version
-
-#if MIN_VERSION_base(4,8,0)
-import           Data.Functor.Identity
-#else
-import           Data.Monoid as Monoid
-#endif
 #endif
 
 import           Data.Typeable
@@ -41,41 +32,6 @@ import qualified Data.Vector.Primitive      as Vector.Primitive
 -- git HEAD and some are still waiting as pull request
 --
 -- [https://github.com/nick8325/quickcheck/pull/90]
-
--- Tuples
-
-#if !MIN_VERSION_QuickCheck(2,9,0)
-instance ( Arbitrary a
-         , Arbitrary b
-         , Arbitrary c
-         , Arbitrary d
-         , Arbitrary e
-         , Arbitrary f
-         )
-      => Arbitrary (a,b,c,d,e,f)
- where
-  arbitrary = return (,,,,,)
-          <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
-          <*> arbitrary <*> arbitrary
-
-  shrink (u, v, w, x, y, z) =
-    [ (u', v', w', x', y', z')
-    | (u', (v', (w', (x', (y', z'))))) <- shrink (u, (v, (w, (x, (y, z))))) ]
-
-instance ( Arbitrary a
-         , Arbitrary b
-         , Arbitrary c
-         , Arbitrary d
-         , Arbitrary e
-         , Arbitrary f
-         , Arbitrary g
-         )
-      => Arbitrary (a,b,c,d,e,f,g)
- where
-  arbitrary = return (,,,,,,)
-          <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
-          <*> arbitrary <*> arbitrary <*> arbitrary
-#endif /* !MIN_VERSION_QuickCheck(2,9,0) */
 
 -- Foreign C types
 
@@ -181,61 +137,6 @@ instance Arbitrary CDouble where
 
 -- Miscellaneous types from base
 
-#if !MIN_VERSION_QuickCheck(2,9,0)
-instance Arbitrary a => Arbitrary (Monoid.Dual a) where
-  arbitrary = fmap Monoid.Dual arbitrary
-  shrink = map Monoid.Dual . shrink . Monoid.getDual
-
-instance (Arbitrary a, CoArbitrary a) => Arbitrary (Monoid.Endo a) where
-  arbitrary = fmap Monoid.Endo arbitrary
-  shrink = map Monoid.Endo . shrink . Monoid.appEndo
-
-instance Arbitrary Monoid.All where
-  arbitrary = fmap Monoid.All arbitrary
-  shrink = map Monoid.All . shrink . Monoid.getAll
-
-instance Arbitrary Monoid.Any where
-  arbitrary = fmap Monoid.Any arbitrary
-  shrink = map Monoid.Any . shrink . Monoid.getAny
-
-instance Arbitrary a => Arbitrary (Monoid.Sum a) where
-  arbitrary = fmap Monoid.Sum arbitrary
-  shrink = map Monoid.Sum . shrink . Monoid.getSum
-
-instance Arbitrary a => Arbitrary (Monoid.Product a) where
-  arbitrary = fmap Monoid.Product  arbitrary
-  shrink = map Monoid.Product  . shrink . Monoid.getProduct
-
-instance Arbitrary a => Arbitrary (Monoid.First a) where
-  arbitrary = fmap Monoid.First arbitrary
-  shrink = map Monoid.First . shrink . Monoid.getFirst
-
-instance Arbitrary a => Arbitrary (Monoid.Last a) where
-  arbitrary = fmap Monoid.Last arbitrary
-  shrink = map Monoid.Last . shrink . Monoid.getLast
-
-instance Arbitrary a => Arbitrary (ZipList a) where
-  arbitrary = fmap ZipList arbitrary
-  shrink = map ZipList . shrink . getZipList
-
-instance Arbitrary a => Arbitrary (Const a b) where
-  arbitrary = fmap Const arbitrary
-  shrink = map Const . shrink . getConst
-
-#if MIN_VERSION_base(4,8,0)
-instance Arbitrary (f a) => Arbitrary (Alt f a) where
-  arbitrary = fmap Alt arbitrary
-  shrink (Alt a) = map Alt $ shrink a
-
-instance Arbitrary a => Arbitrary (Identity a) where
-  arbitrary = fmap Identity arbitrary
-  shrink (Identity a) = map Identity $ shrink a
-#endif /* MIN_VERSION_base(4,8,0) */
-
-instance Arbitrary Version where
-  arbitrary = Version <$> listOf1 (choose (1, 15)) <*> pure []
-#endif /* !MIN_VERSION_QuickCheck(2,9,0) */
-
 #if MIN_VERSION_base(4,9,0)
 instance Arbitrary a => Arbitrary (Semigroup.Min a) where
   arbitrary = fmap Semigroup.Min arbitrary
@@ -286,7 +187,6 @@ deriving instance Typeable Fingerprint
 deriving instance Show a => Show (Const a b)
 deriving instance Eq a   => Eq   (Const a b)
 #endif
-
 
 instance (Vector.Primitive.Prim a, Arbitrary a
          ) => Arbitrary (Vector.Primitive.Vector a) where
