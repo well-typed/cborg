@@ -265,23 +265,6 @@ wordToFloat64# w# =
               (# _, f# #) -> f#
 {-# NOINLINE wordToFloat64# #-}
 
-
--- Alternative impl that goes via the FFI
---
--- wordToFloat32 :: Word -> Float
--- wordToFloat32 = toFloat
--- {-# INLINE wordToFloat32 #-}
---
--- wordToFloat64 :: Word64 -> Double
--- wordToFloat64 = toFloat
--- {-# INLINE wordToFloat64 #-}
---
--- toFloat :: (Storable word, Storable float) => word -> float
--- toFloat w = unsafeDupablePerformIO $ alloca $ \buf -> do
---   poke (castPtr buf) w
---   peek buf
--- {-# INLINE toFloat #-}
-
 --------------------------------------------------------------------------------
 -- Mutable counters
 
