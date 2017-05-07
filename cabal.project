@@ -1,1 +1,3 @@
 packages: ./
+with-compiler: /opt/misc/ghc-builds/ghc-8.2/bin/ghc
+allow-newer: time
