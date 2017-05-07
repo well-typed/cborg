@@ -69,6 +69,7 @@ import qualified Data.IntSet                         as IntSet
 import qualified Data.IntMap                         as IntMap
 import qualified Data.HashSet                        as HashSet
 import qualified Data.HashMap.Strict                 as HashMap
+import qualified Data.Tree                           as Tree
 import qualified Data.Vector                         as Vector
 import qualified Data.Vector.Unboxed                 as Vector.Unboxed
 import qualified Data.Vector.Storable                as Vector.Storable
@@ -808,6 +809,11 @@ instance (Serialise a, Serialise b) => Serialise (Either a b) where
 --------------------------------------------------------------------------------
 -- Container instances
 
+-- | @since 0.2.0.0
+instance Serialise a => Serialise (Tree.Tree a) where
+  encode (Tree.Node r sub) = encodeListLen 2 <> encode r <> encode sub
+  decode = decodeListLenOf 2 *> (Tree.Node <$> decode <*> decode)
+
 encodeContainerSkel :: (Word -> Encoding)
                     -> (container -> Int)
                     -> (accumFunc -> Encoding -> container -> Encoding)
@@ -1327,7 +1333,6 @@ utcFromIntegral i = addUTCTime (fromIntegral i) epoch
 utcFromReal :: Real a => a -> UTCTime
 utcFromReal f = addUTCTime (fromRational (toRational f)) epoch
 
-
 -- | @'UTCTime'@ formatting, into a regular @'String'@.
 formatUTCrfc3339 :: UTCTime -> String
 
@@ -1345,7 +1350,6 @@ parseUTCrfc3339  = parseTime        defaultTimeLocale "%Y-%m-%dT%H:%M:%S%Q%Z"
 -- | Force the unnecessarily lazy @'UTCTime'@ representation.
 forceUTCTime :: UTCTime -> UTCTime
 forceUTCTime t@(UTCTime !_day !_daytime) = t
-
 
 --------------------------------------------------------------------------------
 -- Generic instances

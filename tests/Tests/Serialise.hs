@@ -59,6 +59,7 @@ import qualified Data.IntSet                as IntSet
 import qualified Data.Map                   as Map
 import qualified Data.Sequence              as Sequence
 import qualified Data.Set                   as Set
+import qualified Data.Tree                  as Tree
 import qualified Data.Vector                as Vector
 import qualified Data.Vector.Unboxed        as Vector.Unboxed
 import qualified Data.Vector.Storable       as Vector.Storable
@@ -242,6 +243,7 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T (IntMap.IntMap String))
       , mkTest (T :: T (HashMap.HashMap Int String))
       , mkTest (T :: T (HashSet.HashSet Int))
+      , mkTest (T :: T (Tree.Tree (Int, String, ())))
       , mkTest (T :: T (Vector.Vector Int))
       , mkTest (T :: T (Vector.Unboxed.Vector (Int,Bool)))
       , mkTest (T :: T (Vector.Storable.Vector Int))
