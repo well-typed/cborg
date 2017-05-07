@@ -335,7 +335,7 @@ decodeFloat :: Decoder s Float
 decodeFloat = Decoder (\k -> return (ConsumeFloat (\f# -> k (F# f#))))
 {-# INLINE decodeFloat #-}
 
--- | Deocde a @'Double'@.
+-- | Decode a @'Double'@.
 --
 -- @since 0.2.0.0
 decodeDouble :: Decoder s Double
