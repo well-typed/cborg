@@ -165,7 +165,8 @@ test-suite tests
   main-is:           Main.hs
 
   default-language:  Haskell2010
-  ghc-options:       -Wall -fno-warn-orphans
+  ghc-options:
+    -Wall -fno-warn-orphans -threaded -rtsopts "-with-rtsopts=-N"
 
   if flag(hpc)
     ghc-options:     -fhpc
