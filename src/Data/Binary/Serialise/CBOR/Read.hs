@@ -946,10 +946,10 @@ tryConsumeWord hdr !bs = case fromIntegral hdr :: Word of
   0x15 -> DecodedToken 1 21
   0x16 -> DecodedToken 1 22
   0x17 -> DecodedToken 1 23
-  0x18 -> DecodedToken 2 (withBsPtr grabWord8  (BS.unsafeTail bs))
-  0x19 -> DecodedToken 3 (withBsPtr grabWord16 (BS.unsafeTail bs))
-  0x1a -> DecodedToken 5 (withBsPtr grabWord32 (BS.unsafeTail bs))
-  0x1b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
+  0x18 -> DecodedToken 2 (eatTailWord8 bs)
+  0x19 -> DecodedToken 3 (eatTailWord16 bs)
+  0x1a -> DecodedToken 5 (eatTailWord32 bs)
+  0x1b -> DecodedToken 9 (fromIntegral $ eatTailWord64 bs) -- TODO FIXME: overflow
   _    -> DecodeFailure
 
 
@@ -981,10 +981,10 @@ tryConsumeNegWord hdr !bs = case fromIntegral hdr :: Word of
   0x35 -> DecodedToken 1 21
   0x36 -> DecodedToken 1 22
   0x37 -> DecodedToken 1 23
-  0x38 -> DecodedToken 2 (withBsPtr grabWord8  (BS.unsafeTail bs))
-  0x39 -> DecodedToken 3 (withBsPtr grabWord16 (BS.unsafeTail bs))
-  0x3a -> DecodedToken 5 (withBsPtr grabWord32 (BS.unsafeTail bs))
-  0x3b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
+  0x38 -> DecodedToken 2 (eatTailWord8 bs)
+  0x39 -> DecodedToken 3 (eatTailWord16 bs)
+  0x3a -> DecodedToken 5 (eatTailWord32 bs)
+  0x3b -> DecodedToken 9 (fromIntegral $ eatTailWord64 bs) -- TODO FIXME: overflow
   _    -> DecodeFailure
 
 
@@ -1016,10 +1016,10 @@ tryConsumeInt hdr !bs = case fromIntegral hdr :: Word of
   0x15 -> DecodedToken 1 21
   0x16 -> DecodedToken 1 22
   0x17 -> DecodedToken 1 23
-  0x18 -> DecodedToken 2 (fromIntegral (withBsPtr grabWord8  (BS.unsafeTail bs)))
-  0x19 -> DecodedToken 3 (fromIntegral (withBsPtr grabWord16 (BS.unsafeTail bs)))
-  0x1a -> DecodedToken 5 (fromIntegral (withBsPtr grabWord32 (BS.unsafeTail bs))) -- TODO FIXME: overflow
-  0x1b -> DecodedToken 9 (fromIntegral (withBsPtr grabWord64 (BS.unsafeTail bs))) -- TODO FIXME: overflow
+  0x18 -> DecodedToken 2 (fromIntegral (eatTailWord8 bs))
+  0x19 -> DecodedToken 3 (fromIntegral (eatTailWord16 bs))
+  0x1a -> DecodedToken 5 (fromIntegral (eatTailWord32 bs)) -- TODO FIXME: overflow
+  0x1b -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
 
   -- Negative integers (type 1)
   0x20 -> DecodedToken 1 (-1)
@@ -1046,10 +1046,10 @@ tryConsumeInt hdr !bs = case fromIntegral hdr :: Word of
   0x35 -> DecodedToken 1 (-22)
   0x36 -> DecodedToken 1 (-23)
   0x37 -> DecodedToken 1 (-24)
-  0x38 -> DecodedToken 2 (-1 - fromIntegral (withBsPtr grabWord8  (BS.unsafeTail bs)))
-  0x39 -> DecodedToken 3 (-1 - fromIntegral (withBsPtr grabWord16 (BS.unsafeTail bs)))
-  0x3a -> DecodedToken 5 (-1 - fromIntegral (withBsPtr grabWord32 (BS.unsafeTail bs))) -- TODO FIXME: overflow
-  0x3b -> DecodedToken 9 (-1 - fromIntegral (withBsPtr grabWord64 (BS.unsafeTail bs))) -- TODO FIXME: overflow
+  0x38 -> DecodedToken 2 (-1 - fromIntegral (eatTailWord8 bs))
+  0x39 -> DecodedToken 3 (-1 - fromIntegral (eatTailWord16 bs))
+  0x3a -> DecodedToken 5 (-1 - fromIntegral (eatTailWord32 bs)) -- TODO FIXME: overflow
+  0x3b -> DecodedToken 9 (-1 - fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
   _    -> DecodeFailure
 
 
@@ -1082,10 +1082,10 @@ tryConsumeInteger hdr !bs = case fromIntegral hdr :: Word of
   0x15 -> DecodedToken 1 (BigIntToken 21)
   0x16 -> DecodedToken 1 (BigIntToken 22)
   0x17 -> DecodedToken 1 (BigIntToken 23)
-  0x18 -> DecodedToken 2 (BigIntToken (fromIntegral (withBsPtr grabWord8  (BS.unsafeTail bs))))
-  0x19 -> DecodedToken 3 (BigIntToken (fromIntegral (withBsPtr grabWord16 (BS.unsafeTail bs))))
-  0x1a -> DecodedToken 5 (BigIntToken (fromIntegral (withBsPtr grabWord32 (BS.unsafeTail bs))))
-  0x1b -> DecodedToken 9 (BigIntToken (fromIntegral (withBsPtr grabWord64 (BS.unsafeTail bs))))
+  0x18 -> DecodedToken 2 (BigIntToken (fromIntegral (eatTailWord8 bs)))
+  0x19 -> DecodedToken 3 (BigIntToken (fromIntegral (eatTailWord16 bs)))
+  0x1a -> DecodedToken 5 (BigIntToken (fromIntegral (eatTailWord32 bs)))
+  0x1b -> DecodedToken 9 (BigIntToken (fromIntegral (eatTailWord64 bs)))
 
   -- Negative integers (type 1)
   0x20 -> DecodedToken 1 (BigIntToken (-1))
@@ -1112,10 +1112,10 @@ tryConsumeInteger hdr !bs = case fromIntegral hdr :: Word of
   0x35 -> DecodedToken 1 (BigIntToken (-22))
   0x36 -> DecodedToken 1 (BigIntToken (-23))
   0x37 -> DecodedToken 1 (BigIntToken (-24))
-  0x38 -> DecodedToken 2 (BigIntToken (-1 - fromIntegral (withBsPtr grabWord8  (BS.unsafeTail bs))))
-  0x39 -> DecodedToken 3 (BigIntToken (-1 - fromIntegral (withBsPtr grabWord16 (BS.unsafeTail bs))))
-  0x3a -> DecodedToken 5 (BigIntToken (-1 - fromIntegral (withBsPtr grabWord32 (BS.unsafeTail bs))))
-  0x3b -> DecodedToken 9 (BigIntToken (-1 - fromIntegral (withBsPtr grabWord64 (BS.unsafeTail bs))))
+  0x38 -> DecodedToken 2 (BigIntToken (-1 - fromIntegral (eatTailWord8 bs)))
+  0x39 -> DecodedToken 3 (BigIntToken (-1 - fromIntegral (eatTailWord16 bs)))
+  0x3a -> DecodedToken 5 (BigIntToken (-1 - fromIntegral (eatTailWord32 bs)))
+  0x3b -> DecodedToken 9 (BigIntToken (-1 - fromIntegral (eatTailWord64 bs)))
 
   0xc2 -> readBigUInt bs
   0xc3 -> readBigNInt bs
@@ -1223,10 +1223,10 @@ tryConsumeListLen hdr !bs = case fromIntegral hdr :: Word of
   0x95 -> DecodedToken 1 21
   0x96 -> DecodedToken 1 22
   0x97 -> DecodedToken 1 23
-  0x98 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
-  0x99 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
-  0x9a -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)) -- TODO FIXME: overflow
-  0x9b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
+  0x98 -> DecodedToken 2 (fromIntegral (eatTailWord8 bs))
+  0x99 -> DecodedToken 3 (fromIntegral (eatTailWord16 bs))
+  0x9a -> DecodedToken 5 (fromIntegral (eatTailWord32 bs)) -- TODO FIXME: overflow
+  0x9b -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
   _    -> DecodeFailure
 
 
@@ -1258,10 +1258,10 @@ tryConsumeMapLen hdr !bs = case fromIntegral hdr :: Word of
   0xb5 -> DecodedToken 1 21
   0xb6 -> DecodedToken 1 22
   0xb7 -> DecodedToken 1 23
-  0xb8 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
-  0xb9 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
-  0xba -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)) -- TODO FIXME: overflow
-  0xbb -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
+  0xb8 -> DecodedToken 2 (fromIntegral (eatTailWord8 bs))
+  0xb9 -> DecodedToken 3 (fromIntegral (eatTailWord16 bs))
+  0xba -> DecodedToken 5 (fromIntegral (eatTailWord32 bs)) -- TODO FIXME: overflow
+  0xbb -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
   _    -> DecodeFailure
 
 
@@ -1308,10 +1308,10 @@ tryConsumeListLenOrIndef hdr !bs = case fromIntegral hdr :: Word of
   0x95 -> DecodedToken 1 21
   0x96 -> DecodedToken 1 22
   0x97 -> DecodedToken 1 23
-  0x98 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
-  0x99 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
-  0x9a -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)) -- TODO FIXME: overflow
-  0x9b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
+  0x98 -> DecodedToken 2 (fromIntegral (eatTailWord8 bs))
+  0x99 -> DecodedToken 3 (fromIntegral (eatTailWord16 bs))
+  0x9a -> DecodedToken 5 (fromIntegral (eatTailWord32 bs)) -- TODO FIXME: overflow
+  0x9b -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
   0x9f -> DecodedToken 1 (-1) -- indefinite length
   _    -> DecodeFailure
 
@@ -1345,10 +1345,10 @@ tryConsumeMapLenOrIndef hdr !bs = case fromIntegral hdr :: Word of
   0xb5 -> DecodedToken 1 21
   0xb6 -> DecodedToken 1 22
   0xb7 -> DecodedToken 1 23
-  0xb8 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
-  0xb9 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
-  0xba -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)) -- TODO FIXME: overflow
-  0xbb -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
+  0xb8 -> DecodedToken 2 (fromIntegral (eatTailWord8 bs))
+  0xb9 -> DecodedToken 3 (fromIntegral (eatTailWord16 bs))
+  0xba -> DecodedToken 5 (fromIntegral (eatTailWord32 bs)) -- TODO FIXME: overflow
+  0xbb -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
   0xbf -> DecodedToken 1 (-1) -- indefinite length
   _    -> DecodeFailure
 
@@ -1382,10 +1382,10 @@ tryConsumeTag hdr !bs = case fromIntegral hdr :: Word of
   0xd5 -> DecodedToken 1 21
   0xd6 -> DecodedToken 1 22
   0xd7 -> DecodedToken 1 23
-  0xd8 -> DecodedToken 2 (withBsPtr grabWord8  (BS.unsafeTail bs))
-  0xd9 -> DecodedToken 3 (withBsPtr grabWord16 (BS.unsafeTail bs))
-  0xda -> DecodedToken 5 (withBsPtr grabWord32 (BS.unsafeTail bs))
-  0xdb -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
+  0xd8 -> DecodedToken 2 (eatTailWord8 bs)
+  0xd9 -> DecodedToken 3 (eatTailWord16 bs)
+  0xda -> DecodedToken 5 (eatTailWord32 bs)
+  0xdb -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
   _    -> DecodeFailure
 
 --
@@ -1420,10 +1420,10 @@ tryConsumeWord64 hdr !bs = case fromIntegral hdr :: Word of
   0x15 -> DecodedToken 1 21
   0x16 -> DecodedToken 1 22
   0x17 -> DecodedToken 1 23
-  0x18 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
-  0x19 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
-  0x1a -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs))
-  0x1b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
+  0x18 -> DecodedToken 2 (fromIntegral (eatTailWord8 bs))
+  0x19 -> DecodedToken 3 (fromIntegral (eatTailWord16 bs))
+  0x1a -> DecodedToken 5 (fromIntegral (eatTailWord32 bs))
+  0x1b -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
   _    -> DecodeFailure
 {-# INLINE tryConsumeWord64 #-}
 
@@ -1454,10 +1454,10 @@ tryConsumeNegWord64 hdr !bs = case fromIntegral hdr :: Word of
   0x35 -> DecodedToken 1 21
   0x36 -> DecodedToken 1 22
   0x37 -> DecodedToken 1 23
-  0x38 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
-  0x39 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
-  0x3a -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs))
-  0x3b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
+  0x38 -> DecodedToken 2 (fromIntegral (eatTailWord8 bs))
+  0x39 -> DecodedToken 3 (fromIntegral (eatTailWord16 bs))
+  0x3a -> DecodedToken 5 (fromIntegral (eatTailWord32 bs))
+  0x3b -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
   _    -> DecodeFailure
 {-# INLINE tryConsumeNegWord64 #-}
 
@@ -1488,10 +1488,10 @@ tryConsumeInt64 hdr !bs = case fromIntegral hdr :: Word of
   0x15 -> DecodedToken 1 21
   0x16 -> DecodedToken 1 22
   0x17 -> DecodedToken 1 23
-  0x18 -> DecodedToken 2 (fromIntegral (withBsPtr grabWord8  (BS.unsafeTail bs)))
-  0x19 -> DecodedToken 3 (fromIntegral (withBsPtr grabWord16 (BS.unsafeTail bs)))
-  0x1a -> DecodedToken 5 (fromIntegral (withBsPtr grabWord32 (BS.unsafeTail bs))) -- TODO FIXME: overflow
-  0x1b -> DecodedToken 9 (fromIntegral (withBsPtr grabWord64 (BS.unsafeTail bs))) -- TODO FIXME: overflow
+  0x18 -> DecodedToken 2 (fromIntegral (eatTailWord8 bs))
+  0x19 -> DecodedToken 3 (fromIntegral (eatTailWord16 bs))
+  0x1a -> DecodedToken 5 (fromIntegral (eatTailWord32 bs)) -- TODO FIXME: overflow
+  0x1b -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
 
   -- Negative integers (type 1)
   0x20 -> DecodedToken 1 (-1)
@@ -1518,10 +1518,10 @@ tryConsumeInt64 hdr !bs = case fromIntegral hdr :: Word of
   0x35 -> DecodedToken 1 (-22)
   0x36 -> DecodedToken 1 (-23)
   0x37 -> DecodedToken 1 (-24)
-  0x38 -> DecodedToken 2 (-1 - fromIntegral (withBsPtr grabWord8  (BS.unsafeTail bs)))
-  0x39 -> DecodedToken 3 (-1 - fromIntegral (withBsPtr grabWord16 (BS.unsafeTail bs)))
-  0x3a -> DecodedToken 5 (-1 - fromIntegral (withBsPtr grabWord32 (BS.unsafeTail bs))) -- TODO FIXME: overflow
-  0x3b -> DecodedToken 9 (-1 - fromIntegral (withBsPtr grabWord64 (BS.unsafeTail bs))) -- TODO FIXME: overflow
+  0x38 -> DecodedToken 2 (-1 - fromIntegral (eatTailWord8 bs))
+  0x39 -> DecodedToken 3 (-1 - fromIntegral (eatTailWord16 bs))
+  0x3a -> DecodedToken 5 (-1 - fromIntegral (eatTailWord32 bs)) -- TODO FIXME: overflow
+  0x3b -> DecodedToken 9 (-1 - fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
   _    -> DecodeFailure
 {-# INLINE tryConsumeInt64 #-}
 
@@ -1552,10 +1552,10 @@ tryConsumeListLen64 hdr !bs = case fromIntegral hdr :: Word of
   0x95 -> DecodedToken 1 21
   0x96 -> DecodedToken 1 22
   0x97 -> DecodedToken 1 23
-  0x98 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
-  0x99 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
-  0x9a -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)) -- TODO FIXME: overflow
-  0x9b -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
+  0x98 -> DecodedToken 2 (fromIntegral (eatTailWord8 bs))
+  0x99 -> DecodedToken 3 (fromIntegral (eatTailWord16 bs))
+  0x9a -> DecodedToken 5 (fromIntegral (eatTailWord32 bs)) -- TODO FIXME: overflow
+  0x9b -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
   _    -> DecodeFailure
 {-# INLINE tryConsumeListLen64 #-}
 
@@ -1586,10 +1586,10 @@ tryConsumeMapLen64 hdr !bs = case fromIntegral hdr :: Word of
   0xb5 -> DecodedToken 1 21
   0xb6 -> DecodedToken 1 22
   0xb7 -> DecodedToken 1 23
-  0xb8 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
-  0xb9 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
-  0xba -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)) -- TODO FIXME: overflow
-  0xbb -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
+  0xb8 -> DecodedToken 2 (fromIntegral (eatTailWord8 bs))
+  0xb9 -> DecodedToken 3 (fromIntegral (eatTailWord16 bs))
+  0xba -> DecodedToken 5 (fromIntegral (eatTailWord32 bs)) -- TODO FIXME: overflow
+  0xbb -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
   _    -> DecodeFailure
 {-# INLINE tryConsumeMapLen64 #-}
 
@@ -1620,10 +1620,10 @@ tryConsumeTag64 hdr !bs = case fromIntegral hdr :: Word of
   0xd5 -> DecodedToken 1 21
   0xd6 -> DecodedToken 1 22
   0xd7 -> DecodedToken 1 23
-  0xd8 -> DecodedToken 2 (fromIntegral $ withBsPtr grabWord8  (BS.unsafeTail bs))
-  0xd9 -> DecodedToken 3 (fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs))
-  0xda -> DecodedToken 5 (fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs))
-  0xdb -> DecodedToken 9 (fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)) -- TODO FIXME: overflow
+  0xd8 -> DecodedToken 2 (fromIntegral (eatTailWord8 bs))
+  0xd9 -> DecodedToken 3 (fromIntegral (eatTailWord16 bs))
+  0xda -> DecodedToken 5 (fromIntegral (eatTailWord32 bs))
+  0xdb -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
   _    -> DecodeFailure
 {-# INLINE tryConsumeTag64 #-}
 #endif
@@ -1631,17 +1631,17 @@ tryConsumeTag64 hdr !bs = case fromIntegral hdr :: Word of
 {-# INLINE tryConsumeFloat #-}
 tryConsumeFloat :: Word8 -> ByteString -> DecodedToken Float
 tryConsumeFloat hdr !bs = case fromIntegral hdr :: Word of
-  0xf9 -> DecodedToken 3 (wordToFloat16 $ withBsPtr grabWord16 (BS.unsafeTail bs))
-  0xfa -> DecodedToken 5 (wordToFloat32 $ withBsPtr grabWord32 (BS.unsafeTail bs))
+  0xf9 -> DecodedToken 3 (wordToFloat16 (eatTailWord16 bs))
+  0xfa -> DecodedToken 5 (wordToFloat32 (eatTailWord32 bs))
   _    -> DecodeFailure
 
 
 {-# INLINE tryConsumeDouble #-}
 tryConsumeDouble :: Word8 -> ByteString -> DecodedToken Double
 tryConsumeDouble hdr !bs = case fromIntegral hdr :: Word of
-  0xf9 -> DecodedToken 3 (float2Double $ wordToFloat16 $ withBsPtr grabWord16 (BS.unsafeTail bs))
-  0xfa -> DecodedToken 5 (float2Double $ wordToFloat32 $ withBsPtr grabWord32 (BS.unsafeTail bs))
-  0xfb -> DecodedToken 9                (wordToFloat64 $ withBsPtr grabWord64 (BS.unsafeTail bs))
+  0xf9 -> DecodedToken 3 (float2Double $ wordToFloat16 (eatTailWord16 bs))
+  0xfa -> DecodedToken 5 (float2Double $ wordToFloat32 (eatTailWord32 bs))
+  0xfb -> DecodedToken 9                (wordToFloat64 (eatTailWord64 bs))
   _    -> DecodeFailure
 
 
@@ -1682,7 +1682,7 @@ tryConsumeSimple hdr !bs = case fromIntegral hdr :: Word of
   0xf5 -> DecodedToken 1 21
   0xf6 -> DecodedToken 1 22
   0xf7 -> DecodedToken 1 23
-  0xf8 -> DecodedToken 2 (withBsPtr grabWord8 (BS.unsafeTail bs))
+  0xf8 -> DecodedToken 2 (eatTailWord8 bs)
   _    -> DecodeFailure
 
 
@@ -1740,7 +1740,7 @@ readBytes8 bs
   = DecodedToken hdrsz $ TooLong n
   where
     hdrsz = 2
-    n = fromIntegral $ withBsPtr grabWord8 (BS.unsafeTail bs)
+    n = fromIntegral (eatTailWord8 bs)
 
 readBytes16 bs
   | n <= BS.length bs - hdrsz
@@ -1752,7 +1752,7 @@ readBytes16 bs
   = DecodedToken hdrsz $ TooLong n
   where
     hdrsz = 3
-    n = fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs)
+    n = fromIntegral (eatTailWord16 bs)
 
 readBytes32 bs
   | n <= BS.length bs - hdrsz
@@ -1765,7 +1765,7 @@ readBytes32 bs
   where
     hdrsz = 5
     -- TODO FIXME: int overflow
-    n = fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)
+    n = fromIntegral (eatTailWord32 bs)
 
 readBytes64 bs
   | n <= BS.length bs - hdrsz
@@ -1778,7 +1778,7 @@ readBytes64 bs
   where
     hdrsz = 5
     -- TODO FIXME: int overflow
-    n = fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)
+    n = fromIntegral (eatTailWord64 bs)
 
 
 readStringSmall :: Int -> ByteString -> DecodedToken (LongToken T.Text)
@@ -1808,7 +1808,7 @@ readString8 bs
   = DecodedToken hdrsz $ TooLong n
   where
     hdrsz = 2
-    n = fromIntegral $ withBsPtr grabWord8 (BS.unsafeTail bs)
+    n = fromIntegral (eatTailWord8 bs)
 
 readString16 bs
   | n <= BS.length bs - hdrsz
@@ -1821,7 +1821,7 @@ readString16 bs
   = DecodedToken hdrsz $ TooLong n
   where
     hdrsz = 3
-    n = fromIntegral $ withBsPtr grabWord16 (BS.unsafeTail bs)
+    n = fromIntegral (eatTailWord16 bs)
 
 readString32 bs
   | n <= BS.length bs - hdrsz
@@ -1835,7 +1835,7 @@ readString32 bs
   where
     hdrsz = 5
     -- TODO FIXME: int overflow
-    n = fromIntegral $ withBsPtr grabWord32 (BS.unsafeTail bs)
+    n = fromIntegral (eatTailWord32 bs)
 
 readString64 bs
   | n <= BS.length bs - hdrsz
@@ -1849,7 +1849,7 @@ readString64 bs
   where
     hdrsz = 5
     -- TODO FIXME: int overflow
-    n = fromIntegral $ withBsPtr grabWord64 (BS.unsafeTail bs)
+    n = fromIntegral (eatTailWord64 bs)
 
 
 ------------------------------------------------------------------------------
