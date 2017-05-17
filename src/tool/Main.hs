@@ -28,8 +28,8 @@ import           Data.Binary.Serialise.CBOR.Class
 import           Data.Binary.Serialise.CBOR.Encoding
 import           Data.Binary.Serialise.CBOR.Decoding
 import           Data.Binary.Serialise.CBOR.Pretty
-import qualified Data.Binary.Serialise.CBOR.Read     as CBOR.Read
-import qualified Data.Binary.Serialise.CBOR.Write    as CBOR.Write
+import qualified Data.Binary.Serialise.CBOR.Read     as Read
+import qualified Data.Binary.Serialise.CBOR.Write    as Write
 import           Data.Binary.Serialise.CBOR.Term     ( decodeTerm, encodeTerm )
 
 --------------------------------------------------------------------------------
@@ -120,13 +120,13 @@ jsonToCbor file = do
       let encVal   = encodeValue v
           cborFile = dropExtension file <.> "cbor"
       -- Now write the blob
-      LB.writeFile cborFile (CBOR.Write.toLazyByteString encVal)
+      LB.writeFile cborFile (Write.toLazyByteString encVal)
 
 -- | Convert a CBOR file to JSON, and echo it to @stdout@.
 cborToJson :: Bool -> FilePath -> IO ()
 cborToJson lenient file = do
   bs <- LB.readFile file
-  case (CBOR.Read.deserialiseFromBytes (decodeValue lenient) bs) of
+  case (Read.deserialiseFromBytes (decodeValue lenient) bs) of
     Left err -> fail $ "deserialization error: " ++ (show err)
     Right v  -> do
       let builder = Aeson.Pretty.encodePrettyToTextBuilder v
@@ -139,10 +139,14 @@ cborToJson lenient file = do
 dumpCborFile :: Bool -> FilePath -> IO ()
 dumpCborFile pretty file = do
   bs <- LB.readFile file
-  case (CBOR.Read.deserialiseFromBytes decodeTerm bs) of
-    Left err -> fail $ "deserialization error: " ++ (show err)
+  case (Read.deserialiseFromBytes decodeTerm bs) of
+    -- print normally or in pretty-mode, if asked.
     Right v | pretty -> putStrLn (prettyHexEnc $ encodeTerm v)
     Right v          -> print v
+
+    -- otherwise, give a detailed error message
+    Left (Read.DeserialiseFailure off err) ->
+      fail $ "deserialization error (at offset " ++ show off ++ "): " ++ err
 
 dumpAsHex :: FilePath -> IO ()
 dumpAsHex file = do
