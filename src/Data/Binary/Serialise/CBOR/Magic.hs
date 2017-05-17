@@ -61,7 +61,7 @@ module Data.Binary.Serialise.CBOR.Magic
 
 import           GHC.Exts
 import           GHC.ST (ST(ST))
-import           GHC.IO (IO(IO), unsafeDupablePerformIO, unsafePerformIO)
+import           GHC.IO (IO(IO), unsafeDupablePerformIO)
 import           GHC.Word
 import           Foreign.Ptr
 
@@ -329,7 +329,7 @@ uintegerFromBytes (BS.PS fp (I# off#) (I# len#)) =
   -- This should be safe since we're simply reading from ByteString (which is
   -- immutable) and GMP allocates a new memory for the Integer, i.e., there is
   -- no mutation involved.
-  unsafePerformIO $
+  unsafeDupablePerformIO $
       withForeignPtr fp $ \(Ptr addr#) ->
           let addrOff# = addr# `plusAddr#` off#
           -- The last parmaeter (`1#`) tells the import function to use big
