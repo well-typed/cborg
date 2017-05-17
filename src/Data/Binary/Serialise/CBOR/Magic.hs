@@ -29,7 +29,6 @@ module Data.Binary.Serialise.CBOR.Magic
   , eatTailWord16     -- :: ByteString -> Word
   , eatTailWord32     -- :: ByteString -> Word
   , eatTailWord64     -- :: ByteString -> Word64
-  , withBsPtr         -- :: (Ptr b -> a) -> ByteString -> a
 
     -- * Half-floats
   , wordToFloat16     -- :: Word  -> Float
