@@ -6,6 +6,8 @@ module Main
   ) where
 import           System.FilePath
 import           System.Environment
+import           System.Exit                         ( exitFailure )
+import           System.IO                           ( hPutStrLn, stderr )
 import           Text.Printf                         ( printf )
 
 #if !MIN_VERSION_base(4,8,0)
@@ -165,11 +167,11 @@ showHexString = concat . toHex
 -- | Main entry point.
 main :: IO ()
 main = do
-  let help = fail $ unlines
+  let help = unlines
         [ "usage: cbor-tool <action> [options] <file>"
         , ""
-        , "  Useful tool for dealing with CBOR values. <action> and <file>"
-        , "  are mandatory options."
+        , "  Useful tool for dealing with and analyzing raw files containing"
+        , "  CBOR values. <action> and <file> are both mandatory options."
         , ""
         , "  Actions:"
         , ""
@@ -179,7 +181,7 @@ main = do
         , "    will dump the output in hexadecimal format. --pretty will"
         , "    use the internal 'Encoding' pretty-printer. --term is the"
         , "    internal 'Term' format type. You must specify either"
-        , "    --json, --hex, -pretty, or --term (there is no default)."
+        , "    --json, --hex, --pretty, or --term (there is no default)."
         , ""
         , "    When printing CBOR as JSON, the only valid type for JSON"
         , "    object keys is a UTF8 string. If you have a CBOR map that"
@@ -193,8 +195,8 @@ main = do
         , "  encode [--json] <file>"
         , "    Read the <file> in a specified format and dump a copy of"
         , "    the input in CBOR form under <file>.cbor. --json reads"
-        , "    JSON files. You must specify --json (there is no default"
-        , "    for future compatibility."
+        , "    JSON files. You must specify --json (there is no default,"
+        , "    for future compatibility.)"
         ]
 
   args <- getArgs
@@ -205,4 +207,4 @@ main = do
     ("dump"   : "--pretty" : file : _) -> dumpCborFile True  file
     ("dump"   : "--term"   : file : _) -> dumpCborFile False file
     ("encode" : "--json"   : file : _) -> jsonToCbor         file
-    _ -> help
+    _ -> hPutStrLn stderr help >> exitFailure
