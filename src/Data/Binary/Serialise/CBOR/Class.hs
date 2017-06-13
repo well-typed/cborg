@@ -781,14 +781,16 @@ instance ( Serialise a, Serialise b, Serialise c, Serialise d, Serialise e
 
 -- | @since 0.2.0.0
 instance Serialise a => Serialise (Maybe a) where
-    encode Nothing  = encodeListLen 0
-    encode (Just x) = encodeListLen 1 <> encode x
+    encode Nothing  = encodeListLen 1 <> encodeWord 0
+    encode (Just x) = encodeListLen 2 <> encodeWord 1 <> encode x
 
     decode = do n <- decodeListLen
-                case n of
-                  0 -> return Nothing
-                  1 -> do !x <- decode
-                          return (Just x)
+                t  <- decodeWord
+                case (t, n) of
+                  (0, 1) -> return Nothing
+                  (0, _) -> fail "bad list length for Nothing"
+                  (1, 2) -> Just <$> decode
+                  (1, _) -> fail "bad list length for Just"
                   _ -> fail "unknown tag"
 
 -- | @since 0.2.0.0
@@ -811,8 +813,12 @@ instance (Serialise a, Serialise b) => Serialise (Either a b) where
 
 -- | @since 0.2.0.0
 instance Serialise a => Serialise (Tree.Tree a) where
-  encode (Tree.Node r sub) = encodeListLen 2 <> encode r <> encode sub
-  decode = decodeListLenOf 2 *> (Tree.Node <$> decode <*> decode)
+  encode (Tree.Node r sub) = encodeListLen 3 <> encodeWord 0 <> encode r <> encode sub
+  decode = do decodeListLenOf 3
+              t <- decodeWord
+              case t of
+                0 -> Tree.Node <$> decode <*> decode
+                _ -> fail "unknown tag"
 
 encodeContainerSkel :: (Word -> Encoding)
                     -> (container -> Int)
