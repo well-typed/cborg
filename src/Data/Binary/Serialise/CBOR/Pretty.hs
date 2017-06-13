@@ -158,6 +158,7 @@ pprint = do
   case term of
     TkInt      i  TkEnd -> ppTkInt i
     TkInteger  i  TkEnd -> ppTkInteger i
+    TkWord     w  TkEnd -> ppTkWord w
     TkBytes    bs TkEnd -> ppTkBytes bs
     TkBytesBegin  TkEnd -> ppTkBytesBegin
     TkString   t  TkEnd -> ppTkString t
@@ -182,6 +183,9 @@ ppTkInt i = str "# int" >> parens (shown i)
 
 ppTkInteger    :: Integer    -> PP ()
 ppTkInteger i = str "# integer" >> parens (shown i)
+
+ppTkWord       :: Word       -> PP ()
+ppTkWord w = str "# word" >> parens (shown w)
 
 ppTkBytes      :: S.ByteString -> PP ()
 ppTkBytes bs = str "# bytes" >> parens (shown (S.length bs))
