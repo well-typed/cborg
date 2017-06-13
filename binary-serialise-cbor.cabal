@@ -185,6 +185,7 @@ test-suite tests
     Tests.Regress.FlatTerm
     Tests.Reference
     Tests.Reference.Implementation
+    Tests.Deriving
 
   build-depends:
     array                   >= 0.4     && < 0.6,
