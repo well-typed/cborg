@@ -69,7 +69,7 @@ compilers and other LTS releases are currently not supported with Stack at the
 moment, but the build *is* tested with older compilers and Cabal libraries
 (through Travis CI).
 
-[contribute]: https://github.com/well-typed/binary-serialise-cbor/blob/master/CONTRIBUTING.md
+[contribute]: https://github.com/well-typed/binary-serialise-cbor/blob/master/.github/CONTRIBUTING.md
 [issue tracker]: http://github.com/well-typed/binary-serialise-cbor/issues
 [gh]: http://github.com/well-typed/binary-serialise-cbor
 
