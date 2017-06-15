@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP                  #-}
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE ConstraintKinds     #-}
 {-# LANGUAGE DeriveDataTypeable  #-}
 {-# LANGUAGE DeriveGeneric       #-}
@@ -239,6 +239,9 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T (Map.Map Int String))
       , mkTest (T :: T (Sequence.Seq Int))
       , mkTest (T :: T (Set.Set Int))
+      , mkTest (T :: T (Set.Set Text.Text))
+      , mkTest (T :: T (Set.Set Double))
+      , mkTest (T :: T (Set.Set Rational))
       , mkTest (T :: T IntSet.IntSet)
       , mkTest (T :: T (IntMap.IntMap String))
       , mkTest (T :: T (HashMap.HashMap Int String))
