@@ -943,12 +943,12 @@ decodeSetSkel fromList = do
 -- | @since 0.2.0.0
 instance (Ord a, Serialise a) => Serialise (Set.Set a) where
   encode = encodeSetSkel Set.size Set.foldr
-  decode = decodeSetSkel Set.fromList
+  decode = decodeSetSkel Set.fromDistinctAscList
 
 -- | @since 0.2.0.0
 instance Serialise IntSet.IntSet where
   encode = encodeSetSkel IntSet.size IntSet.foldr
-  decode = decodeSetSkel IntSet.fromList
+  decode = decodeSetSkel IntSet.fromDistinctAscList
 
 -- | @since 0.2.0.0
 instance (Serialise a, Hashable a, Eq a) => Serialise (HashSet.HashSet a) where
