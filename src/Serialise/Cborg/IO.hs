@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
 -- |
--- Module      : Data.Binary.Serialise.CBOR.IO
+-- Module      : Serialise.Cborg.IO
 -- Copyright   : (c) Duncan Coutts 2015-2017
 -- License     : BSD3-style (see LICENSE.txt)
 --
@@ -11,11 +11,11 @@
 --
 -- High-level file-based API for serialising and deserialising values.
 --
-module Data.Binary.Serialise.CBOR.IO
+module Serialise.Cborg.IO
   ( -- * @'FilePath'@ API
     writeFileSerialise
   , readFileDeserialise
     -- * @'System.IO.Handle'@ API
   , hPutSerialise
   ) where
-import Data.Binary.Serialise.CBOR
+import Serialise.Cborg

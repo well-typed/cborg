@@ -2,7 +2,7 @@
 {-# LANGUAGE BangPatterns #-}
 
 -- |
--- Module      : Data.Binary.Serialise.CBOR.Term
+-- Module      : Serialise.Cborg.Term
 -- Copyright   : (c) Duncan Coutts 2015-2017
 -- License     : BSD3-style (see LICENSE.txt)
 --
@@ -24,10 +24,10 @@
 --
 -- Because this interface gives you the ability to decode or encode any
 -- arbitrary CBOR term, it can also be seen as an alternative interface to the
--- @'Data.Binary.Serialise.CBOR.Encoding'@ and
--- @'Data.Binary.Serialise.CBOR.Decoding'@ modules.
+-- @'Serialise.Cborg.Encoding'@ and
+-- @'Serialise.Cborg.Decoding'@ modules.
 --
-module Data.Binary.Serialise.CBOR.Term
+module Serialise.Cborg.Term
   ( Term(..)    -- :: *
   , encodeTerm  -- :: Term -> Encoding
   , decodeTerm  -- :: Decoder Term
@@ -35,9 +35,9 @@ module Data.Binary.Serialise.CBOR.Term
 
 #include "cbor.h"
 
-import           Data.Binary.Serialise.CBOR.Encoding hiding (Tokens(..))
-import           Data.Binary.Serialise.CBOR.Decoding
-import           Data.Binary.Serialise.CBOR.Class (Serialise(..))
+import           Serialise.Cborg.Encoding hiding (Tokens(..))
+import           Serialise.Cborg.Decoding
+import           Serialise.Cborg.Class (Serialise(..))
 
 import           Data.Word
 import qualified Data.Text as T

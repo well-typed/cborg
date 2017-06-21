@@ -9,7 +9,7 @@
 {-# OPTIONS_GHC -funfolding-keeness-factor=2.0 #-}
 
 -- |
--- Module      : Data.Binary.Serialise.CBOR.Read
+-- Module      : Serialise.Cborg.Read
 -- Copyright   : (c) Duncan Coutts 2015-2017
 -- License     : BSD3-style (see LICENSE.txt)
 --
@@ -20,7 +20,7 @@
 -- Tools for reading values in a CBOR-encoded format
 -- back into ordinary values.
 --
-module Data.Binary.Serialise.CBOR.Read
+module Serialise.Cborg.Read
   ( deserialiseFromBytes   -- :: Decoder a -> ByteString -> Either String a
   , deserialiseIncremental -- :: Decoder a -> ST s (IDecode s a)
   , DeserialiseFailure(..)
@@ -56,10 +56,10 @@ import           GHC.Float (float2Double)
 import           Data.Typeable
 import           Control.Exception
 
-import           Data.Binary.Serialise.CBOR.Decoding hiding (DecodeAction(Done, Fail))
-import           Data.Binary.Serialise.CBOR.Decoding (DecodeAction)
-import qualified Data.Binary.Serialise.CBOR.Decoding as D
-import           Data.Binary.Serialise.CBOR.Magic
+import           Serialise.Cborg.Decoding hiding (DecodeAction(Done, Fail))
+import           Serialise.Cborg.Decoding (DecodeAction)
+import qualified Serialise.Cborg.Decoding as D
+import           Serialise.Cborg.Magic
 
 --------------------------------------------------------------------------------
 
@@ -73,7 +73,7 @@ data DeserialiseFailure = DeserialiseFailure ByteOffset String
 instance Exception DeserialiseFailure where
 #if MIN_VERSION_base(4,8,0)
     displayException (DeserialiseFailure off msg) =
-      "Data.Binary.Serialise.CBOR: deserialising failed at offset "
+      "Serialise.Cborg: deserialising failed at offset "
            ++ show off ++ " : " ++ msg
 #endif
 

@@ -4,10 +4,10 @@ module Micro.CBOR (serialise, deserialise) where
 
 import Micro.Types
 
-import Data.Binary.Serialise.CBOR.Class
-import Data.Binary.Serialise.CBOR.Encoding
-import Data.Binary.Serialise.CBOR.Decoding hiding (DecodeAction(Done, Fail))
-import qualified Data.Binary.Serialise.CBOR as CBOR
+import Serialise.Cborg.Class
+import Serialise.Cborg.Encoding
+import Serialise.Cborg.Decoding hiding (DecodeAction(Done, Fail))
+import qualified Serialise.Cborg as CBOR
 import Data.Monoid
 
 import qualified Data.ByteString.Lazy as BS

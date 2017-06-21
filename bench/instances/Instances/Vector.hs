@@ -10,7 +10,7 @@ import qualified Data.Vector.Generic as VG
 import qualified Data.Vector.Unboxed as VU
 import qualified Data.Vector as V
 import qualified Data.ByteString.Lazy as BSL
-import           Data.Binary.Serialise.CBOR
+import           Serialise.Cborg
 import           Control.DeepSeq (force)
 
 benchmarks :: [Benchmark]

@@ -2,7 +2,7 @@
 {-# LANGUAGE RankNTypes         #-}
 
 -- |
--- Module      : Data.Binary.Serialise.CBOR
+-- Module      : Serialise.Cborg
 -- Copyright   : (c) Duncan Coutts 2015-2017
 -- License     : BSD3-style (see LICENSE.txt)
 --
@@ -16,9 +16,9 @@
 -- and utilities to help you make your types serialisable.
 --
 -- For a full tutorial on using this module, see
--- "Data.Binary.Serialise.CBOR.Tutorial".
+-- "Serialise.Cborg.Tutorial".
 --
-module Data.Binary.Serialise.CBOR
+module Serialise.Cborg
   ( -- * High level, one-shot API
     -- $highlevel
     serialise
@@ -57,9 +57,9 @@ import qualified Data.ByteString.Builder          as BS
 import qualified Data.ByteString.Lazy             as BS
 import qualified Data.ByteString.Lazy.Internal    as BS
 
-import           Data.Binary.Serialise.CBOR.Class
-import qualified Data.Binary.Serialise.CBOR.Read  as CBOR.Read
-import qualified Data.Binary.Serialise.CBOR.Write as CBOR.Write
+import           Serialise.Cborg.Class
+import qualified Serialise.Cborg.Read  as CBOR.Read
+import qualified Serialise.Cborg.Write as CBOR.Write
 
 
 --------------------------------------------------------------------------------

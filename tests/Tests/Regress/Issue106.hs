@@ -1,8 +1,8 @@
 module Tests.Regress.Issue106 ( testTree ) where
 
 import           Data.Word (Word) -- needed for GHC 7.8.4
-import qualified Data.Binary.Serialise.CBOR as CBOR
-import qualified Data.Binary.Serialise.CBOR.Pretty as CBOR
+import qualified Serialise.Cborg as CBOR
+import qualified Serialise.Cborg.Pretty as CBOR
 import           Test.Tasty
 import           Test.Tasty.HUnit
 

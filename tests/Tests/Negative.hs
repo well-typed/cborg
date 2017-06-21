@@ -7,9 +7,9 @@ import           Data.Version
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
-import           Data.Binary.Serialise.CBOR           as CBOR
-import           Data.Binary.Serialise.CBOR.Write     as CBOR.Write
-import           Data.Binary.Serialise.CBOR.Encoding  as CBOR.Encoding
+import           Serialise.Cborg           as CBOR
+import           Serialise.Cborg.Write     as CBOR.Write
+import           Serialise.Cborg.Encoding  as CBOR.Encoding
 
 --------------------------------------------------------------------------------
 -- Tests and properties
