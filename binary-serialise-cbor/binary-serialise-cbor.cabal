@@ -1,0 +1,42 @@
+name:                binary-serialise-cbor
+version:             0.1.1.0
+synopsis:            Yet Another Binary Serialisation Library (compatibility shim)
+license:             BSD3
+license-file:        LICENSE.txt
+author:              Duncan Coutts
+maintainer:          duncan@community.haskell.org
+copyright:           2015-2017 Duncan Coutts,
+                     2015-2017 Well-Typed LLP,
+                     2015 IRIS Connect Ltd
+category:            Codec
+build-type:          Simple
+cabal-version:       >= 1.10
+tested-with:         GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.1
+
+description:
+  This package is a shim around @cborg@, exposing an interface compatible with
+  the previous @binary-serialise-cbor@.
+
+source-repository head
+  type: git
+  location: https://github.com/well-typed/cborg.git
+
+library
+  default-language:  Haskell2010
+  reexported-modules:
+    Serialise.Cborg as Data.Binary.Serialise.CBOR,
+    Serialise.Cborg.Class as Data.Binary.Serialise.CBOR.Class,
+    Serialise.Cborg.Decoding as Data.Binary.Serialise.CBOR.Decoding,
+    Serialise.Cborg.Encoding as Data.Binary.Serialise.Encoding,
+    Serialise.Cborg.FlatTerm as Data.Binary.Serialise.FlatTerm,
+    Serialise.Cborg.IO as Data.Binary.Serialise.IO,
+    Serialise.Cborg.Magic as Data.Binary.Serialise.Magic,
+    Serialise.Cborg.Pretty as Data.Binary.Serialise.Pretty,
+    Serialise.Cborg.Properties as Data.Binary.Serialise.Properties,
+    Serialise.Cborg.Read as Data.Binary.Serialise.Read,
+    Serialise.Cborg.Write as Data.Binary.Serialise.Write,
+    Serialise.Cborg.Term as Data.Binary.Serialise.Term,
+    Serialise.Cborg.Tutorial as Data.Binary.Serialise.Tutorial
+
+  build-depends:
+    cborg
