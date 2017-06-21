@@ -84,6 +84,10 @@ library
     Serialise.Cborg.Term
     Serialise.Cborg.Tutorial
 
+  other-modules:
+    Serialise.Cborg.Encoding.Types
+    Serialise.Cborg.FlatTerm.Types
+
   other-extensions:
     CPP, ForeignFunctionInterface, MagicHash,
     UnboxedTuples, BangPatterns, DeriveDataTypeable,
