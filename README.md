@@ -1,9 +1,9 @@
 # Fast binary serialization for Haskell
 
-[![Linux Build Status](https://img.shields.io/travis/well-typed/binary-serialise-cbor/master.svg?label=Linux%20build)](https://travis-ci.org/well-typed/binary-serialise-cbor)
-[![Windows Build Status](https://img.shields.io/appveyor/ci/thoughtpolice/binary-serialise-cbor/master.svg?label=Windows%20build)](https://ci.appveyor.com/project/thoughtpolice/binary-serialise-cbor/branch/master)
-[![Hackage version](https://img.shields.io/hackage/v/binary-serialise-cbor.svg?label=Hackage)](https://hackage.haskell.org/package/binary-serialise-cbor)
-[![Stackage version](https://www.stackage.org/package/binary-serialise-cbor/badge/lts?label=Stackage)](https://www.stackage.org/package/binary-serialise-cbor)
+[![Linux Build Status](https://img.shields.io/travis/well-typed/cborg/master.svg?label=Linux%20build)](https://travis-ci.org/well-typed/cborg)
+[![Windows Build Status](https://img.shields.io/appveyor/ci/thoughtpolice/cborg/master.svg?label=Windows%20build)](https://ci.appveyor.com/project/thoughtpolice/cborg/branch/master)
+[![Hackage version](https://img.shields.io/hackage/v/cborg.svg?label=Hackage)](https://hackage.haskell.org/package/cborg)
+[![Stackage version](https://www.stackage.org/package/cborg/badge/lts?label=Stackage)](https://www.stackage.org/package/cborg)
 [![BSD3](https://img.shields.io/badge/License-BSD-blue.svg)](https://en.wikipedia.org/wiki/BSD_License)
 [![Haskell](https://img.shields.io/badge/Language-Haskell-yellowgreen.svg)](https://www.haskell.org)
 
@@ -38,14 +38,14 @@ binary data. This has yet to be designed or implemented.
 It's just a `cabal install` away on [Hackage][], or through [Stackage][]:
 
 ```bash
-$ cabal install binary-serialise-cbor
-$ stack install binary-serialise-cbor
+$ cabal install cborg
+$ stack install cborg
 ```
 
 **NOTE**: The above currently **WILL NOT WORK**, as this package is not
 publicly released.
 
-[Hackage]:  https://hackage.haskell.org/package/binary-serialise-cbor
+[Hackage]:  https://hackage.haskell.org/package/cborg
 [Stackage]: https://www.stackage.org
 
 # Join in
@@ -55,7 +55,7 @@ in the GitHub [issue tracker][].
 
 Master [git repository][gh]:
 
-* `git clone https://github.com/well-typed/binary-serialise-cbor.git`
+* `git clone https://github.com/well-typed/cborg.git`
 
 Once you've done that, you can build it and run the tests:
 
@@ -69,17 +69,17 @@ compilers and other LTS releases are currently not supported with Stack at the
 moment, but the build *is* tested with older compilers and Cabal libraries
 (through Travis CI).
 
-[contribute]: https://github.com/well-typed/binary-serialise-cbor/blob/master/.github/CONTRIBUTING.md
-[issue tracker]: http://github.com/well-typed/binary-serialise-cbor/issues
-[gh]: http://github.com/well-typed/binary-serialise-cbor
+[contribute]: https://github.com/well-typed/cborg/blob/master/.github/CONTRIBUTING.md
+[issue tracker]: http://github.com/well-typed/cborg/issues
+[gh]: http://github.com/well-typed/cborg
 
 # Authors
 
 See
-[AUTHORS.txt](https://raw.github.com/well-typed/binary-serialise-cbor/master/AUTHORS.txt).
+[AUTHORS.txt](https://raw.github.com/well-typed/cborg/master/AUTHORS.txt).
 
 # License
 
 BSD3. See
-[LICENSE.txt](https://raw.github.com/well-typed/binary-serialise-cbor/master/LICENSE.txt)
+[LICENSE.txt](https://raw.github.com/well-typed/cborg/master/LICENSE.txt)
 for the exact terms of copyright and redistribution.

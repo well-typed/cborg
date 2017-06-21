@@ -1,4 +1,4 @@
-module Data.Binary.Serialise.CBOR.Encoding where
+module Serialise.Cborg.Encoding where
 
 newtype Encoding = Encoding (Tokens -> Tokens)
 

@@ -6,7 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 -- |
--- Module      : Data.Binary.Serialise.CBOR.Write
+-- Module      : Serialise.Cborg.Write
 -- Copyright   : (c) Duncan Coutts 2015-2017
 -- License     : BSD3-style (see LICENSE.txt)
 --
@@ -17,7 +17,7 @@
 -- Tools for writing out CBOR @'Encoding'@ values in
 -- a variety of forms.
 --
-module Data.Binary.Serialise.CBOR.Write
+module Serialise.Cborg.Write
   ( toBuilder          -- :: Encoding -> B.Builder
   , toLazyByteString   -- :: Encoding -> L.ByteString
   , toStrictByteString -- :: Encoding -> S.ByteString
@@ -50,8 +50,8 @@ import           GHC.Word
 #endif
 #endif
 
-import           Data.Binary.Serialise.CBOR.Encoding
-import           Data.Binary.Serialise.CBOR.Magic
+import           Serialise.Cborg.Encoding
+import           Serialise.Cborg.Magic
 
 --------------------------------------------------------------------------------
 

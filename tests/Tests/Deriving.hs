@@ -5,8 +5,8 @@ module Tests.Deriving (testTree) where
 
 import           GHC.Generics
 
-import qualified Data.Binary.Serialise.CBOR as CBOR
-import           Data.Binary.Serialise.CBOR.FlatTerm
+import qualified Serialise.Cborg as CBOR
+import           Serialise.Cborg.FlatTerm
 import           System.FilePath
 
 import           Test.Tasty

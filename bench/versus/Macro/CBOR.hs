@@ -8,11 +8,11 @@ module Macro.CBOR (serialise, deserialise, deserialiseNull) where
 
 import Macro.Types
 
-import Data.Binary.Serialise.CBOR.Class
-import Data.Binary.Serialise.CBOR.Encoding hiding (Tokens(..))
-import Data.Binary.Serialise.CBOR.Decoding hiding (DecodeAction(Done, Fail))
-import Data.Binary.Serialise.CBOR.Read
-import Data.Binary.Serialise.CBOR.Write
+import Serialise.Cborg.Class
+import Serialise.Cborg.Encoding hiding (Tokens(..))
+import Serialise.Cborg.Decoding hiding (DecodeAction(Done, Fail))
+import Serialise.Cborg.Read
+import Serialise.Cborg.Write
 import Data.Monoid
 
 import qualified Data.ByteString.Lazy as BS

@@ -3,5 +3,5 @@ packages:
 - '.'
 
 flags:
-  binary-serialise-cbor:
+  cborg:
     newtime15: true

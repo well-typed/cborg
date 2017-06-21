@@ -8,10 +8,10 @@ import           Data.Aeson                          ( Value(..) )
 import           Data.Scientific
 import qualified Data.Vector                         as V
 
-import           Data.Binary.Serialise.CBOR.Encoding
-import           Data.Binary.Serialise.CBOR.Decoding
+import           Serialise.Cborg.Encoding
+import           Serialise.Cborg.Decoding
 
-import           Data.Binary.Serialise.CBOR.Class
+import           Serialise.Cborg.Class
 
 --------------------------------------------------------------------------------
 -- Encoder from JSON values to CBOR values

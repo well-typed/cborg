@@ -13,9 +13,9 @@ import qualified Data.Text.Lazy       as LT
 import           Data.Word
 import qualified Numeric.Half as Half
 
-import           Data.Binary.Serialise.CBOR.Term
-import           Data.Binary.Serialise.CBOR.Read
-import           Data.Binary.Serialise.CBOR.Write
+import           Serialise.Cborg.Term
+import           Serialise.Cborg.Read
+import           Serialise.Cborg.Write
 
 import           Test.Tasty
 import           Test.Tasty.HUnit

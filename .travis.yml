@@ -48,7 +48,7 @@ before_install:
  - HC=${CC}
  - unset CC
  - PATH=/opt/ghc/bin:/opt/ghc-ppa-tools/bin:$PATH
- - PKGNAME='binary-serialise-cbor'
+ - PKGNAME='cborg'
  
 install:
  - cabal --version

@@ -1,4 +1,4 @@
-name:                binary-serialise-cbor
+name:                cborg
 version:             0.1.1.0
 synopsis:            Yet Another Binary Serialisation Library
 license:             BSD3
@@ -14,9 +14,9 @@ cabal-version:       >= 1.10
 tested-with:         GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.1
 
 description:
-  This package provides pure, efficient serialization of Haskell
-  values directly into @ByteString@s for storage or transmission
-  purposes. By providing a set of type class instances, you can
+  This package (formerly @binary-serialise-cbor@) provides pure, efficient
+  serialization of Haskell values directly into @ByteString@s for storage or
+  transmission purposes. By providing a set of type class instances, you can
   also serialise any custom data type you have as well.
   .
   The underlying binary format used is the 'Concise Binary Object
@@ -32,7 +32,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/well-typed/binary-serialise-cbor.git
+  location: https://github.com/well-typed/cborg.git
 
 --------------------------------------------------------------------------------
 -- Flags
@@ -70,19 +70,19 @@ library
     ghc-options:     -fhpc
 
   exposed-modules:
-    Data.Binary.Serialise.CBOR
-    Data.Binary.Serialise.CBOR.Class
-    Data.Binary.Serialise.CBOR.Decoding
-    Data.Binary.Serialise.CBOR.Encoding
-    Data.Binary.Serialise.CBOR.FlatTerm
-    Data.Binary.Serialise.CBOR.IO
-    Data.Binary.Serialise.CBOR.Magic
-    Data.Binary.Serialise.CBOR.Pretty
-    Data.Binary.Serialise.CBOR.Properties
-    Data.Binary.Serialise.CBOR.Read
-    Data.Binary.Serialise.CBOR.Write
-    Data.Binary.Serialise.CBOR.Term
-    Data.Binary.Serialise.CBOR.Tutorial
+    Serialise.Cborg
+    Serialise.Cborg.Class
+    Serialise.Cborg.Decoding
+    Serialise.Cborg.Encoding
+    Serialise.Cborg.FlatTerm
+    Serialise.Cborg.IO
+    Serialise.Cborg.Magic
+    Serialise.Cborg.Pretty
+    Serialise.Cborg.Properties
+    Serialise.Cborg.Read
+    Serialise.Cborg.Write
+    Serialise.Cborg.Term
+    Serialise.Cborg.Tutorial
 
   other-extensions:
     CPP, ForeignFunctionInterface, MagicHash,
@@ -146,7 +146,7 @@ executable cbor-tool
     text                    >= 1.1     && < 1.3,
     unordered-containers    >= 0.2     && < 0.3,
     vector                  >= 0.10    && < 0.13,
-    binary-serialise-cbor
+    cborg
 
   if flag(newtime15)
     build-depends:
@@ -199,7 +199,7 @@ test-suite tests
     containers              >= 0.5     && < 0.6,
     unordered-containers    >= 0.2     && < 0.3,
     hashable                >= 1.2     && < 2.0,
-    binary-serialise-cbor,
+    cborg,
 
     aeson                   >= 0.7     && < 1.1,
     base64-bytestring       >= 1.0     && < 1.1,
@@ -244,7 +244,7 @@ benchmark instances
     binary                  >= 0.7     && < 0.9,
     bytestring              >= 0.10.4  && < 0.11,
     vector                  >= 0.10    && < 0.13,
-    binary-serialise-cbor,
+    cborg,
 
     deepseq                 >= 1.0     && < 1.5,
     criterion               >= 1.0     && < 1.2
@@ -288,7 +288,7 @@ benchmark micro
     bytestring              >= 0.10.4  && < 0.11,
     ghc-prim                >= 0.3     && < 0.6,
     vector                  >= 0.10    && < 0.13,
-    binary-serialise-cbor,
+    cborg,
 
     aeson                   >= 0.7     && < 1.1,
     deepseq                 >= 1.0     && < 1.5,
@@ -335,7 +335,7 @@ benchmark versus
     ghc-prim                >= 0.3     && < 0.6,
     text                    >= 1.1     && < 1.3,
     vector                  >= 0.10    && < 0.13,
-    binary-serialise-cbor,
+    cborg,
 
     filepath                >= 1.0     && < 1.5,
     containers              >= 0.5     && < 0.6,

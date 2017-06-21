@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP #-}
 
 -- |
--- Module      : Data.Binary.Serialise.CBOR.Encoding
+-- Module      : Serialise.Cborg.Encoding
 -- Copyright   : (c) Duncan Coutts 2015-2017
 -- License     : BSD3-style (see LICENSE.txt)
 --
@@ -12,7 +12,7 @@
 -- High level API for encoding values, for later serialization into
 -- CBOR binary format, using a @'Monoid'@ based interface.
 --
-module Data.Binary.Serialise.CBOR.Encoding
+module Serialise.Cborg.Encoding
   ( -- * Encoding implementation
     Encoding(..)             -- :: *
   , Tokens(..)               -- :: *
@@ -62,7 +62,7 @@ import qualified Data.Text       as T
 
 import           Prelude         hiding (encodeFloat)
 
-import {-# SOURCE #-} qualified Data.Binary.Serialise.CBOR.FlatTerm as FlatTerm
+import {-# SOURCE #-} qualified Serialise.Cborg.FlatTerm as FlatTerm
 
 -- | An intermediate form used during serialisation, specified as a
 -- @'Monoid'@. It supports efficient concatenation, and is equivalent

@@ -1,5 +1,5 @@
 -- |
--- Module      : Data.Binary.Serialise.CBOR.Properties
+-- Module      : Serialise.Cborg.Properties
 -- Copyright   : (c) Duncan Coutts 2015-2017
 -- License     : BSD3-style (see LICENSE.txt)
 --
@@ -25,7 +25,7 @@
 -- properties:
 --
 -- @
--- import qualified "Data.Binary.Serialise.CBOR.Properties" as Props
+-- import qualified "Serialise.Cborg.Properties" as Props
 --
 -- fooSerialiseId :: Foo -> Bool
 -- fooSerialiseId = Props.'serialiseIdentity'
@@ -40,7 +40,7 @@
 -- You can then conveniently use these three functions with
 -- QuickCheck, for example.
 --
-module Data.Binary.Serialise.CBOR.Properties
+module Serialise.Cborg.Properties
   ( -- * CBOR Properties
     serialiseIdentity -- :: (Serialise a, Eq a) => a -> Bool
     -- * @'FlatTerm'@ Properties
@@ -48,9 +48,9 @@ module Data.Binary.Serialise.CBOR.Properties
   , hasValidFlatTerm  -- ::  Serialise a        => a -> Bool
   ) where
 
-import           Data.Binary.Serialise.CBOR          (deserialise, serialise)
-import           Data.Binary.Serialise.CBOR.Class
-import           Data.Binary.Serialise.CBOR.FlatTerm
+import           Serialise.Cborg          (deserialise, serialise)
+import           Serialise.Cborg.Class
+import           Serialise.Cborg.FlatTerm
 
 --------------------------------------------------------------------------------
 

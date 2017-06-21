@@ -6,7 +6,7 @@ module SimpleVersus
 import           Control.DeepSeq
 import           Criterion.Main
 import qualified Data.Binary                      as Binary
-import qualified Data.Binary.Serialise.CBOR       as CBOR
+import qualified Serialise.Cborg       as CBOR
 import qualified Data.ByteString                  as ByteStringStrict
 import qualified Data.ByteString.Lazy             as ByteString
 import qualified Data.Serialize                   as Cereal
