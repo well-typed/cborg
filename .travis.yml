@@ -87,5 +87,5 @@ script:
 
  # build & run tests
  - cabal new-build -w ${HC} ${TEST} ${EXTRAFLAGS} ${BENCH} all
- - if [ "x$TEST" = "x--enable-tests" ]; then cabal new-test -w ${HC} ${TEST} ${EXTRAFLAGS} all; fi
+ - if [ "x$TEST" = "x--enable-tests" ]; then travis_wait 20 cabal new-test -w ${HC} ${TEST} ${EXTRAFLAGS} all; fi
  
