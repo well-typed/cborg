@@ -8,7 +8,7 @@ import           Criterion.Main
 import qualified Data.ByteString.Lazy   as BS
 import qualified Data.Vector            as Vector
 
-import           Data.Binary.Serialise.CBOR
+import           Serialise.Cborg
 
 benchmarks :: [Benchmark]
 benchmarks =

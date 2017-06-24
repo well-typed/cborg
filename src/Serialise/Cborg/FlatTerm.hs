@@ -3,7 +3,7 @@
 {-# LANGUAGE RankNTypes #-}
 
 -- |
--- Module      : Data.Binary.Serialise.CBOR.FlatTerm
+-- Module      : Serialise.Cborg.FlatTerm
 -- Copyright   : (c) Duncan Coutts 2015-2017
 -- License     : BSD3-style (see LICENSE.txt)
 --
@@ -27,7 +27,7 @@
 -- and even then, only for their test suites to offer a simpler form for
 -- doing encoding tests and catching problems in an encoder and decoder.
 --
-module Data.Binary.Serialise.CBOR.FlatTerm
+module Serialise.Cborg.FlatTerm
   ( -- * Types
     FlatTerm      -- :: *
   , TermToken(..) -- :: *
@@ -40,9 +40,10 @@ module Data.Binary.Serialise.CBOR.FlatTerm
 
 #include "cbor.h"
 
-import           Data.Binary.Serialise.CBOR.Encoding (Encoding(..))
-import qualified Data.Binary.Serialise.CBOR.Encoding as Enc
-import           Data.Binary.Serialise.CBOR.Decoding as Dec
+import           Serialise.Cborg.Encoding.Types (Encoding(..))
+import qualified Serialise.Cborg.Encoding.Types as Enc
+import           Serialise.Cborg.Decoding as Dec
+import           Serialise.Cborg.FlatTerm.Types
 
 import           Data.Int
 #if defined(ARCH_32bit)
@@ -55,43 +56,8 @@ import           GHC.Exts  (Int(I#), Int#, Word#, Float#, Double#)
 import           GHC.Float (Float(F#), Double(D#), float2Double)
 
 import           Data.Word
-import           Data.Text (Text)
-import           Data.ByteString (ByteString)
 import           Control.Monad.ST
 
-
---------------------------------------------------------------------------------
-
--- | A "flat" representation of an @'Enc.Encoding'@ value,
--- useful for round-tripping and writing tests.
---
--- @since 0.2.0.0
-type FlatTerm = [TermToken]
-
--- | A concrete encoding of @'Enc.Encoding'@ values, one
--- which mirrors the original @'Enc.Encoding'@ type closely.
---
--- @since 0.2.0.0
-data TermToken
-    = TkInt      {-# UNPACK #-} !Int
-    | TkInteger                 !Integer
-    | TkBytes    {-# UNPACK #-} !ByteString
-    | TkBytesBegin
-    | TkString   {-# UNPACK #-} !Text
-    | TkStringBegin
-    | TkListLen  {-# UNPACK #-} !Word
-    | TkListBegin
-    | TkMapLen   {-# UNPACK #-} !Word
-    | TkMapBegin
-    | TkBreak
-    | TkTag      {-# UNPACK #-} !Word64
-    | TkBool                    !Bool
-    | TkNull
-    | TkSimple   {-# UNPACK #-} !Word8
-    | TkFloat16  {-# UNPACK #-} !Float
-    | TkFloat32  {-# UNPACK #-} !Float
-    | TkFloat64  {-# UNPACK #-} !Double
-    deriving (Eq, Ord, Show)
 
 --------------------------------------------------------------------------------
 

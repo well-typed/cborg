@@ -7,7 +7,7 @@
 {-# LANGUAGE UnboxedTuples       #-}
 
 -- |
--- Module      : Data.Binary.Serialise.CBOR.Pretty
+-- Module      : Serialise.Cborg.Pretty
 -- Copyright   : (c) Duncan Coutts 2015-2017
 -- License     : BSD3-style (see LICENSE.txt)
 --
@@ -17,7 +17,7 @@
 --
 -- Pretty printing tools for debugging and analysis.
 --
-module Data.Binary.Serialise.CBOR.Pretty
+module Serialise.Cborg.Pretty
   ( prettyHexEnc -- :: Encoding -> String
   ) where
 
@@ -28,8 +28,8 @@ import           Data.Word
 import qualified Data.ByteString                     as S
 import qualified Data.Text                           as T
 
-import           Data.Binary.Serialise.CBOR.Encoding
-import           Data.Binary.Serialise.CBOR.Write
+import           Serialise.Cborg.Encoding
+import           Serialise.Cborg.Write
 
 import           Control.Monad                       (replicateM_)
 import           Numeric
@@ -48,7 +48,7 @@ newtype PP a = PP (Tokens -> Int -> ShowS -> Either String (Tokens,Int,ShowS,a))
 -- For example, with the term:
 --
 -- @
--- 'Prelude.putStrLn' . 'prettyHexEnc' . 'Data.Binary.Serialise.CBOR.encode' $
+-- 'Prelude.putStrLn' . 'prettyHexEnc' . 'Serialise.Cborg.encode' $
 --   ( True
 --   , [1,2,3::Int]
 --   , ('Data.Map.fromList' [(\"Hello\",True),(\"World\",False)], "This is a long string which wraps")

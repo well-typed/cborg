@@ -1,2 +1,2 @@
-packages: ./
+packages: ./, binary-serialise-cbor/
 allow-newer: time

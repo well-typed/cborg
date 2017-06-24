@@ -18,7 +18,7 @@ import           Control.Applicative        ((<$>), (<*>))
 
 import qualified Data.ByteString.Lazy as L
 import qualified Data.Vector as V
-import           Data.Binary.Serialise.CBOR
+import           Serialise.Cborg
 import           Test.QuickCheck
 import           Test.Tasty
 import           Test.Tasty.QuickCheck

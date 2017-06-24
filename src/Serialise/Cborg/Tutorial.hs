@@ -1,5 +1,5 @@
 -- |
--- Module      : Data.Binary.Serialise.CBOR.Tutorial
+-- Module      : Serialise.Cborg.Tutorial
 -- Copyright   : (c) Duncan Coutts 2015-2017
 -- License     : BSD3-style (see LICENSE.txt)
 --
@@ -9,7 +9,7 @@
 --
 -- Lorem ipsum...
 --
-module Data.Binary.Serialise.CBOR.Tutorial
+module Serialise.Cborg.Tutorial
   ( -- * Introduction
     -- $introduction
 
