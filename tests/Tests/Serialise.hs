@@ -5,8 +5,8 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Tests.Serialise
-  ( testTree   -- :: TestTree
-  , testFormat -- :: TestTree
+  ( testTree     -- :: TestTree
+  , testGenerics -- :: TestTree
   ) where
 
 #if MIN_VERSION_base(4,8,0)
@@ -239,13 +239,16 @@ testTree = testGroup "Serialise class"
       ]
   ]
 
-testFormat :: TestTree
-testFormat = testGroup "Encoding format"
+testGenerics :: TestTree
+testGenerics = testGroup "Format of Generics encoding"
   [ format
       Unit
       (TkListLen 1 $ TkWord 0 $ TkEnd)
   , format
       (P1 12)
+      (TkListLen 2 $ TkWord 0 $ TkInt 12 $ TkEnd)
+  , format
+      (N1 12)
       (TkListLen 2 $ TkWord 0 $ TkInt 12 $ TkEnd)
   , format
       (P2 12 0.5)
@@ -265,6 +268,12 @@ testFormat = testGroup "Encoding format"
   , format
        C4
       (TkListLen 1 $ TkWord 3 $ TkEnd)
+  , format
+      (Cons "foo" (Cons "bar" Nil) :: List String)
+      (TkListLen 3 $ TkWord 0 $ TkString "foo" $
+       TkListLen 3 $ TkWord 0 $ TkString "bar" $
+       TkListLen 1 $ TkWord 1 $
+       TkEnd)
   ]
 
 --------------------------------------------------------------------------------
@@ -288,6 +297,8 @@ data Unit = Unit
           deriving (Show,Eq,Typeable,Generic)
 data P1 = P1 Int
           deriving (Show,Eq,Typeable,Generic)
+newtype N1 = N1 Int
+          deriving (Show,Eq,Typeable,Generic)
 data P2 = P2 Int Float
           deriving (Show,Eq,Typeable,Generic)
 data P3 = P3 Int Float String
@@ -305,6 +316,7 @@ data List a = Cons a (List a)
 
 instance Serialise Unit
 instance Serialise P1
+instance Serialise N1
 instance Serialise P2
 instance Serialise P3
 instance Serialise C4
@@ -316,6 +328,8 @@ instance Arbitrary Unit where
 
 instance Arbitrary P1 where
     arbitrary = P1 <$> arbitrary
+instance Arbitrary N1 where
+    arbitrary = N1 <$> arbitrary
 instance Arbitrary P2 where
     arbitrary = P2 <$> arbitrary <*> arbitrary
 instance Arbitrary P3 where
