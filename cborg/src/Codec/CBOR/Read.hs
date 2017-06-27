@@ -21,7 +21,7 @@
 -- back into ordinary values.
 --
 module Codec.CBOR.Read
-  ( deserialiseFromBytes   -- :: Decoder a -> ByteString -> Either String a
+  ( deserialiseFromBytes   -- :: Decoder a -> ByteString -> Either String (ByteString, a)
   , deserialiseIncremental -- :: Decoder a -> ST s (IDecode s a)
   , DeserialiseFailure(..)
   , IDecode(..)
@@ -100,26 +100,28 @@ data IDecode s a
 
 -- | Given a @'Decoder'@ and some @'LBS.ByteString'@ representing
 -- an encoded CBOR value, return @'Either'@ the decoded CBOR value
--- or an error.
+-- or an error. In addition to the decoded value return any remaining input
+-- content.
 --
 -- @since 0.2.0.0
 deserialiseFromBytes :: (forall s. Decoder s a)
                      -> LBS.ByteString
-                     -> Either DeserialiseFailure a
+                     -> Either DeserialiseFailure (LBS.ByteString, a)
 deserialiseFromBytes d lbs =
     runIDecode (deserialiseIncremental d) lbs
 
+
 runIDecode :: (forall s. ST s (IDecode s a))
            -> LBS.ByteString
-           -> Either DeserialiseFailure a
+           -> Either DeserialiseFailure (LBS.ByteString, a)
 runIDecode d lbs =
     runST (go lbs =<< d)
   where
     go :: LBS.ByteString
        -> IDecode s a
-       -> ST s (Either DeserialiseFailure a)
+       -> ST s (Either DeserialiseFailure (LBS.ByteString, a))
     go  _                  (Fail _ _ err) = return (Left err)
-    go  _                  (Done _ _ x)   = return (Right x)
+    go  lbs'               (Done bs _ x)  = return (Right (LBS.Chunk bs lbs', x))
     go  LBS.Empty          (Partial  k)   = k Nothing   >>= go LBS.Empty
     go (LBS.Chunk bs lbs') (Partial  k)   = k (Just bs) >>= go lbs'
 

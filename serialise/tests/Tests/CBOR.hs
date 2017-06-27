@@ -124,7 +124,7 @@ serialise :: Term -> LBS.ByteString
 serialise = toLazyByteString . encodeTerm
 
 deserialise :: LBS.ByteString -> Term
-deserialise = either throw id . deserialiseFromBytes decodeTerm
+deserialise = either throw snd . deserialiseFromBytes decodeTerm
 
 ------------------------------------------------------------------------------
 
