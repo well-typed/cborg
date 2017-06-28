@@ -51,9 +51,7 @@ module Codec.CBOR.Magic
   , decCounter        -- :: Counter s -> ST s ()
 
     -- * Array support
-  , copyByteStringToPrimVector
   , copyByteStringToByteArray
-  , copyPrimVectorToByteString
   , copyByteArrayToByteString
   ) where
 
@@ -75,7 +73,6 @@ import qualified Data.ByteString.Internal as BS
 import qualified Data.ByteString.Unsafe   as BS
 import           Data.Primitive.ByteArray as Prim
 import           Data.Primitive.Types     as Prim
-import           Data.Vector.Primitive    as Prim
 
 import           Foreign.ForeignPtr (withForeignPtr)
 
@@ -398,13 +395,6 @@ decCounter c = do
 --------------------------------------------------------------------------------
 -- Array support
 
--- | Copy a @'BS.ByteString'@ and create a primitive @'Prim.Vector'@ from it.
-copyByteStringToPrimVector :: forall a. Prim a => BS.ByteString -> Prim.Vector a
-copyByteStringToPrimVector bs =
-    Prim.Vector 0 len (copyByteStringToByteArray bs)
-  where
-    len = BS.length bs `div` I# (Prim.sizeOf# (undefined :: a))
-
 -- | Copy a @'BS.ByteString'@ and create a primitive @'Prim.ByteArray'@ from it.
 copyByteStringToByteArray :: BS.ByteString -> Prim.ByteArray
 copyByteStringToByteArray (BS.PS fp off len) =
@@ -416,13 +406,6 @@ copyByteStringToByteArray (BS.PS fp off len) =
 
 -- TODO FIXME: can do better here: can do non-copying for larger pinned arrays
 -- or copy directly into the builder buffer
-
--- | Copy a @'Prim.Vector'@ and create a @'BS.ByteString'@ from it.
-copyPrimVectorToByteString :: forall a. Prim a => Prim.Vector a -> BS.ByteString
-copyPrimVectorToByteString (Prim.Vector off len ba) =
-    copyByteArrayToByteString ba (off * s) (len * s)
-  where
-    s = I# (Prim.sizeOf# (undefined :: a))
 
 -- | Copy a @'Prim.ByteArray'@ at a certain offset and length into a
 -- @'BS.ByteString'@.
