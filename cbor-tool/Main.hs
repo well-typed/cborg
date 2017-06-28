@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE CPP          #-}
 {-# LANGUAGE BangPatterns #-}
 module Main
@@ -14,10 +13,11 @@ import           Text.Printf                         ( printf )
 import           Control.Applicative
 #endif
 
-import           Data.Aeson                          ( Value(..), Object )
+import           Data.Monoid
+import           Data.Aeson                          ( Value(..) )
 import qualified Data.Aeson                          as Aeson
 import           Data.Aeson.Encode.Pretty            as Aeson.Pretty
-import           Data.Scientific
+import           Data.Scientific                     as Scientific
 import qualified Data.ByteString.Lazy                as LB
 import qualified Data.HashMap.Lazy                   as HM
 
@@ -26,7 +26,6 @@ import qualified Data.Text.Lazy.IO                   as LT
 import qualified Data.Text.Lazy.Builder              as LT
 import qualified Data.Vector                         as V
 
-import           Codec.Serialise.Class
 import           Codec.CBOR.Encoding
 import           Codec.CBOR.Decoding
 import           Codec.CBOR.Pretty
@@ -37,20 +36,27 @@ import           Codec.CBOR.Term     ( decodeTerm, encodeTerm )
 --------------------------------------------------------------------------------
 -- Aeson adapter code
 
-instance Serialise Value where
-  encode = encodeValue
-  decode = decodeValue False -- not lenient by default, so JSON is always valid
 
 -- | Encode a JSON value into CBOR.
 encodeValue :: Value -> Encoding
-encodeValue (Object vs) = encode vs
-encodeValue (Array  vs) = encode vs
+encodeValue (Object vs) = encodeObject vs
+encodeValue (Array  vs) = encodeArray  vs
 encodeValue (String s)  = encodeString s
-encodeValue (Number n)  = case floatingOrInteger n of
-                            Left  d -> encode (d::Double)
-                            Right i -> encode (i::Integer)
+encodeValue (Number n)  = case Scientific.floatingOrInteger n of
+                            Left  d -> encodeDouble  d
+                            Right i -> encodeInteger i
 encodeValue (Bool   b)  = encodeBool b
 encodeValue  Null       = encodeNull
+
+encodeObject :: Aeson.Object -> Encoding
+encodeObject vs =
+    encodeMapLen (fromIntegral (HM.size vs))
+ <> HM.foldrWithKey (\k v r -> encodeString k <> encodeValue v <> r) mempty vs
+
+encodeArray :: Aeson.Array -> Encoding
+encodeArray vs =
+    encodeListLen (fromIntegral (V.length vs))
+ <> V.foldr (\v r -> encodeValue v <> r) mempty vs
 
 -- | Decode an arbitrary CBOR value into JSON.
 decodeValue :: Bool -> Decoder s Value
@@ -75,10 +81,10 @@ decodeValue lenient = do
                          ++ show tkty
 
 decodeNumberIntegral :: Decoder s Value
-decodeNumberIntegral = Number . fromInteger <$> decode
+decodeNumberIntegral = Number . fromInteger <$> decodeInteger
 
 decodeNumberFloating :: Decoder s Value
-decodeNumberFloating = Number . fromFloatDigits <$> (decode :: Decoder s Double)
+decodeNumberFloating = Number . Scientific.fromFloatDigits <$> decodeDouble
 
 decodeListN :: Bool -> Int -> [Value] -> Decoder s Value
 decodeListN !lenient !n acc =
@@ -94,7 +100,7 @@ decodeListIndef !lenient acc = do
             else do !tm <- decodeValue lenient
                     decodeListIndef lenient (tm : acc)
 
-decodeMapN :: Bool -> Int -> Object -> Decoder s Value
+decodeMapN :: Bool -> Int -> Aeson.Object -> Decoder s Value
 decodeMapN !lenient !n acc =
     case n of
       0 -> return $! Object acc
