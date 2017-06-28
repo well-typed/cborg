@@ -17,7 +17,7 @@ main = Reference.loadTestCases >>= \tcs -> defaultMain $
     [ CBOR.testTree tcs
     , Reference.testTree tcs
     , Serialise.testTree
-    , Serialise.testFormat
+    , Serialise.testGenerics
     , Negative.testTree
     , IO.testTree
     , Regress.testTree
