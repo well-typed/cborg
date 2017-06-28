@@ -19,7 +19,7 @@ executable cbor-tool
   main-is:             Main.hs
   other-extensions:    CPP, BangPatterns
   build-depends:
-    base >=4.9 && <4.10,
+    base >=4.6 && <5.0,
     filepath >=1.0 && <1.5,
     aeson >=0.7 && <1.2,
     aeson-pretty >=0.8 && <0.9,
