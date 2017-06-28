@@ -8,7 +8,7 @@
 {-# LANGUAGE TypeOperators       #-}
 
 -- |
--- Module      : Serialise.Cborg.Class
+-- Module      : Codec.CBOR.Class
 -- Copyright   : (c) Duncan Coutts 2015-2017
 -- License     : BSD3-style (see LICENSE.txt)
 --
@@ -19,7 +19,7 @@
 -- The @'Serialise'@ class allows you to encode a given type into a
 -- CBOR object, or decode a CBOR object into the user-specified type.
 --
-module Serialise.Cborg.Class
+module Codec.CBOR.Class
  ( -- * The Serialise class
    Serialise(..)
  , GSerialiseEncode(..)
@@ -104,8 +104,8 @@ import           Data.Typeable.Internal
 #endif
 import           GHC.Generics
 
-import           Serialise.Cborg.Decoding
-import           Serialise.Cborg.Encoding
+import           Codec.CBOR.Decoding
+import           Codec.CBOR.Encoding
 
 
 --------------------------------------------------------------------------------
@@ -1204,7 +1204,7 @@ decodeSomeTypeRep = do
       _ -> failure "unexpected tag" []
   where
     failure description info =
-        fail $ unlines $ [ "Serialise.Cborg.Class.decodeSomeTypeRep: "++description ]
+        fail $ unlines $ [ "Codec.CBOR.Class.decodeSomeTypeRep: "++description ]
                          ++ map ("    "++) info
 
 encodeTypeRep :: TypeRep a -> Encoding
@@ -1227,7 +1227,7 @@ encodeTypeRep (Fun arg res)
  <> encodeWord 3
  <> encodeTypeRep arg
  <> encodeTypeRep res
-encodeTypeRep _ = error "Serialise.Cborg.Class.encodeTypeRep: Impossible"
+encodeTypeRep _ = error "Codec.CBOR.Class.encodeTypeRep: Impossible"
 
 -- | @since 0.2.0.0
 instance Typeable a => Serialise (TypeRep (a :: k)) where
@@ -1237,7 +1237,7 @@ instance Typeable a => Serialise (TypeRep (a :: k)) where
       case rep `eqTypeRep` expected of
         Just HRefl -> pure rep
         Nothing    -> fail $ unlines
-                      [ "Serialise.Cborg.Class.decode(TypeRep): Type mismatch"
+                      [ "Codec.CBOR.Class.decode(TypeRep): Type mismatch"
                       , "    Deserialized type: " ++ show rep
                       , "    Expected type:     " ++ show expected
                       ]

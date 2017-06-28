@@ -46,11 +46,11 @@ import qualified Data.ByteString      as BS
 import qualified Data.ByteString.Lazy as BS.Lazy
 import           System.Exit (ExitCode(..))
 
-import           Serialise.Cborg
-import           Serialise.Cborg.Encoding
-import           Serialise.Cborg.Decoding
-import           Serialise.Cborg.FlatTerm (toFlatTerm, fromFlatTerm)
-import qualified Serialise.Cborg.Properties as Props
+import           Codec.CBOR
+import           Codec.CBOR.Encoding
+import           Codec.CBOR.Decoding
+import           Codec.CBOR.FlatTerm (toFlatTerm, fromFlatTerm)
+import qualified Codec.CBOR.Properties as Props
 
 import qualified Data.HashMap.Strict        as HashMap
 import qualified Data.HashSet               as HashSet

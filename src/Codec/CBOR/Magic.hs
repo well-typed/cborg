@@ -6,7 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables      #-}
 
 -- |
--- Module      : Serialise.Cborg.Magic
+-- Module      : Codec.CBOR.Magic
 -- Copyright   : (c) Duncan Coutts 2015-2017
 -- License     : BSD3-style (see LICENSE.txt)
 --
@@ -17,7 +17,7 @@
 -- An internal module for doing magical, low-level, and unholy things
 -- in the name of efficiency.
 --
-module Serialise.Cborg.Magic
+module Codec.CBOR.Magic
   ( -- * Word utilities
     grabWord8         -- :: Ptr () -> Word
   , grabWord16        -- :: Ptr () -> Word

@@ -7,7 +7,7 @@ module Instances.Time
 import           Criterion.Main
 import           Data.Time.Clock (UTCTime(..))
 import           Data.Time.Calendar (Day(..))
-import           Serialise.Cborg
+import           Codec.CBOR
 import           Control.DeepSeq (force)
 import qualified Data.ByteString.Lazy as BSL
 

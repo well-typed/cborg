@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 -----------------------------------------------------------------------------
 -- |
--- Module      : Serialise.Cborg
+-- Module      : Codec.CBOR
 -- Copyright   : 2013 Simon Meier <iridcode@gmail.com>,
 --               2013-2014 Duncan Coutts,
 -- License     : BSD3-style (see LICENSE.txt)

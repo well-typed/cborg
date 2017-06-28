@@ -70,19 +70,19 @@ library
     ghc-options:     -fhpc
 
   exposed-modules:
-    Serialise.Cborg
-    Serialise.Cborg.Class
-    Serialise.Cborg.Decoding
-    Serialise.Cborg.Encoding
-    Serialise.Cborg.FlatTerm
-    Serialise.Cborg.IO
-    Serialise.Cborg.Magic
-    Serialise.Cborg.Pretty
-    Serialise.Cborg.Properties
-    Serialise.Cborg.Read
-    Serialise.Cborg.Write
-    Serialise.Cborg.Term
-    Serialise.Cborg.Tutorial
+    Codec.CBOR
+    Codec.CBOR.Class
+    Codec.CBOR.Decoding
+    Codec.CBOR.Encoding
+    Codec.CBOR.FlatTerm
+    Codec.CBOR.IO
+    Codec.CBOR.Magic
+    Codec.CBOR.Pretty
+    Codec.CBOR.Properties
+    Codec.CBOR.Read
+    Codec.CBOR.Write
+    Codec.CBOR.Term
+    Codec.CBOR.Tutorial
 
   other-extensions:
     CPP, ForeignFunctionInterface, MagicHash,

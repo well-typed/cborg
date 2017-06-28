@@ -4,7 +4,7 @@
 {-# LANGUAGE RankNTypes   #-}
 
 -- |
--- Module      : Serialise.Cborg.Decoding
+-- Module      : Codec.CBOR.Decoding
 -- Copyright   : (c) Duncan Coutts 2015-2017
 -- License     : BSD3-style (see LICENSE.txt)
 --
@@ -13,10 +13,10 @@
 -- Portability : non-portable (GHC extensions)
 --
 -- High level API for decoding values that were encoded with the
--- "Serialise.Cborg.Encoding" module, using a @'Monad'@
+-- "Codec.CBOR.Encoding" module, using a @'Monad'@
 -- based interface.
 --
-module Serialise.Cborg.Decoding
+module Codec.CBOR.Decoding
   ( -- * Decode primitive operations
     Decoder
   , DecodeAction(..)
@@ -91,7 +91,7 @@ import           Prelude hiding (decodeFloat)
 
 
 -- | A continuation-based decoder, used for decoding values that were
--- previously encoded using the "Serialise.Cborg.Encoding"
+-- previously encoded using the "Codec.CBOR.Encoding"
 -- module. As @'Decoder'@ has a @'Monad'@ instance, you can easily
 -- write @'Decoder'@s monadically for building your deserialisation
 -- logic.

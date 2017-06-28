@@ -1,4 +1,4 @@
-module Serialise.Cborg.Encoding where
+module Codec.CBOR.Encoding where
 
 newtype Encoding = Encoding (Tokens -> Tokens)
 

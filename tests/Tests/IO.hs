@@ -9,7 +9,7 @@ import           Control.Exception (bracket)
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
-import           Serialise.Cborg
+import           Codec.CBOR
 
 --------------------------------------------------------------------------------
 -- Tests and properties

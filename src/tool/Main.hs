@@ -26,13 +26,13 @@ import qualified Data.Text.Lazy.IO                   as LT
 import qualified Data.Text.Lazy.Builder              as LT
 import qualified Data.Vector                         as V
 
-import           Serialise.Cborg.Class
-import           Serialise.Cborg.Encoding
-import           Serialise.Cborg.Decoding
-import           Serialise.Cborg.Pretty
-import qualified Serialise.Cborg.Read     as Read
-import qualified Serialise.Cborg.Write    as Write
-import           Serialise.Cborg.Term     ( decodeTerm, encodeTerm )
+import           Codec.CBOR.Class
+import           Codec.CBOR.Encoding
+import           Codec.CBOR.Decoding
+import           Codec.CBOR.Pretty
+import qualified Codec.CBOR.Read     as Read
+import qualified Codec.CBOR.Write    as Write
+import           Codec.CBOR.Term     ( decodeTerm, encodeTerm )
 
 --------------------------------------------------------------------------------
 -- Aeson adapter code

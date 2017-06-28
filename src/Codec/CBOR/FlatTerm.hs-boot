@@ -1,6 +1,6 @@
-module Serialise.Cborg.FlatTerm where
+module Codec.CBOR.FlatTerm where
 
-import {-# SOURCE #-} Serialise.Cborg.Encoding
+import {-# SOURCE #-} Codec.CBOR.Encoding
 
 type FlatTerm = [TermToken]
 

@@ -1,5 +1,5 @@
 -- |
--- Module      : Serialise.Cborg.Tutorial
+-- Module      : Codec.CBOR.Tutorial
 -- Copyright   : (c) Duncan Coutts 2015-2017
 -- License     : BSD3-style (see LICENSE.txt)
 --
@@ -9,7 +9,7 @@
 --
 -- Lorem ipsum...
 --
-module Serialise.Cborg.Tutorial
+module Codec.CBOR.Tutorial
   ( -- * Introduction
     -- $introduction
 

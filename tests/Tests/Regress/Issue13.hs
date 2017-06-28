@@ -18,9 +18,9 @@ import           Test.Tasty.QuickCheck
 import qualified Data.ByteString                     as BS
 import qualified Data.ByteString.Lazy                as BL
 
-import           Serialise.Cborg
-import           Serialise.Cborg.Decoding (decodeListLen, decodeWord)
-import           Serialise.Cborg.Encoding (encodeListLen, encodeWord)
+import           Codec.CBOR
+import           Codec.CBOR.Decoding (decodeListLen, decodeWord)
+import           Codec.CBOR.Encoding (encodeListLen, encodeWord)
 
 --------------------------------------------------------------------------------
 -- Tests and properties

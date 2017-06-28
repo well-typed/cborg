@@ -3,7 +3,7 @@ module Tests.Regress.Issue80 ( testTree ) where
 import qualified Data.Vector.Storable       as S
 import qualified Data.ByteString            as BS
 import qualified Data.ByteString.Lazy       as BL
-import qualified Serialise.Cborg as CBOR
+import qualified Codec.CBOR as CBOR
 import           Test.Tasty
 import           Test.Tasty.HUnit
 

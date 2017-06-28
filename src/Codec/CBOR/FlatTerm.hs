@@ -3,7 +3,7 @@
 {-# LANGUAGE RankNTypes #-}
 
 -- |
--- Module      : Serialise.Cborg.FlatTerm
+-- Module      : Codec.CBOR.FlatTerm
 -- Copyright   : (c) Duncan Coutts 2015-2017
 -- License     : BSD3-style (see LICENSE.txt)
 --
@@ -27,7 +27,7 @@
 -- and even then, only for their test suites to offer a simpler form for
 -- doing encoding tests and catching problems in an encoder and decoder.
 --
-module Serialise.Cborg.FlatTerm
+module Codec.CBOR.FlatTerm
   ( -- * Types
     FlatTerm      -- :: *
   , TermToken(..) -- :: *
@@ -40,9 +40,9 @@ module Serialise.Cborg.FlatTerm
 
 #include "cbor.h"
 
-import           Serialise.Cborg.Encoding (Encoding(..))
-import qualified Serialise.Cborg.Encoding as Enc
-import           Serialise.Cborg.Decoding as Dec
+import           Codec.CBOR.Encoding (Encoding(..))
+import qualified Codec.CBOR.Encoding as Enc
+import           Codec.CBOR.Decoding as Dec
 
 import           Data.Int
 #if defined(ARCH_32bit)

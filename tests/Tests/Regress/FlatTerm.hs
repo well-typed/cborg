@@ -11,9 +11,9 @@ import           Data.Word
 import           Test.Tasty
 import           Test.Tasty.HUnit
 
-import           Serialise.Cborg.Encoding
-import           Serialise.Cborg.Decoding
-import           Serialise.Cborg.FlatTerm
+import           Codec.CBOR.Encoding
+import           Codec.CBOR.Decoding
+import           Codec.CBOR.FlatTerm
 
 --------------------------------------------------------------------------------
 -- Tests and properties

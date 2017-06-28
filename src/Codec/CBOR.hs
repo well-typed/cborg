@@ -2,7 +2,7 @@
 {-# LANGUAGE RankNTypes         #-}
 
 -- |
--- Module      : Serialise.Cborg
+-- Module      : Codec.CBOR
 -- Copyright   : (c) Duncan Coutts 2015-2017
 -- License     : BSD3-style (see LICENSE.txt)
 --
@@ -16,9 +16,9 @@
 -- and utilities to help you make your types serialisable.
 --
 -- For a full tutorial on using this module, see
--- "Serialise.Cborg.Tutorial".
+-- "Codec.CBOR.Tutorial".
 --
-module Serialise.Cborg
+module Codec.CBOR
   ( -- * High level, one-shot API
     -- $highlevel
     serialise
@@ -57,9 +57,9 @@ import qualified Data.ByteString.Builder          as BS
 import qualified Data.ByteString.Lazy             as BS
 import qualified Data.ByteString.Lazy.Internal    as BS
 
-import           Serialise.Cborg.Class
-import qualified Serialise.Cborg.Read  as CBOR.Read
-import qualified Serialise.Cborg.Write as CBOR.Write
+import           Codec.CBOR.Class
+import qualified Codec.CBOR.Read  as CBOR.Read
+import qualified Codec.CBOR.Write as CBOR.Write
 
 
 --------------------------------------------------------------------------------

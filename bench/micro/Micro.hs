@@ -11,7 +11,7 @@ import qualified Data.ByteString.Lazy   as BS
 
 import           Foreign
 
-import           Serialise.Cborg.Magic
+import           Codec.CBOR.Magic
 
 import qualified Micro.MemSize
 import           Micro.DeepSeq ()
