@@ -29,6 +29,5 @@ executable cbor-tool
     text >=1.1 && <1.3,
     vector >=0.10 && <0.13,
 
-    cborg     ==0.1.*,
-    serialise ==0.1.*
+    cborg     ==0.1.*
   default-language:    Haskell2010
