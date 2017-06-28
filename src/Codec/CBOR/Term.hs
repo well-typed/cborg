@@ -37,7 +37,6 @@ module Codec.CBOR.Term
 
 import           Codec.CBOR.Encoding hiding (Tokens(..))
 import           Codec.CBOR.Decoding
-import           Codec.CBOR.Class (Serialise(..))
 
 import           Data.Word
 import qualified Data.Text as T
@@ -81,11 +80,6 @@ data Term
   | TFloat   {-# UNPACK #-} !Float
   | TDouble  {-# UNPACK #-} !Double
   deriving (Eq, Ord, Show, Read)
-
--- | @since 0.2.0.0
-instance Serialise Term where
-  encode = encodeTerm
-  decode = decodeTerm
 
 --------------------------------------------------------------------------------
 -- Main API

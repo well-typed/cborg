@@ -1,2 +1,2 @@
-packages: ./, cbor-tool/
+packages: ./, cbor-tool/, serialise/
 allow-newer: time

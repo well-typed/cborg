@@ -26,7 +26,7 @@ import qualified Data.Text.Lazy.IO                   as LT
 import qualified Data.Text.Lazy.Builder              as LT
 import qualified Data.Vector                         as V
 
-import           Codec.CBOR.Class
+import           Codec.Serialise.Class
 import           Codec.CBOR.Encoding
 import           Codec.CBOR.Decoding
 import           Codec.CBOR.Pretty
