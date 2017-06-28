@@ -1,10 +1,10 @@
 -- This is indended to be the simplest possible use of
--- Data.Binary.Serialise.CBOR.
+-- Codec.CBOR.
 module Main
   ( main -- :: IO ()
   ) where
 
-import           Data.Binary.Serialise.CBOR as CBOR
+import           Codec.CBOR as CBOR
 import qualified Data.ByteString.Lazy       as BL
 
 a :: [ Int ] -- full type definition required

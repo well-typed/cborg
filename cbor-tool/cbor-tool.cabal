@@ -1,0 +1,34 @@
+name:                cbor-tool
+version:             0.1.0.0
+synopsis:            A tool for manipulating CBOR.
+description:         A tool for manipulating CBOR.
+homepage:            https://github.com/well-typed/cborg
+license:             BSD3
+license-file:        LICENSE.txt
+author:              Duncan Coutts
+maintainer:          ben@smart-cactus.org
+copyright:           2015-2017 Duncan Coutts,
+                     2015-2017 Well-Typed LLP,
+                     2015 IRIS Connect Ltd
+category:            Codec
+build-type:          Simple
+extra-source-files:  ChangeLog.md
+cabal-version:       >=1.10
+
+executable cbor-tool
+  main-is:             Main.hs
+  other-extensions:    CPP, BangPatterns
+  build-depends:
+    base >=4.9 && <4.10,
+    filepath >=1.0 && <1.5,
+    aeson >=0.7 && <1.2,
+    aeson-pretty >=0.8 && <0.9,
+    scientific >=0.3 && <0.4,
+    bytestring >=0.10 && <0.11,
+    unordered-containers >=0.2 && <0.3,
+    text >=1.1 && <1.3,
+    vector >=0.10 && <0.13,
+
+    cborg     ==0.1.*,
+    serialise ==0.1.*
+  default-language:    Haskell2010

@@ -1,9 +1,9 @@
-# Fast CBOR implementation for Haskell
+# Fast binary serialization for Haskell
 
 [![Linux Build Status](https://img.shields.io/travis/well-typed/cborg/master.svg?label=Linux%20build)](https://travis-ci.org/well-typed/cborg)
 [![Windows Build Status](https://img.shields.io/appveyor/ci/thoughtpolice/cborg/master.svg?label=Windows%20build)](https://ci.appveyor.com/project/thoughtpolice/cborg/branch/master)
-[![Hackage version](https://img.shields.io/hackage/v/cborg.svg?label=Hackage)](https://hackage.haskell.org/package/cborg)
-[![Stackage version](https://www.stackage.org/package/cborg/badge/lts?label=Stackage)](https://www.stackage.org/package/cborg)
+[![Hackage version](https://img.shields.io/hackage/v/serialise.svg?label=Hackage)](https://hackage.haskell.org/package/serialise)
+[![Stackage version](https://www.stackage.org/package/cborg/badge/lts?label=Stackage)](https://www.stackage.org/package/serialise)
 [![BSD3](https://img.shields.io/badge/License-BSD-blue.svg)](https://en.wikipedia.org/wiki/BSD_License)
 [![Haskell](https://img.shields.io/badge/Language-Haskell-yellowgreen.svg)](https://www.haskell.org)
 
@@ -16,24 +16,36 @@ feel relatively safe in experimenting.
 
 ---
 
-This package provides a fast, standards-compliant implementation of the 'Concise
-Binary Object Representation' (specified in `RFC 7049`) for Haskell. It serves
-as the foundation for the `serialise` library, a serialisation library for
-Haskell.
+This package provides pure, efficient serialization of Haskell values directly
+into `ByteString`s for storage or transmission purposes. By providing a set of
+type class instances, you can also serialise any custom data type you have as
+well.
+
+The underlying binary format used is the 'Concise Binary Object Representation',
+or CBOR, specified in `RFC 7049`. As a result, serialised Haskell values have
+implicit structure outside of the Haskell program itself, meaning they can be
+inspected or analyzed with custom tools.
+
+This package is eventually intended to essentially replace the venerable
+`binary` library. Aside from having a more concise format that has an explicit
+structure, it's multiple times faster than competing libraries as well in both
+the encode and decode paths. However, the current API only provides CBOR
+serialization; it does not provide an independent notion of parsing arbitrary
+binary data. This has yet to be designed or implemented.
 
 # Installation
 
 It's just a `cabal install` away on [Hackage][], or through [Stackage][]:
 
 ```bash
-$ cabal install cborg
-$ stack install cborg
+$ cabal install serialise
+$ stack install serialise
 ```
 
 **NOTE**: The above currently **WILL NOT WORK**, as this package is not
 publicly released.
 
-[Hackage]:  https://hackage.haskell.org/package/cborg
+[Hackage]:  https://hackage.haskell.org/package/serialise
 [Stackage]: https://www.stackage.org
 
 # Join in
@@ -45,11 +57,11 @@ Master [git repository][gh]:
 
 * `git clone https://github.com/well-typed/cborg.git`
 
-The tests for this package are included in the `serialise` package.
+Once you've done that, you can build it and run the tests:
 
 ```bash
-$ cabal test serialise
-$ stack test serialise
+$ cabal test
+$ stack test
 ```
 
 Note: the `stack.yaml` file is currently synchronized to **LTS-8.13**. Further
