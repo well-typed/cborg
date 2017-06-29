@@ -294,7 +294,7 @@ We can use this same approach to handle field removal and type changes.
 {- $arbitrary_terms
 
 When working with foreign encodings, it can sometimes be useful to capture a
-serialised CBOR term verbatim (for instance, so you can later re-serialize it in
+serialised CBOR term verbatim (for instance, so you can later re-serialise it in
 some later result). The 'Serialise.Cborg.Term.Term' type provides such a
 representation, losslessly capturing a CBOR AST. It can be serialised and
 deserialised with its 'Serialise' instance.
