@@ -20,6 +20,7 @@ module Codec.CBOR.Decoding
   ( -- * Decode primitive operations
     Decoder
   , DecodeAction(..)
+  , liftST
   , getDecodeAction
 
   -- ** Read input tokens
@@ -210,6 +211,9 @@ instance Monad (Decoder s) where
     (>>) = \dm dn -> Decoder $ \k -> runDecoder dm (\_ -> runDecoder dn k)
 
     fail msg = Decoder $ \_ -> return (Fail msg)
+
+liftST :: ST s a -> Decoder s a
+liftST m = Decoder $ \k -> m >>= k
 
 -- | Given a @'Decoder'@, give us the @'DecodeAction'@
 --
