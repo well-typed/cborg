@@ -47,8 +47,6 @@ module Codec.Serialise
   , hPutSerialise
   ) where
 
-#include "cbor.h"
-
 import           Control.Monad.ST
 import           System.IO                        (Handle, IOMode (..), withFile)
 import           Control.Exception                (throw, throwIO)
