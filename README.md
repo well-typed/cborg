@@ -1,33 +1,54 @@
-# Fast CBOR implementation for Haskell
+# Fast binary serialisation and CBOR implementation for Haskell
 
 [![Linux Build Status](https://img.shields.io/travis/well-typed/cborg/master.svg?label=Linux%20build)](https://travis-ci.org/well-typed/cborg)
 [![Windows Build Status](https://img.shields.io/appveyor/ci/thoughtpolice/cborg/master.svg?label=Windows%20build)](https://ci.appveyor.com/project/thoughtpolice/cborg/branch/master)
-[![Hackage version](https://img.shields.io/hackage/v/cborg.svg?label=Hackage)](https://hackage.haskell.org/package/cborg)
-[![Stackage version](https://www.stackage.org/package/cborg/badge/lts?label=Stackage)](https://www.stackage.org/package/cborg)
+[![Hackage cborg version](https://img.shields.io/hackage/v/cborg.svg?label=Hackage)](https://hackage.haskell.org/package/cborg)
+[![Hackage serialise version](https://img.shields.io/hackage/v/serialise.svg?label=Hackage)](https://hackage.haskell.org/package/serialise)
+[![Stackage cborg version](https://www.stackage.org/package/cborg/badge/lts?label=Stackage)](https://www.stackage.org/package/cborg)
+[![Stackage serialise  version](https://www.stackage.org/package/serialise/badge/lts?label=Stackage)](https://www.stackage.org/package/serialise)
 [![BSD3](https://img.shields.io/badge/License-BSD-blue.svg)](https://en.wikipedia.org/wiki/BSD_License)
 [![Haskell](https://img.shields.io/badge/Language-Haskell-yellowgreen.svg)](https://www.haskell.org)
 
-**NOTE**: Currently this library has not been released to the public Hackage
-server, as the API is still considered to be in flux -- while the on-disk
-formats should remain stable. Despite that, the code has seen _substantial_
+**NOTE**: These libraries have not yet been released to the public Hackage,
+(though they will be soon). Despite that, the code has seen _substantial_
 production use by Well-Typed, as well as a number of outsiders and independent
 companies. We've had near-universal positive results with it, so you should
-feel relatively safe in experimenting.
+feel relatively safe in experimenting. The on-disk formats should remain stable
+and at least backwards compatible.
 
 ---
 
-This package provides a fast, standards-compliant implementation of the 'Concise
-Binary Object Representation' (specified in `RFC 7049`) for Haskell. It serves
-as the foundation for the `serialise` library, a serialisation library for
-Haskell.
+This repo contains two libraries (plus associated tools):
+
+The `serialise` library is for serialising Haskell values and deserialising
+them later.
+
+The `cborg` library provides a fast, standards-compliant implementation of the
+'Concise Binary Object Representation' (specified in `RFC 7049`) for Haskell.
+
+The `serialise` library uses the CBOR format, via the `cborg` library, which
+gives it the following benefits:
+
+ * fast serialisation and deserialisation
+ * compact binary format
+ * stable format across platforms (32/64bit, big/little endian)
+ * support for backwards compatible deserialisation with migrations
+ * the ability to inspect binary values with generic tools,
+   e.g. for debugging or recovery, including generic conversion into JSON text
+ * potential to read the serialised format from other languages
+ * incremental or streaming (de)serialisation
+ * internal message framing (for use in network application)
+ * suitable to use with untrusted input (resistance to asymmetric resource
+   consumption attacks)
+
 
 # Installation
 
-It's just a `cabal install` away on [Hackage][], or through [Stackage][]:
+They are just a `cabal install` away on [Hackage][], or through [Stackage][]:
 
 ```bash
-$ cabal install cborg
-$ stack install cborg
+$ cabal install cborg serialise
+$ stack install cborg serialise
 ```
 
 **NOTE**: The above currently **WILL NOT WORK**, as this package is not
@@ -45,7 +66,8 @@ Master [git repository][gh]:
 
 * `git clone https://github.com/well-typed/cborg.git`
 
-The tests for this package are included in the `serialise` package.
+The tests for the `cborg` package are currently included in the `serialise`
+package.
 
 ```bash
 $ cabal test serialise
