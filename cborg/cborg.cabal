@@ -1,6 +1,6 @@
 name:                cborg
 version:             0.1.1.0
-synopsis:            Yet Another Binary Serialisation Library
+synopsis:            Concise Binary Object Representation
 license:             BSD3
 license-file:        LICENSE.txt
 author:              Duncan Coutts
@@ -14,16 +14,12 @@ cabal-version:       >= 1.10
 tested-with:         GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.1
 
 description:
-  This package (formerly @binary-serialise-cbor@) provides pure, efficient
-  serialization of Haskell values directly into @ByteString@s for storage or
-  transmission purposes. By providing a set of type class instances, you can
-  also serialise any custom data type you have as well.
+  This package (formerly @binary-serialise-cbor@) provides an efficient
+  implementation of the Concise Binary Object Representation (CBOR), as
+  specified by RFC 7049.
   .
-  The underlying binary format used is the 'Concise Binary Object
-  Representation', or CBOR, specified in RFC 7049. As a result,
-  serialised Haskell values have implicit structure outside of the
-  Haskell program itself, meaning they can be inspected or analyzed
-  with custom tools.
+  If you are looking for a library for serialisation of Haskell values,
+  have a look at the @serialise@ package, which is built upon this library.
 
 extra-source-files:
   src/cbits/cbor.h
