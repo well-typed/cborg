@@ -41,18 +41,10 @@ flag newtime15
   manual: False
   description: Use the new time 1.5 library
 
-flag hpc
-  default: False
-  manual: True
-  description: Enable HPC for libraries, tools, and tests.
-
 library
   default-language:  Haskell2010
   ghc-options:       -Wall
   hs-source-dirs:    src
-
-  if flag(hpc)
-    ghc-options:     -fhpc
 
   exposed-modules:
     Codec.Serialise
@@ -96,9 +88,6 @@ test-suite tests
   default-language:  Haskell2010
   ghc-options:
     -Wall -fno-warn-orphans -threaded -rtsopts "-with-rtsopts=-N"
-
-  if flag(hpc)
-    ghc-options:     -fhpc
 
   other-modules:
     Tests.CBOR
