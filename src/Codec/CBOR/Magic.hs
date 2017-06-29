@@ -72,7 +72,6 @@ import qualified Data.ByteString          as BS
 import qualified Data.ByteString.Internal as BS
 import qualified Data.ByteString.Unsafe   as BS
 import           Data.Primitive.ByteArray as Prim
-import           Data.Primitive.Types     as Prim
 
 import           Foreign.ForeignPtr (withForeignPtr)
 

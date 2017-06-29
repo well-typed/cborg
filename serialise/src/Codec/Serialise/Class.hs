@@ -28,8 +28,6 @@ module Codec.Serialise.Class
  , decodeVector
  ) where
 
-#include "cbor.h"
-
 import           Control.Applicative
 
 import           Control.Monad
