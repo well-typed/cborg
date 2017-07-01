@@ -87,6 +87,7 @@ import           Data.Text (Text)
 import           Data.ByteString (ByteString)
 import           Control.Applicative
 import           Control.Monad.ST
+import qualified Control.Monad.Fail as Fail
 
 import           Prelude hiding (decodeFloat)
 
@@ -200,6 +201,9 @@ instance Applicative (Decoder s) where
     (<*>) = \df dx -> Decoder $ \k ->
                         runDecoder df (\f -> runDecoder dx (\x -> k (f x)))
 
+    {-# INLINE (*>) #-}
+    (*>) = \dm dn -> Decoder $ \k -> runDecoder dm (\_ -> runDecoder dn k)
+
 -- | @since 0.2.0.0
 instance Monad (Decoder s) where
     return = pure
@@ -208,8 +212,12 @@ instance Monad (Decoder s) where
     (>>=) = \dm f -> Decoder $ \k -> runDecoder dm (\m -> runDecoder (f m) k)
 
     {-# INLINE (>>) #-}
-    (>>) = \dm dn -> Decoder $ \k -> runDecoder dm (\_ -> runDecoder dn k)
+    (>>) = (*>)
 
+    fail = Fail.fail
+
+-- | @since 0.2.0.0
+instance Fail.MonadFail (Decoder s) where
     fail msg = Decoder $ \_ -> return (Fail msg)
 
 liftST :: ST s a -> Decoder s a

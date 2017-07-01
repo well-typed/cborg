@@ -59,3 +59,5 @@ library
     cborg     == 0.1.*,
     serialise == 0.1.*
 
+  if impl(ghc >= 8.0)
+    ghc-options: -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances

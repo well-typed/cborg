@@ -77,6 +77,9 @@ library
       time                  >= 1.4     && < 1.5,
       old-locale
 
+  if impl(ghc >= 8.0)
+    ghc-options: -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances
+
 --------------------------------------------------------------------------------
 -- Tests
 
