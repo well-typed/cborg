@@ -148,11 +148,11 @@ instance Functor (IncrementalDecoder s) where
     fmap f a = a >>= return . f
 
 instance Applicative (IncrementalDecoder s) where
-    pure  = return
+    pure x = IncrementalDecoder $ \k -> k x
     (<*>) = ap
 
 instance Monad (IncrementalDecoder s) where
-    return x = IncrementalDecoder $ \k -> k x
+    return = pure
 
     {-# INLINE (>>=) #-}
     m >>= f = IncrementalDecoder $ \k ->

@@ -53,9 +53,7 @@ module Codec.CBOR.Encoding
 
 import           Data.Int
 import           Data.Word
-#if !MIN_VERSION_base(4,8,0)
-import           Data.Monoid
-#endif
+import           Data.Semigroup
 
 import qualified Data.ByteString as B
 import qualified Data.Text       as T
@@ -127,14 +125,19 @@ data Tokens =
     deriving (Show,Eq)
 
 -- | @since 0.2.0.0
+instance Semigroup Encoding where
+  Encoding b1 <> Encoding b2 = Encoding (\ts -> b1 (b2 ts))
+  {-# INLINE (<>) #-}
+
+-- | @since 0.2.0.0
 instance Monoid Encoding where
   mempty = Encoding (\ts -> ts)
   {-# INLINE mempty #-}
 
-  Encoding b1 `mappend` Encoding b2 = Encoding (\ts -> b1 (b2 ts))
+  mappend = (<>)
   {-# INLINE mappend #-}
 
-  mconcat = foldr mappend mempty
+  mconcat = foldr (<>) mempty
   {-# INLINE mconcat #-}
 
 -- | Encode a @'Word'@ in a flattened format.
