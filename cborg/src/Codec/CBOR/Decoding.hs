@@ -86,6 +86,9 @@ import           Data.Text (Text)
 import           Data.ByteString (ByteString)
 import           Control.Applicative
 import           Control.Monad.ST
+#if MIN_VERSION_base(4,9,0)
+import qualified Control.Monad.Fail as Fail
+#endif
 
 import           Prelude hiding (decodeFloat)
 
@@ -209,6 +212,11 @@ instance Monad (Decoder s) where
     {-# INLINE (>>) #-}
     (>>) = \dm dn -> Decoder $ \k -> runDecoder dm (\_ -> runDecoder dn k)
 
+#if MIN_VERSION_base(4,9,0)
+    fail = Fail.fail
+
+instance Fail.MonadFail (Decoder s) where
+#endif
     fail msg = Decoder $ \_ -> return (Fail msg)
 
 -- | Given a @'Decoder'@, give us the @'DecodeAction'@
