@@ -42,7 +42,6 @@ matrix:
 
   allow_failures:
     - compiler: "ghc-head"
-    - compiler: "ghc-8.2.1"
 
 before_install:
  - HC=${CC}
