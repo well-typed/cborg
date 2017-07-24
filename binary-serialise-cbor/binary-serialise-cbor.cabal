@@ -23,20 +23,37 @@ source-repository head
 
 library
   default-language:  Haskell2010
-  reexported-modules:
-    Codec.Serialise as Data.Binary.Serialise.CBOR,
-    Codec.Serialise.Class as Data.Binary.Serialise.CBOR.Class,
-    Codec.Serialise.Decoding as Data.Binary.Serialise.CBOR.Decoding,
-    Codec.Serialise.Encoding as Data.Binary.Serialise.Encoding,
-    Codec.CBOR.FlatTerm as Data.Binary.Serialise.FlatTerm,
-    Codec.Serialise.IO as Data.Binary.Serialise.IO,
-    Codec.CBOR.Magic as Data.Binary.Serialise.Magic,
-    Codec.CBOR.Pretty as Data.Binary.Serialise.Pretty,
-    Codec.Serialise.Properties as Data.Binary.Serialise.Properties,
-    Codec.CBOR.Read as Data.Binary.Serialise.Read,
-    Codec.CBOR.Write as Data.Binary.Serialise.Write,
-    Codec.CBOR.Term as Data.Binary.Serialise.Term,
-    Codec.Serialise.Tutorial as Data.Binary.Serialise.Tutorial
+  if impl(ghc >= 7.9)
+    reexported-modules:
+      Codec.Serialise as Data.Binary.Serialise.CBOR,
+      Codec.Serialise.Class as Data.Binary.Serialise.CBOR.Class,
+      Codec.Serialise.Decoding as Data.Binary.Serialise.CBOR.Decoding,
+      Codec.Serialise.Encoding as Data.Binary.Serialise.CBOR.Encoding,
+      Codec.CBOR.FlatTerm as Data.Binary.Serialise.CBOR.FlatTerm,
+      Codec.Serialise.IO as Data.Binary.Serialise.CBOR.IO,
+      Codec.CBOR.Magic as Data.Binary.Serialise.CBOR.Magic,
+      Codec.CBOR.Pretty as Data.Binary.Serialise.CBOR.Pretty,
+      Codec.Serialise.Properties as Data.Binary.Serialise.CBOR.Properties,
+      Codec.CBOR.Read as Data.Binary.Serialise.CBOR.Read,
+      Codec.CBOR.Write as Data.Binary.Serialise.CBOR.Write,
+      Codec.CBOR.Term as Data.Binary.Serialise.CBOR.Term,
+      Codec.Serialise.Tutorial as Data.Binary.Serialise.CBOR.Tutorial
+  else
+    -- GHC 7.8 doesn't support module re-exports
+    hs-source-dirs:      src
+    exported-modules:
+      Data.Binary.Serialise.CBOR,
+      Data.Binary.Serialise.CBOR.Class,
+      Data.Binary.Serialise.CBOR.Decoding,
+      Data.Binary.Serialise.CBOR.Encoding,
+      Data.Binary.Serialise.CBOR.FlatTerm,
+      Data.Binary.Serialise.CBOR.IO,
+      Data.Binary.Serialise.CBOR.Magic,
+      Data.Binary.Serialise.CBOR.Pretty,
+      Data.Binary.Serialise.CBOR.Properties,
+      Data.Binary.Serialise.CBOR.Read,
+      Data.Binary.Serialise.CBOR.Write,
+      Data.Binary.Serialise.CBOR.Term,
 
   build-depends:
     cborg     == 0.1.*,
