@@ -6,6 +6,8 @@ module Codec.CBOR.JSON
  ) where
 
 import           Data.Monoid
+import           Control.Applicative
+import           Prelude
 
 import           Codec.CBOR.Encoding
 import           Codec.CBOR.Decoding
