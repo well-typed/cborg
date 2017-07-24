@@ -6,8 +6,6 @@
 #
 # This script alone is under the Apache 2.0 license. Thanks to
 # Phabricator for the sweet ASCII art.
-#
-# TODO FIXME: replace flames with a tea cup
 
 set e
 unset CDPATH
@@ -24,11 +22,11 @@ function onoes {
   echo '                \  /V  V  \__  /    //  | \ \           *----*'
   echo '                  /     /  \/_/    //   |  \  \          \   |'
   echo '                  @___@`    \/_   //    |   \   \         \/\ \'
-  echo '                 0/0/|       \/_ //     |    \    \         \  \'
-  echo '             0/0/0/0/|        \///      |     \     \       |  |'
-  echo '          0/0/0/0/0/_|_ /   (  //       |      \     _\     |  /'
-  echo '       0/0/0/0/0/0/`/,_ _ _/  ) ; -.    |    _ _\.-~       /   /'
-  echo '                   ,-}        _      *-.|.-~-.           .~    ~'
+  echo '                     |       \/_ //     |    \    \         \  \'
+  echo '                 )   |        \///      |     \     \       |  |'
+  echo '                ((   |__/   (  //       |      \     _\     |  /'
+  echo '               \~~/)/,_ _ _/  ) ; -.    |    _ _\.-~       /   /'
+  echo '                == ,-}        _      *-.|.-~-.           .~    ~'
   echo '  \     \__/        `/\      /                 ~-. _ .-~      /'
   echo '   \____(Oo)           *.   }            {                   /'
   echo '   (    (--)          .----~-.\        \-`                 .~'
