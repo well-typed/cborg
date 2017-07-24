@@ -41,7 +41,7 @@ library
   else
     -- GHC 7.8 doesn't support module re-exports
     hs-source-dirs:      src
-    exported-modules:
+    exposed-modules:
       Data.Binary.Serialise.CBOR,
       Data.Binary.Serialise.CBOR.Class,
       Data.Binary.Serialise.CBOR.Decoding,
@@ -53,7 +53,7 @@ library
       Data.Binary.Serialise.CBOR.Properties,
       Data.Binary.Serialise.CBOR.Read,
       Data.Binary.Serialise.CBOR.Write,
-      Data.Binary.Serialise.CBOR.Term,
+      Data.Binary.Serialise.CBOR.Term
 
   build-depends:
     cborg     == 0.1.*,
