@@ -26,18 +26,18 @@ library
   hs-source-dirs:      src
   if impl(ghc >= 7.9)
     reexported-modules:
-      Codec.Serialise as Data.Binary.Serialise.CBOR,
-      Codec.Serialise.Class as Data.Binary.Serialise.CBOR.Class,
-      Codec.Serialise.Decoding as Data.Binary.Serialise.CBOR.Decoding,
-      Codec.Serialise.Encoding as Data.Binary.Serialise.CBOR.Encoding,
-      Codec.CBOR.FlatTerm as Data.Binary.Serialise.CBOR.FlatTerm,
-      Codec.Serialise.IO as Data.Binary.Serialise.CBOR.IO,
-      Codec.CBOR.Magic as Data.Binary.Serialise.CBOR.Magic,
-      Codec.CBOR.Pretty as Data.Binary.Serialise.CBOR.Pretty,
+      Codec.Serialise            as Data.Binary.Serialise.CBOR,
+      Codec.Serialise.Class      as Data.Binary.Serialise.CBOR.Class,
+      Codec.Serialise.Decoding   as Data.Binary.Serialise.CBOR.Decoding,
+      Codec.Serialise.Encoding   as Data.Binary.Serialise.CBOR.Encoding,
+      Codec.CBOR.FlatTerm        as Data.Binary.Serialise.CBOR.FlatTerm,
+      Codec.Serialise.IO         as Data.Binary.Serialise.CBOR.IO,
+      Codec.CBOR.Magic           as Data.Binary.Serialise.CBOR.Magic,
+      Codec.CBOR.Pretty          as Data.Binary.Serialise.CBOR.Pretty,
       Codec.Serialise.Properties as Data.Binary.Serialise.CBOR.Properties,
-      Codec.CBOR.Write as Data.Binary.Serialise.CBOR.Write,
-      Codec.CBOR.Term as Data.Binary.Serialise.CBOR.Term,
-      Codec.Serialise.Tutorial as Data.Binary.Serialise.CBOR.Tutorial
+      Codec.CBOR.Write           as Data.Binary.Serialise.CBOR.Write,
+      Codec.CBOR.Term            as Data.Binary.Serialise.CBOR.Term,
+      Codec.Serialise.Tutorial   as Data.Binary.Serialise.CBOR.Tutorial
     exposed-modules: Data.Binary.Serialise.CBOR.Read
   else
     -- GHC 7.8 doesn't support module re-exports

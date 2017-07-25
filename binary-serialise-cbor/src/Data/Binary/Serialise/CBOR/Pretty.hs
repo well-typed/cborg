@@ -1,5 +1,5 @@
 module Data.Binary.Serialise.CBOR.Pretty
- ( module Codec.Serialise.Pretty
+ ( module X
  ) where
 
-import Codec.CBOR.Pretty
+import Codec.CBOR.Pretty as X
