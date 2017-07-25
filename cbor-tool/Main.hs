@@ -45,8 +45,8 @@ cborToJson :: Bool -> FilePath -> IO ()
 cborToJson lenient file = do
   bs <- LB.readFile file
   case (Read.deserialiseFromBytes (decodeValue lenient) bs) of
-    Left err -> fail $ "deserialization error: " ++ (show err)
-    Right v  -> do
+    Left err     -> fail $ "deserialization error: " ++ (show err)
+    Right (_, v) -> do
       let builder = Aeson.Pretty.encodePrettyToTextBuilder v
       LT.putStrLn (LT.toLazyText builder)
 
@@ -59,8 +59,8 @@ dumpCborFile pretty file = do
   bs <- LB.readFile file
   case (Read.deserialiseFromBytes decodeTerm bs) of
     -- print normally or in pretty-mode, if asked.
-    Right v | pretty -> putStrLn (prettyHexEnc $ encodeTerm v)
-    Right v          -> print v
+    Right (_,v) | pretty -> putStrLn (prettyHexEnc $ encodeTerm v)
+    Right (_,v)          -> print v
 
     -- otherwise, give a detailed error message
     Left (Read.DeserialiseFailure off err) ->

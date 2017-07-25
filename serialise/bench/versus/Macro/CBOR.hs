@@ -29,10 +29,10 @@ serialise :: [GenericPackageDescription] -> BS.ByteString
 serialise = BS.toLazyByteString . toBuilder . encode
 
 deserialise :: BS.ByteString -> [GenericPackageDescription]
-deserialise = either throw id . deserialiseFromBytes decode
+deserialise = either throw snd . deserialiseFromBytes decode
 
 deserialiseNull :: BS.ByteString -> ()
-deserialiseNull = either throw id . deserialiseFromBytes decodeListNull
+deserialiseNull = either throw snd . deserialiseFromBytes decodeListNull
   where
     decodeListNull :: Decoder s ()
     decodeListNull = do decodeListLenIndef; go
