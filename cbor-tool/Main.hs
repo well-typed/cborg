@@ -1,7 +1,11 @@
 {-# LANGUAGE CPP          #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE RankNTypes   #-}
 module Main
   ( main -- :: IO ()
   ) where
+
+import           Control.Monad
 import           System.FilePath
 import           System.Environment
 import           System.Exit                         ( exitFailure )
@@ -11,7 +15,6 @@ import           Text.Printf                         ( printf )
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
 #endif
-
 import qualified Data.Aeson                          as Aeson
 import           Data.Aeson.Encode.Pretty            as Aeson.Pretty
 import qualified Data.ByteString.Lazy                as LB
@@ -21,18 +24,18 @@ import qualified Data.Text.Lazy.Builder              as LT
 
 import           Codec.CBOR.JSON
 import           Codec.CBOR.Pretty
-import qualified Codec.CBOR.Read     as Read
+import           Codec.CBOR.Read     as Read
 import qualified Codec.CBOR.Write    as Write
 import           Codec.CBOR.Term     ( decodeTerm, encodeTerm )
 
 --------------------------------------------------------------------------------
--- CBOR <-> JSON conversion
+-- JSON -> CBOR conversion
 
 -- | Convert an arbitrary JSON file into CBOR format.
 jsonToCbor :: FilePath -> IO ()
 jsonToCbor file = do
   bs <- LB.readFile file
-  case (Aeson.decode bs) of
+  case Aeson.decode bs of
     Nothing -> fail "invalid JSON file!"
     Just v  -> do
       let encVal   = encodeValue v
@@ -40,31 +43,35 @@ jsonToCbor file = do
       -- Now write the blob
       LB.writeFile cborFile (Write.toLazyByteString encVal)
 
--- | Convert a CBOR file to JSON, and echo it to @stdout@.
-cborToJson :: Bool -> FilePath -> IO ()
-cborToJson lenient file = do
-  bs <- LB.readFile file
-  case (Read.deserialiseFromBytes (decodeValue lenient) bs) of
-    Left err     -> fail $ "deserialization error: " ++ (show err)
-    Right (_, v) -> do
-      let builder = Aeson.Pretty.encodePrettyToTextBuilder v
-      LT.putStrLn (LT.toLazyText builder)
-
 --------------------------------------------------------------------------------
 -- Dumping code
 
--- | Dump a CBOR file.
-dumpCborFile :: Bool -> FilePath -> IO ()
-dumpCborFile pretty file = do
-  bs <- LB.readFile file
-  case (Read.deserialiseFromBytes decodeTerm bs) of
-    -- print normally or in pretty-mode, if asked.
-    Right (_,v) | pretty -> putStrLn (prettyHexEnc $ encodeTerm v)
-    Right (_,v)          -> print v
+-- | Dump a CBOR file as JSON
+dumpCborAsJson :: Bool -> FilePath -> IO ()
+dumpCborAsJson lenient file = LB.readFile file >>= go
+  where go :: LB.ByteString -> IO ()
+        go bs =
+          case deserialiseFromBytes (decodeValue lenient) bs of
+            Left (Read.DeserialiseFailure off err) ->
+                fail $ "deserialization error (at offset " ++ show off ++ "): " ++ err
+            Right (trailing, v) -> do
+                let builder = Aeson.Pretty.encodePrettyToTextBuilder v
+                LT.putStrLn (LT.toLazyText builder)
+                unless (LB.null trailing) (go trailing)
 
-    -- otherwise, give a detailed error message
-    Left (Read.DeserialiseFailure off err) ->
-      fail $ "deserialization error (at offset " ++ show off ++ "): " ++ err
+-- | Dump a CBOR file as a Term, or optionally as pretty hex
+dumpCborFile :: Bool -> FilePath -> IO ()
+dumpCborFile pretty file = LB.readFile file >>= go
+  where go :: LB.ByteString -> IO ()
+        go bs =
+          case deserialiseFromBytes decodeTerm bs of
+            Left (Read.DeserialiseFailure off err) ->
+                fail $ "deserialization error (at offset " ++ show off ++ "): " ++ err
+            Right (trailing, v) -> do
+                if pretty
+                  then putStrLn (prettyHexEnc $ encodeTerm v)
+                  else print v
+                unless (LB.null trailing) (go trailing)
 
 dumpAsHex :: FilePath -> IO ()
 dumpAsHex file = do
@@ -106,7 +113,7 @@ main = do
         , "    remove this restriction -- this will allow numbers to also"
         , "    be valid as CBOR keys, by printing them as strings. However,"
         , "    this may risk collision of some keys as CBOR is more general,"
-        , "    result in in invalid JSON -- so use it with caution."
+        , "    resulting in invalid JSON -- so use it with caution."
         , ""
         , "  encode [--json] <file>"
         , "    Read the <file> in a specified format and dump a copy of"
@@ -117,10 +124,10 @@ main = do
 
   args <- getArgs
   case args of
-    ("dump"   : "--json"   : "--lenient" : file : _) -> cborToJson True file
-    ("dump"   : "--json"   : file : _)               -> cborToJson False file
-    ("dump"   : "--hex"    : file : _) -> dumpAsHex          file
+    ("dump"   : "--json"   : "--lenient" : file : _) -> dumpCborAsJson True file
+    ("dump"   : "--json"   : file : _) -> dumpCborAsJson False file
+    ("dump"   : "--hex"    : file : _) -> dumpAsHex file
     ("dump"   : "--pretty" : file : _) -> dumpCborFile True  file
     ("dump"   : "--term"   : file : _) -> dumpCborFile False file
-    ("encode" : "--json"   : file : _) -> jsonToCbor         file
+    ("encode" : "--json"   : file : _) -> jsonToCbor file
     _ -> hPutStrLn stderr help >> exitFailure
