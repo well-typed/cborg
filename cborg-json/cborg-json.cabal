@@ -7,6 +7,7 @@ license:             BSD3
 license-file:        LICENSE.txt
 author:              Duncan Coutts
 maintainer:          ben@smart-cactus.org
+bug-reports:         https://github.com/well-typed/cborg/issues
 copyright:           2015-2017 Duncan Coutts,
                      2015-2017 Well-Typed LLP,
                      2015 IRIS Connect Ltd
