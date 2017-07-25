@@ -4,6 +4,7 @@ packages:
 - 'serialise'
 - 'binary-serialise-cbor'
 - 'cbor-tool'
+- 'cborg-json'
 
 flags:
   serialise:
