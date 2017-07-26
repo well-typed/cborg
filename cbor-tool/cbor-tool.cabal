@@ -1,7 +1,7 @@
 name:                cbor-tool
 version:             0.1.0.0
 synopsis:            A tool for manipulating CBOR.
-description:         A tool for manipulating CBOR.
+description:         A tool for dumping and converting CBOR-encoded data.
 homepage:            https://github.com/well-typed/cborg
 license:             BSD3
 license-file:        LICENSE.txt
