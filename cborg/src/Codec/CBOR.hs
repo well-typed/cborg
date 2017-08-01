@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
+
 -- |
 -- Module      : Codec.CBOR
 -- Copyright   : (c) Duncan Coutts 2015-2017
