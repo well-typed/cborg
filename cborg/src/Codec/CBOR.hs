@@ -45,17 +45,40 @@ The library is split into a number of modules,
 * Decoding
 
     * "Codec.CBOR.Decoding" defines the machinery for decoding primitive CBOR terms
-      into Haskell values. In particular, the 'Decoder' type.
+      into Haskell values. In particular, the 'Decoder' type and associated decoders,
+
+      @
+      data 'Decoder' s a
+
+      -- for, e.g., safe in-place mutation during decoding
+      liftST      :: ST s a -> 'Decoder' s a
+
+      -- primitive decoders
+      decodeWord  :: 'Decoder' s Word
+      decodeBytes :: 'Decoder' s ByteString
+      -- et cetera
+      @
     * "Codec.CBOR.Read" defines the low-level wire-format decoder, e.g.
 
       @
-      'Codec.CBOR.Read.deserialiseFromBytes' :: 'Decoder' a -> ByteString -> Either String (ByteString, a)
+      'Codec.CBOR.Read.deserialiseFromBytes' :: 'Decoder' a
+                           -> ByteString
+                           -> Either String (ByteString, a)
       @
 
 * Encoding
 
       * "Codec.CBOR.Encoding" defines the 'Encoding' type, which is in essence
         difference-list of CBOR tokens and is used to construct CBOR encodings.
+
+        @
+        data 'Encoding'
+        instance Monoid 'Encoding'
+
+        encodeWord  :: Word       -> Encoding
+        encodeBytes :: ByteString -> Encoding
+        -- et cetera
+        @
 
       * "Codec.CBOR.Write" defines the low-level wire-format encoder, e.g.
 
@@ -69,6 +92,11 @@ The library is split into a number of modules,
         capturing arbitrary CBOR terms. 'Term's can be encoded and decoded with,
 
         @
+        data 'Term'
+          = TInt   Int
+          | TBytes ByteString
+          -- et cetera
+
         'encodeTerm' :: 'Term' -> 'Encoding'
         'decodeTerm' :: 'Decoder' 'Term'
         @
