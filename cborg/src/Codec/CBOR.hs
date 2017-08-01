@@ -21,6 +21,7 @@ module Codec.CBOR
 import Codec.CBOR.Decoding (Decoder)
 import Codec.CBOR.Encoding (Encoding)
 import Codec.CBOR.FlatTerm (FlatTerm)
+import Codec.CBOR.Term     (Term, encodeTerm, decodeTerm)
 
 {- $intro
 
@@ -50,6 +51,7 @@ The library is split into a number of modules,
       @
       'Codec.CBOR.Read.deserialiseFromBytes' :: 'Decoder' a -> ByteString -> Either String (ByteString, a)
       @
+
 * Encoding
 
       * "Codec.CBOR.Encoding" defines the 'Encoding' type, which is in essence
@@ -61,10 +63,20 @@ The library is split into a number of modules,
         'Codec.CBOR.Write.toBuilder' :: 'Encoding' a -> Data.ByteString.Builder.Builder
         @
 
+* Capturing arbitrary terms
+
+      * "Codec.CBOR.Term" provides the 'Term' type, which provides a type for
+        capturing arbitrary CBOR terms. 'Term's can be encoded and decoded with,
+
+        @
+        'encodeTerm' :: 'Term' -> 'Encoding'
+        'decodeTerm' :: 'Decoder' 'Term'
+        @
+
 * Debugging
 
     * "Codec.CBOR.FlatTerm" contains the 'FlatTerm' type, which provides a
-      concrete AST for capturing primitive CBOR terms. This can be useful when
-      testing decoders and encoders.
+      concrete AST for capturing primitive CBOR wire encodings. This can be
+      useful when testing decoders and encoders.
 
 -}
