@@ -12,6 +12,11 @@ description:
   serialised Haskell values have implicit structure outside of the
   Haskell program itself, meaning they can be inspected or analyzed
   with custom tools.
+  .
+  An implementation of the standard bijection between CBOR and JSON is provided
+  by the [cborg-json](/package/cborg-json) package. Also see
+  [cbor-tool](/package/cbor-tool) for a convenient command-line utility for
+  working with CBOR data.
 homepage:            https://github.com/well-typed/cborg
 license:             BSD3
 license-file:        LICENSE.txt

@@ -17,11 +17,15 @@ tested-with:         GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.1
 description:
   This package (formerly @binary-serialise-cbor@) provides an efficient
   implementation of the Concise Binary Object Representation (CBOR), as
-  specified by RFC 7049.
+  specified by [RFC 7049](https://tools.ietf.org/html/rfc7049).
   .
   If you are looking for a library for serialisation of Haskell values,
-  have a look at the @serialise@ package, which is built upon this library.
-
+  have a look at the [serialise](/package/serialise) package, which is
+  built upon this library.
+  .
+  An implementation of the standard bijection between CBOR and JSON is provided
+  by the [cborg-json](/package/cborg-json) package. Also see [cbor-tool](/package/cbor-tool)
+  for a convenient command-line utility for working with CBOR data.
 extra-source-files:
   src/cbits/cbor.h
 

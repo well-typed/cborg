@@ -30,8 +30,8 @@ canonical representation.
 
 Note, however, that @cborg@ does not itself aim to be a serialisation
 library; it merely serves as the substrate on which one might be built. See
-the @serialise@ library if you are looking for convenient serialisation of
-Haskell values.
+the [serialise](/package/serialise) library if you are looking for convenient
+serialisation of Haskell values.
 
 -}
 
