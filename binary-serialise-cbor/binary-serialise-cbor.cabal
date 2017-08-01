@@ -1,5 +1,5 @@
 name:                binary-serialise-cbor
-version:             0.1.1.0
+version:             0.2.0.0
 synopsis:            Yet Another Binary Serialisation Library (compatibility shim)
 license:             BSD3
 license-file:        LICENSE.txt
@@ -43,6 +43,6 @@ library
   build-depends:
     base < 5,
     bytestring < 1.0,
-    cborg     == 0.1.*,
-    serialise == 0.1.*
+    cborg     == 0.2.*,
+    serialise == 0.2.*
 
