@@ -220,6 +220,10 @@ instance Monad (Decoder s) where
 instance Fail.MonadFail (Decoder s) where
     fail msg = Decoder $ \_ -> return (Fail msg)
 
+-- | Lift an @ST@ action into a @Decoder@. Useful for, e.g., leveraging
+-- in-place mutation to efficiently build a deserialised value.
+--
+-- @since 0.2.0.0
 liftST :: ST s a -> Decoder s a
 liftST m = Decoder $ \k -> m >>= k
 
