@@ -1,5 +1,5 @@
 name:                cborg-json
-version:             0.1.0.0
+version:             0.2.0.0
 synopsis:            A library for encoding JSON as CBOR
 description:         This package implements the bijection between JSON and
                      CBOR defined in the CBOR specification, RFC 7049.
@@ -28,7 +28,7 @@ library
     scientific >=0.3 && <0.4,
     text >=1.1 && <1.3,
     vector >=0.10 && <0.13,
-    cborg ==0.1.*
+    cborg ==0.2.*
   hs-source-dirs:      src
   default-language:    Haskell2010
 
