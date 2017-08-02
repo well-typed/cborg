@@ -9,15 +9,6 @@
 [![BSD3](https://img.shields.io/badge/License-BSD-blue.svg)](https://en.wikipedia.org/wiki/BSD_License)
 [![Haskell](https://img.shields.io/badge/Language-Haskell-yellowgreen.svg)](https://www.haskell.org)
 
-**NOTE**: These libraries have not yet been released to the public Hackage,
-(though they will be soon). Despite that, the code has seen _substantial_
-production use by Well-Typed, as well as a number of outsiders and independent
-companies. We've had near-universal positive results with it, so you should
-feel relatively safe in experimenting. The on-disk formats should remain stable
-and at least backwards compatible.
-
----
-
 This repo contains two libraries (plus associated tools):
 
 The `serialise` library is for serialising Haskell values and deserialising
@@ -51,8 +42,10 @@ $ cabal install cborg serialise
 $ stack install cborg serialise
 ```
 
-**NOTE**: The above currently **WILL NOT WORK**, as this package is not
-publicly released.
+There are also a few related packages that you may be interested in:
+
+ * `cborg-json` implements the bijection between JSON and CBOR specified in the RFC.
+ * `cbor-tool` is a handy command-line utility for working with CBOR data.
 
 [Hackage]:  https://hackage.haskell.org/package/cborg
 [Stackage]: https://www.stackage.org
