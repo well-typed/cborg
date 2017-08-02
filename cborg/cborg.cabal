@@ -60,6 +60,11 @@ library
     Codec.CBOR.Read
     Codec.CBOR.Write
     Codec.CBOR.Term
+    Codec.CBOR.ByteArray
+    Codec.CBOR.ByteArray.Sliced
+
+  other-modules:
+    Codec.CBOR.ByteArray.Internal
 
   other-extensions:
     CPP, ForeignFunctionInterface, MagicHash,

@@ -43,6 +43,8 @@ module Codec.CBOR.FlatTerm
 import           Codec.CBOR.Encoding (Encoding(..))
 import qualified Codec.CBOR.Encoding as Enc
 import           Codec.CBOR.Decoding as Dec
+import qualified Codec.CBOR.ByteArray        as BA
+import qualified Codec.CBOR.ByteArray.Sliced as BAS
 
 import           Data.Int
 #if defined(ARCH_32bit)
@@ -56,6 +58,7 @@ import           GHC.Float (Float(F#), Double(D#), float2Double)
 
 import           Data.Word
 import           Data.Text (Text)
+import qualified Data.Text.Encoding as TE
 import           Data.ByteString (ByteString)
 import           Control.Monad.ST
 
@@ -118,8 +121,12 @@ convFlatTerm (Enc.TkInteger  n  ts)
   | otherwise                       = TkInteger   n : convFlatTerm ts
 convFlatTerm (Enc.TkBytes    bs ts) = TkBytes    bs : convFlatTerm ts
 convFlatTerm (Enc.TkBytesBegin  ts) = TkBytesBegin  : convFlatTerm ts
+convFlatTerm (Enc.TkByteArray a ts)
+  = TkBytes (BAS.toByteString a) : convFlatTerm ts
 convFlatTerm (Enc.TkString   st ts) = TkString   st : convFlatTerm ts
 convFlatTerm (Enc.TkStringBegin ts) = TkStringBegin : convFlatTerm ts
+convFlatTerm (Enc.TkUtf8ByteArray a ts)
+  = TkString (TE.decodeUtf8 $ BAS.toByteString a) : convFlatTerm ts
 convFlatTerm (Enc.TkListLen  n  ts) = TkListLen   n : convFlatTerm ts
 convFlatTerm (Enc.TkListBegin   ts) = TkListBegin   : convFlatTerm ts
 convFlatTerm (Enc.TkMapLen   n  ts) = TkMapLen    n : convFlatTerm ts
@@ -281,15 +288,18 @@ fromFlatTerm decoder ft =
     go ts (ConsumeMapLen64Canonical  _) = unexpected "decodeMapLen64Canonical"  ts
 #endif
 
-    go (TkFloat16 f : ts) (ConsumeFloat  k) = k (unF# f) >>= go ts
-    go (TkFloat32 f : ts) (ConsumeFloat  k) = k (unF# f) >>= go ts
-    go (TkFloat16 f : ts) (ConsumeDouble k) = k (unD# (float2Double f)) >>= go ts
-    go (TkFloat32 f : ts) (ConsumeDouble k) = k (unD# (float2Double f)) >>= go ts
-    go (TkFloat64 f : ts) (ConsumeDouble k) = k (unD# f) >>= go ts
-    go (TkBytes  bs : ts) (ConsumeBytes  k) = k bs >>= go ts
-    go (TkString st : ts) (ConsumeString k) = k st >>= go ts
-    go (TkBool    b : ts) (ConsumeBool   k) = k b >>= go ts
-    go (TkSimple  n : ts) (ConsumeSimple k) = k (unW8# n) >>= go ts
+    go (TkFloat16 f : ts) (ConsumeFloat  k)        = k (unF# f) >>= go ts
+    go (TkFloat32 f : ts) (ConsumeFloat  k)        = k (unF# f) >>= go ts
+    go (TkFloat16 f : ts) (ConsumeDouble k)        = k (unD# (float2Double f)) >>= go ts
+    go (TkFloat32 f : ts) (ConsumeDouble k)        = k (unD# (float2Double f)) >>= go ts
+    go (TkFloat64 f : ts) (ConsumeDouble k)        = k (unD# f) >>= go ts
+    go (TkBytes  bs : ts) (ConsumeBytes  k)        = k bs >>= go ts
+    go (TkBytes  bs : ts) (ConsumeByteArray k)     = k (BA.fromByteString bs) >>= go ts
+    go (TkString st : ts) (ConsumeString k)        = k st >>= go ts
+    go (TkString st : ts) (ConsumeUtf8ByteArray k) = k (BA.fromByteString $ TE.encodeUtf8 st)
+                                                     >>= go ts
+    go (TkBool    b : ts) (ConsumeBool   k)        = k b >>= go ts
+    go (TkSimple  n : ts) (ConsumeSimple k)        = k (unW8# n) >>= go ts
 
     go (TkFloat16 f : ts) (ConsumeFloat16Canonical k) = k (unF# f) >>= go ts
     go (TkFloat32 f : ts) (ConsumeFloatCanonical   k) = k (unF# f) >>= go ts
@@ -355,7 +365,9 @@ fromFlatTerm decoder ft =
     go ts (ConsumeFloat  _) = unexpected "decodeFloat"  ts
     go ts (ConsumeDouble _) = unexpected "decodeDouble" ts
     go ts (ConsumeBytes  _) = unexpected "decodeBytes"  ts
+    go ts (ConsumeByteArray     _) = unexpected "decodeByteArray"     ts
     go ts (ConsumeString _) = unexpected "decodeString" ts
+    go ts (ConsumeUtf8ByteArray _) = unexpected "decodeUtf8ByteArray" ts
     go ts (ConsumeBool   _) = unexpected "decodeBool"   ts
     go ts (ConsumeSimple _) = unexpected "decodeSimple" ts
 

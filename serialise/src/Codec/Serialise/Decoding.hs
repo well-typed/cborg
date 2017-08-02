@@ -35,8 +35,10 @@ module Codec.Serialise.Decoding
   , decodeDouble        -- :: Decoder s Double
   , decodeBytes         -- :: Decoder s ByteString
   , decodeBytesIndef    -- :: Decoder s ()
+  , decodeByteArray     -- :: Decoder s ByteArray
   , decodeString        -- :: Decoder s Text
   , decodeStringIndef   -- :: Decoder s ()
+  , decodeUtf8ByteArray -- :: Decoder s ByteArray
   , decodeListLen       -- :: Decoder s Int
   , decodeListLenIndef  -- :: Decoder s ()
   , decodeMapLen        -- :: Decoder s Int

@@ -27,6 +27,7 @@ import           Data.Ord
 import           Data.Ratio
 import           Data.Time
 import           Data.Word
+import           GHC.Exts (IsList(..))
 import           GHC.Float (float2Double)
 import           Data.Version
 
@@ -40,17 +41,21 @@ import           Test.Tasty.QuickCheck hiding (Fixed(..))
 import           Test.QuickCheck.Instances ()
 import           Test.Tasty.HUnit
 import           GHC.Generics  (Generic)
-import qualified Data.Text            as Text
-import qualified Data.Text.Lazy       as Text.Lazy
-import qualified Data.ByteString      as BS
-import qualified Data.ByteString.Lazy as BS.Lazy
+import qualified Data.Text                      as Text
+import qualified Data.Text.Encoding             as Text
+import qualified Data.Text.Lazy                 as Text.Lazy
+import qualified Data.ByteString                as BS
+import qualified Data.ByteString.Lazy           as BS.Lazy
+import qualified Data.ByteString.Short          as BSS
+import qualified Data.ByteString.Short.Internal as BSS
 import           System.Exit (ExitCode(..))
 
+import qualified Codec.CBOR.ByteArray           as CBOR.BA
 import           Codec.CBOR.FlatTerm (toFlatTerm, fromFlatTerm)
 import           Codec.Serialise
 import           Codec.Serialise.Encoding
 import           Codec.Serialise.Decoding
-import qualified Codec.Serialise.Properties as Props
+import qualified Codec.Serialise.Properties     as Props
 
 import qualified Data.HashMap.Strict        as HashMap
 import qualified Data.HashSet               as HashSet
@@ -65,6 +70,7 @@ import qualified Data.Vector.Unboxed        as Vector.Unboxed
 import qualified Data.Vector.Storable       as Vector.Storable
 import qualified Data.Vector.Primitive      as Vector.Primitive
 import           GHC.Fingerprint.Type (Fingerprint(..))
+import           Data.Primitive.ByteArray   as Prim
 
 import           Tests.Orphanage()
 import           Tests.Serialise.Canonical
@@ -228,6 +234,8 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T Text.Lazy.Text)
       , mkTest (T :: T BS.ByteString)
       , mkTest (T :: T BS.Lazy.ByteString)
+      , mkTest (T :: T BytesByteArray)
+      , mkTest (T :: T Utf8ByteArray)
       , mkTest (T :: T [Int])
       , mkTest (T :: T UTCTime)
       , mkTest (T :: T Version)
@@ -380,3 +388,25 @@ instance Arbitrary a => Arbitrary (List a) where
       where
         cnv :: [a] -> List a
         cnv = foldr Cons Nil
+
+newtype BytesByteArray = BytesBA CBOR.BA.ByteArray
+                       deriving (Eq, Ord, Show)
+
+instance Serialise BytesByteArray where
+    encode (BytesBA ba) = encodeByteArray $ CBOR.BA.toSliced ba
+    decode = BytesBA <$> decodeByteArray
+
+instance Arbitrary BytesByteArray where
+    arbitrary = BytesBA . fromList <$> arbitrary
+
+newtype Utf8ByteArray = Utf8BA CBOR.BA.ByteArray
+                      deriving (Eq, Ord, Show)
+
+instance Serialise Utf8ByteArray where
+    encode (Utf8BA ba) = encodeUtf8ByteArray $ CBOR.BA.toSliced ba
+    decode = Utf8BA <$> decodeUtf8ByteArray
+
+instance Arbitrary Utf8ByteArray where
+    arbitrary = do
+        BSS.SBS ba <- BSS.toShort . Text.encodeUtf8 <$> arbitrary
+        return $ Utf8BA $ CBOR.BA.BA $ Prim.ByteArray ba

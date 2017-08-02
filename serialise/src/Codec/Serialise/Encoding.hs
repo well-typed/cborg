@@ -29,8 +29,10 @@ module Codec.Serialise.Encoding
   , encodeInteger            -- :: Integer -> Encoding
   , encodeBytes              -- :: B.ByteString -> Encoding
   , encodeBytesIndef         -- :: Encoding
+  , encodeByteArray          -- :: ByteArray -> Encoding
   , encodeString             -- :: T.Text -> Encoding
   , encodeStringIndef        -- :: Encoding
+  , encodeUtf8ByteArray      -- :: ByteArray -> Encoding
   , encodeListLen            -- :: Word -> Encoding
   , encodeListLenIndef       -- :: Encoding
   , encodeMapLen             -- :: Word -> Encoding
