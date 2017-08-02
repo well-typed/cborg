@@ -41,8 +41,10 @@ module Codec.CBOR.Decoding
   , decodeDouble        -- :: Decoder s Double
   , decodeBytes         -- :: Decoder s ByteString
   , decodeBytesIndef    -- :: Decoder s ()
+  , decodeByteArray     -- :: Decoder s ByteArray
   , decodeString        -- :: Decoder s Text
   , decodeStringIndef   -- :: Decoder s ()
+  , decodeUtf8ByteArray -- :: Decoder s ByteArray
   , decodeListLen       -- :: Decoder s Int
   , decodeListLenIndef  -- :: Decoder s ()
   , decodeMapLen        -- :: Decoder s Int
@@ -89,6 +91,9 @@ import           Control.Applicative
 import           Control.Monad.ST
 import qualified Control.Monad.Fail as Fail
 
+import qualified Data.Primitive.ByteArray as Prim
+import qualified Codec.CBOR.ByteArray as BA
+
 import           Prelude hiding (decodeFloat)
 
 
@@ -131,13 +136,15 @@ data DecodeAction s a
     | ConsumeTag64     (Word64# -> ST s (DecodeAction s a))
 #endif
 
-    | ConsumeInteger (Integer    -> ST s (DecodeAction s a))
-    | ConsumeFloat   (Float#     -> ST s (DecodeAction s a))
-    | ConsumeDouble  (Double#    -> ST s (DecodeAction s a))
-    | ConsumeBytes   (ByteString -> ST s (DecodeAction s a))
-    | ConsumeString  (Text       -> ST s (DecodeAction s a))
-    | ConsumeBool    (Bool       -> ST s (DecodeAction s a))
-    | ConsumeSimple  (Word#      -> ST s (DecodeAction s a))
+    | ConsumeInteger       (Integer   -> ST s (DecodeAction s a))
+    | ConsumeFloat         (Float#    -> ST s (DecodeAction s a))
+    | ConsumeDouble        (Double#   -> ST s (DecodeAction s a))
+    | ConsumeBytes         (ByteString-> ST s (DecodeAction s a))
+    | ConsumeByteArray     (BA.ByteArray -> ST s (DecodeAction s a))
+    | ConsumeString        (Text      -> ST s (DecodeAction s a))
+    | ConsumeUtf8ByteArray (BA.ByteArray -> ST s (DecodeAction s a))
+    | ConsumeBool          (Bool      -> ST s (DecodeAction s a))
+    | ConsumeSimple        (Word#     -> ST s (DecodeAction s a))
 
     | ConsumeBytesIndef   (ST s (DecodeAction s a))
     | ConsumeStringIndef  (ST s (DecodeAction s a))
@@ -373,6 +380,13 @@ decodeBytesIndef :: Decoder s ()
 decodeBytesIndef = Decoder (\k -> return (ConsumeBytesIndef (k ())))
 {-# INLINE decodeBytesIndef #-}
 
+-- | Decode a textual string as UTF-8 encoded 'ByteArray'.
+--
+-- @since 0.2.0.0
+decodeByteArray :: Decoder s Prim.ByteArray
+decodeByteArray = Decoder (\k -> return (ConsumeByteArray (\str -> k (BA.unBA str))))
+{-# INLINE decodeByteArray #-}
+
 -- | Decode a textual string as a piece of @'Text'@.
 --
 -- @since 0.2.0.0
@@ -387,6 +401,13 @@ decodeString = Decoder (\k -> return (ConsumeString (\str -> k str)))
 decodeStringIndef :: Decoder s ()
 decodeStringIndef = Decoder (\k -> return (ConsumeStringIndef (k ())))
 {-# INLINE decodeStringIndef #-}
+
+-- | Decode a textual string as UTF-8 encoded 'ByteArray'.
+--
+-- @since 0.2.0.0
+decodeUtf8ByteArray :: Decoder s Prim.ByteArray
+decodeUtf8ByteArray = Decoder (\k -> return (ConsumeUtf8ByteArray (\str -> k (BA.unBA str))))
+{-# INLINE decodeUtf8ByteArray #-}
 
 -- | Decode the length of a list.
 --

@@ -127,6 +127,7 @@ test-suite tests
     containers              >= 0.5     && < 0.6,
     unordered-containers    >= 0.2     && < 0.3,
     hashable                >= 1.2     && < 2.0,
+    primitive               >= 0.5     && < 0.7,
     cborg,
     serialise,
 

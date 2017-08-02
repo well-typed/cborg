@@ -58,6 +58,8 @@ import           GHC.Float (float2Double)
 import           Data.Typeable
 import           Control.Exception
 
+import           Codec.CBOR.ByteArray (ByteArray)
+import qualified Codec.CBOR.ByteArray as BA
 import           Codec.CBOR.Decoding hiding (DecodeAction(Done, Fail))
 import           Codec.CBOR.Decoding (DecodeAction)
 import qualified Codec.CBOR.Decoding as D
@@ -210,11 +212,13 @@ runDecodeAction da = do
 -- of tokens spanning a chunk boundary.
 --
 data SlowPath s a
-   = FastDone               {-# UNPACK #-} !ByteString a
-   | SlowConsumeTokenString {-# UNPACK #-} !ByteString (T.Text     -> ST s (DecodeAction s a)) {-# UNPACK #-} !Int
-   | SlowConsumeTokenBytes  {-# UNPACK #-} !ByteString (ByteString -> ST s (DecodeAction s a)) {-# UNPACK #-} !Int
-   | SlowDecodeAction       {-# UNPACK #-} !ByteString (DecodeAction s a)
-   | SlowFail               {-# UNPACK #-} !ByteString String
+   = FastDone                      {-# UNPACK #-} !ByteString a
+   | SlowConsumeTokenBytes         {-# UNPACK #-} !ByteString (ByteString   -> ST s (DecodeAction s a)) {-# UNPACK #-} !Int
+   | SlowConsumeTokenByteArray     {-# UNPACK #-} !ByteString (BA.ByteArray -> ST s (DecodeAction s a)) {-# UNPACK #-} !Int
+   | SlowConsumeTokenString        {-# UNPACK #-} !ByteString (T.Text       -> ST s (DecodeAction s a)) {-# UNPACK #-} !Int
+   | SlowConsumeTokenUtf8ByteArray {-# UNPACK #-} !ByteString (BA.ByteArray -> ST s (DecodeAction s a)) {-# UNPACK #-} !Int
+   | SlowDecodeAction              {-# UNPACK #-} !ByteString (DecodeAction s a)
+   | SlowFail                      {-# UNPACK #-} !ByteString String
 
 
 -- The main fast path. The fast path itself is actually split into two parts
@@ -368,11 +372,23 @@ go_fast !bs da@(ConsumeBytes k) =
       DecodedToken sz (Fits bstr)   -> k bstr >>= go_fast (BS.unsafeDrop sz bs)
       DecodedToken sz (TooLong len) -> return $! SlowConsumeTokenBytes (BS.unsafeDrop sz bs) k len
 
+go_fast !bs da@(ConsumeByteArray k) =
+    case tryConsumeByteArray (BS.unsafeHead bs) bs of
+      DecodeFailure                 -> go_fast_end bs da
+      DecodedToken sz (Fits str)    -> k str >>= go_fast (BS.unsafeDrop sz bs)
+      DecodedToken sz (TooLong len) -> return $! SlowConsumeTokenByteArray (BS.unsafeDrop sz bs) k len
+
 go_fast !bs da@(ConsumeString k) =
     case tryConsumeString (BS.unsafeHead bs) bs of
       DecodeFailure                 -> go_fast_end bs da
       DecodedToken sz (Fits str)    -> k str >>= go_fast (BS.unsafeDrop sz bs)
       DecodedToken sz (TooLong len) -> return $! SlowConsumeTokenString (BS.unsafeDrop sz bs) k len
+
+go_fast !bs da@(ConsumeUtf8ByteArray k) =
+    case tryConsumeUtf8ByteArray (BS.unsafeHead bs) bs of
+      DecodeFailure                 -> go_fast_end bs da
+      DecodedToken sz (Fits str)    -> k str >>= go_fast (BS.unsafeDrop sz bs)
+      DecodedToken sz (TooLong len) -> return $! SlowConsumeTokenUtf8ByteArray (BS.unsafeDrop sz bs) k len
 
 go_fast !bs da@(ConsumeBool k) =
     case tryConsumeBool (BS.unsafeHead bs) of
@@ -613,11 +629,23 @@ go_fast_end !bs (ConsumeBytes k) =
       DecodedToken sz (Fits bstr)   -> k bstr >>= go_fast_end (BS.unsafeDrop sz bs)
       DecodedToken sz (TooLong len) -> return $! SlowConsumeTokenBytes (BS.unsafeDrop sz bs) k len
 
+go_fast_end !bs (ConsumeByteArray k) =
+    case tryConsumeByteArray (BS.unsafeHead bs) bs of
+      DecodeFailure                 -> return $! SlowFail bs "expected string"
+      DecodedToken sz (Fits str)    -> k str >>= go_fast_end (BS.unsafeDrop sz bs)
+      DecodedToken sz (TooLong len) -> return $! SlowConsumeTokenByteArray (BS.unsafeDrop sz bs) k len
+
 go_fast_end !bs (ConsumeString k) =
     case tryConsumeString (BS.unsafeHead bs) bs of
       DecodeFailure                 -> return $! SlowFail bs "expected string"
       DecodedToken sz (Fits str)    -> k str >>= go_fast_end (BS.unsafeDrop sz bs)
       DecodedToken sz (TooLong len) -> return $! SlowConsumeTokenString (BS.unsafeDrop sz bs) k len
+
+go_fast_end !bs (ConsumeUtf8ByteArray k) =
+    case tryConsumeUtf8ByteArray (BS.unsafeHead bs) bs of
+      DecodeFailure                 -> return $! SlowFail bs "expected string"
+      DecodedToken sz (Fits str)    -> k str >>= go_fast_end (BS.unsafeDrop sz bs)
+      DecodedToken sz (TooLong len) -> return $! SlowConsumeTokenUtf8ByteArray (BS.unsafeDrop sz bs) k len
 
 go_fast_end !bs (ConsumeBool k) =
     case tryConsumeBool (BS.unsafeHead bs) of
@@ -687,9 +715,23 @@ go_slow da bs !offset = do
       where
         !offset' = offset + fromIntegral (BS.length bs - BS.length bs')
 
+    SlowConsumeTokenByteArray bs' k len -> do
+      (bstr, bs'') <- getTokenVarLen len bs' offset'
+      let !str = BA.fromByteString bstr
+      lift (k str) >>= \daz -> go_slow daz bs'' (offset' + fromIntegral len)
+      where
+        !offset' = offset + fromIntegral (BS.length bs - BS.length bs')
+
     SlowConsumeTokenString bs' k len -> do
       (bstr, bs'') <- getTokenVarLen len bs' offset'
       let !str = T.decodeUtf8 bstr  -- TODO FIXME: utf8 validation
+      lift (k str) >>= \daz -> go_slow daz bs'' (offset' + fromIntegral len)
+      where
+        !offset' = offset + fromIntegral (BS.length bs - BS.length bs')
+
+    SlowConsumeTokenUtf8ByteArray bs' k len -> do
+      (bstr, bs'') <- getTokenVarLen len bs' offset'
+      let !str = BA.fromByteString bstr  -- TODO FIXME: utf8 validation
       lift (k str) >>= \daz -> go_slow daz bs'' (offset' + fromIntegral len)
       where
         !offset' = offset + fromIntegral (BS.length bs - BS.length bs')
@@ -785,30 +827,38 @@ go_slow_overlapped da sz bs_cur bs_next !offset =
         assert (BS.null bs_empty) $
         return (bs', offset', x)
 
-      SlowConsumeTokenBytes bs_empty k len ->
-        assert (BS.null bs_empty) $ do
-        (bstr, bs'') <- if BS.length bs' < len
-                          then getTokenVarLen len bs' offset'
-                          else let !bstr = BS.take len bs'
-                                   !bs'' = BS.drop len bs'
-                                in return (bstr, bs'')
-        lift (k bstr) >>= \daz -> go_slow daz bs'' (offset' + fromIntegral len)
+      SlowConsumeTokenBytes bs_empty k len         -> consume id                bs' offset' bs_empty k len
 
-      SlowConsumeTokenString bs_empty k len ->
-        assert (BS.null bs_empty) $ do
-        (bstr, bs'') <- if BS.length bs' < len
-                          then getTokenVarLen len bs' offset'
-                          else let !bstr = BS.take len bs'
-                                   !bs'' = BS.drop len bs'
-                                in return (bstr, bs'')
-        let !str = T.decodeUtf8 bstr  -- TODO FIXME: utf8 validation
-        lift (k str) >>= \daz -> go_slow daz bs'' (offset' + fromIntegral len)
+      SlowConsumeTokenByteArray bs_empty k len     -> consume BA.fromByteString bs' offset' bs_empty k len
+
+      SlowConsumeTokenString bs_empty k len        -> consume T.decodeUtf8      bs' offset' bs_empty k len
+        -- TODO FIXME: utf8 validation
+
+      SlowConsumeTokenUtf8ByteArray bs_empty k len -> consume BA.fromByteString bs' offset' bs_empty k len
+        -- TODO FIXME: utf8 validation
 
       SlowFail bs_unconsumed msg ->
         decodeFail (bs_unconsumed <> bs') offset'' msg
         where
           !offset'' = offset + fromIntegral (sz - BS.length bs_unconsumed)
-
+  where
+    {-# INLINE consume #-}
+    consume :: (BS.ByteString -> a)
+            -> BS.ByteString                   -- bs'
+            -> Int64                           -- offset'
+            -> BS.ByteString                   -- bs_empty
+            -> (a -> ST s (DecodeAction s r))  -- continuation
+            -> Int                             -- length
+            -> IncrementalDecoder s (ByteString, ByteOffset, r)
+    consume pack bs' offset' bs_empty k len =
+        assert (BS.null bs_empty) $ do
+        (bstr, bs'') <- if BS.length bs' < len
+                          then getTokenVarLen len bs' offset'
+                          else let !bstr = BS.take len bs'
+                                   !bs'' = BS.drop len bs'
+                                in return (bstr, bs'')
+        let !str = pack bstr
+        lift (k str) >>= \daz -> go_slow daz bs'' (offset' + fromIntegral len)
 
 
 -- TODO FIXME: we can do slightly better here. If we're returning a
@@ -1163,6 +1213,42 @@ tryConsumeBytes hdr !bs = case fromIntegral hdr :: Word of
   _    -> DecodeFailure
 
 
+{-# INLINE tryConsumeByteArray #-}
+tryConsumeByteArray :: Word8 -> ByteString -> DecodedToken (LongToken BA.ByteArray)
+tryConsumeByteArray hdr !bs = case fromIntegral hdr :: Word of
+
+  -- Bytes (type 2)
+  0x40 -> readByteArraySmall 0 bs
+  0x41 -> readByteArraySmall 1 bs
+  0x42 -> readByteArraySmall 2 bs
+  0x43 -> readByteArraySmall 3 bs
+  0x44 -> readByteArraySmall 4 bs
+  0x45 -> readByteArraySmall 5 bs
+  0x46 -> readByteArraySmall 6 bs
+  0x47 -> readByteArraySmall 7 bs
+  0x48 -> readByteArraySmall 8 bs
+  0x49 -> readByteArraySmall 9 bs
+  0x4a -> readByteArraySmall 10 bs
+  0x4b -> readByteArraySmall 11 bs
+  0x4c -> readByteArraySmall 12 bs
+  0x4d -> readByteArraySmall 13 bs
+  0x4e -> readByteArraySmall 14 bs
+  0x4f -> readByteArraySmall 15 bs
+  0x50 -> readByteArraySmall 16 bs
+  0x51 -> readByteArraySmall 17 bs
+  0x52 -> readByteArraySmall 18 bs
+  0x53 -> readByteArraySmall 19 bs
+  0x54 -> readByteArraySmall 20 bs
+  0x55 -> readByteArraySmall 21 bs
+  0x56 -> readByteArraySmall 22 bs
+  0x57 -> readByteArraySmall 23 bs
+  0x58 -> readByteArray8  bs
+  0x59 -> readByteArray16 bs
+  0x5a -> readByteArray32 bs
+  0x5b -> readByteArray64 bs
+  _    -> DecodeFailure
+
+
 {-# INLINE tryConsumeString #-}
 tryConsumeString :: Word8 -> ByteString -> DecodedToken (LongToken T.Text)
 tryConsumeString hdr !bs = case fromIntegral hdr :: Word of
@@ -1196,6 +1282,42 @@ tryConsumeString hdr !bs = case fromIntegral hdr :: Word of
   0x79 -> readString16 bs
   0x7a -> readString32 bs
   0x7b -> readString64 bs
+  _    -> DecodeFailure
+
+
+{-# INLINE tryConsumeUtf8ByteArray #-}
+tryConsumeUtf8ByteArray :: Word8 -> ByteString -> DecodedToken (LongToken BA.ByteArray)
+tryConsumeUtf8ByteArray hdr !bs = case fromIntegral hdr :: Word of
+
+  -- Strings (type 3)
+  0x60 -> readUtf8ByteArraySmall 0 bs
+  0x61 -> readUtf8ByteArraySmall 1 bs
+  0x62 -> readUtf8ByteArraySmall 2 bs
+  0x63 -> readUtf8ByteArraySmall 3 bs
+  0x64 -> readUtf8ByteArraySmall 4 bs
+  0x65 -> readUtf8ByteArraySmall 5 bs
+  0x66 -> readUtf8ByteArraySmall 6 bs
+  0x67 -> readUtf8ByteArraySmall 7 bs
+  0x68 -> readUtf8ByteArraySmall 8 bs
+  0x69 -> readUtf8ByteArraySmall 9 bs
+  0x6a -> readUtf8ByteArraySmall 10 bs
+  0x6b -> readUtf8ByteArraySmall 11 bs
+  0x6c -> readUtf8ByteArraySmall 12 bs
+  0x6d -> readUtf8ByteArraySmall 13 bs
+  0x6e -> readUtf8ByteArraySmall 14 bs
+  0x6f -> readUtf8ByteArraySmall 15 bs
+  0x70 -> readUtf8ByteArraySmall 16 bs
+  0x71 -> readUtf8ByteArraySmall 17 bs
+  0x72 -> readUtf8ByteArraySmall 18 bs
+  0x73 -> readUtf8ByteArraySmall 19 bs
+  0x74 -> readUtf8ByteArraySmall 20 bs
+  0x75 -> readUtf8ByteArraySmall 21 bs
+  0x76 -> readUtf8ByteArraySmall 22 bs
+  0x77 -> readUtf8ByteArraySmall 23 bs
+  0x78 -> readUtf8ByteArray8  bs
+  0x79 -> readUtf8ByteArray16 bs
+  0x7a -> readUtf8ByteArray32 bs
+  0x7b -> readUtf8ByteArray64 bs
   _    -> DecodeFailure
 
 
@@ -1784,6 +1906,19 @@ readBytes64 bs
     -- TODO FIXME: int overflow
     n = fromIntegral (eatTailWord64 bs)
 
+readByteArraySmall :: Int -> ByteString -> DecodedToken (LongToken BA.ByteArray)
+readByteArraySmall n bs
+  -- if n <= bound then ok return it all
+  | n + hdrsz <= BS.length bs
+  = DecodedToken (n+hdrsz) $ Fits $
+      BA.fromByteString (BS.unsafeTake n (BS.unsafeDrop hdrsz bs))
+
+  -- if n > bound then slow path, multi-chunk
+  | otherwise
+  = DecodedToken hdrsz $ TooLong n
+  where
+    hdrsz = 1
+
 
 readStringSmall :: Int -> ByteString -> DecodedToken (LongToken T.Text)
 readStringSmall n bs
@@ -1799,13 +1934,64 @@ readStringSmall n bs
   where
     hdrsz = 1
 
+readUtf8ByteArraySmall :: Int -> ByteString -> DecodedToken (LongToken ByteArray)
+readUtf8ByteArraySmall n bs
+  -- if n <= bound then ok return it all
+  | n + hdrsz <= BS.length bs
+  = DecodedToken (n+hdrsz) $ Fits $
+      BA.fromByteString (BS.unsafeTake n (BS.unsafeDrop hdrsz bs))
+      -- TODO FIXME: utf8 validation
+
+  -- if n > bound then slow path, multi-chunk
+  | otherwise
+  = DecodedToken hdrsz $ TooLong n
+  where
+    hdrsz = 1
+
+{-# NOINLINE readByteArray8  #-}
+{-# NOINLINE readByteArray16 #-}
+{-# NOINLINE readByteArray32 #-}
+{-# NOINLINE readByteArray64 #-}
+readByteArray8, readByteArray16,
+ readByteArray32, readByteArray64 :: ByteString -> DecodedToken (LongToken BA.ByteArray)
+readByteArray8  = readBytes8'  BA.fromByteString
+readByteArray16 = readBytes16' BA.fromByteString
+readByteArray32 = readBytes32' BA.fromByteString
+readByteArray64 = readBytes64' BA.fromByteString
+
+{-# NOINLINE readString8  #-}
+{-# NOINLINE readString16 #-}
+{-# NOINLINE readString32 #-}
+{-# NOINLINE readString64 #-}
 readString8, readString16,
  readString32, readString64 :: ByteString -> DecodedToken (LongToken T.Text)
-readString8 bs
+readString8  = readBytes8'  T.decodeUtf8
+readString16 = readBytes16' T.decodeUtf8
+readString32 = readBytes32' T.decodeUtf8
+readString64 = readBytes64' T.decodeUtf8
+
+{-# NOINLINE readUtf8ByteArray8  #-}
+{-# NOINLINE readUtf8ByteArray16 #-}
+{-# NOINLINE readUtf8ByteArray32 #-}
+{-# NOINLINE readUtf8ByteArray64 #-}
+readUtf8ByteArray8, readUtf8ByteArray16,
+ readUtf8ByteArray32, readUtf8ByteArray64 :: ByteString -> DecodedToken (LongToken ByteArray)
+readUtf8ByteArray8  = readBytes8'  BA.fromByteString
+readUtf8ByteArray16 = readBytes16' BA.fromByteString
+readUtf8ByteArray32 = readBytes32' BA.fromByteString
+readUtf8ByteArray64 = readBytes64' BA.fromByteString
+      -- TODO FIXME: utf8 validation
+
+{-# INLINE readBytes8'  #-}
+{-# INLINE readBytes16' #-}
+{-# INLINE readBytes32' #-}
+{-# INLINE readBytes64' #-}
+readBytes8', readBytes16',
+ readBytes32', readBytes64' :: (ByteString -> a) -> ByteString -> DecodedToken (LongToken a)
+readBytes8' decode bs
   | n <= BS.length bs - hdrsz
   = DecodedToken (n+hdrsz) $ Fits $
-      T.decodeUtf8 (BS.unsafeTake n (BS.unsafeDrop hdrsz bs))
-      -- TODO FIXME: utf8 validation
+      decode (BS.unsafeTake n (BS.unsafeDrop hdrsz bs))
 
   -- if n > bound then slow path, multi-chunk
   | otherwise
@@ -1814,11 +2000,10 @@ readString8 bs
     hdrsz = 2
     n = fromIntegral (eatTailWord8 bs)
 
-readString16 bs
+readBytes16' decode bs
   | n <= BS.length bs - hdrsz
   = DecodedToken (n+hdrsz) $ Fits $
-      T.decodeUtf8 (BS.unsafeTake n (BS.unsafeDrop hdrsz bs))
-      -- TODO FIXME: utf8 validation
+      decode (BS.unsafeTake n (BS.unsafeDrop hdrsz bs))
 
   -- if n > bound then slow path, multi-chunk
   | otherwise
@@ -1827,11 +2012,10 @@ readString16 bs
     hdrsz = 3
     n = fromIntegral (eatTailWord16 bs)
 
-readString32 bs
+readBytes32' decode bs
   | n <= BS.length bs - hdrsz
   = DecodedToken (n+hdrsz) $ Fits $
-      T.decodeUtf8 (BS.unsafeTake n (BS.unsafeDrop hdrsz bs))
-      -- TODO FIXME: utf8 validation
+      decode (BS.unsafeTake n (BS.unsafeDrop hdrsz bs))
 
   -- if n > bound then slow path, multi-chunk
   | otherwise
@@ -1841,11 +2025,10 @@ readString32 bs
     -- TODO FIXME: int overflow
     n = fromIntegral (eatTailWord32 bs)
 
-readString64 bs
+readBytes64' decode bs
   | n <= BS.length bs - hdrsz
   = DecodedToken (n+hdrsz) $ Fits $
-      T.decodeUtf8 (BS.unsafeTake n (BS.unsafeDrop hdrsz bs))
-      -- TODO FIXME: utf8 validation
+      decode (BS.unsafeTake n (BS.unsafeDrop hdrsz bs))
 
   -- if n > bound then slow path, multi-chunk
   | otherwise

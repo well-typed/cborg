@@ -43,6 +43,7 @@ module Codec.CBOR.FlatTerm
 import           Codec.CBOR.Encoding (Encoding(..))
 import qualified Codec.CBOR.Encoding as Enc
 import           Codec.CBOR.Decoding as Dec
+import qualified Codec.CBOR.ByteArray as BA
 
 import           Data.Int
 #if defined(ARCH_32bit)
@@ -77,8 +78,10 @@ data TermToken
     | TkInteger                 !Integer
     | TkBytes    {-# UNPACK #-} !ByteString
     | TkBytesBegin
-    | TkString   {-# UNPACK #-} !Text
+    | TkByteArray     {-# UNPACK #-} !BA.ByteArray
+    | TkString        {-# UNPACK #-} !Text
     | TkStringBegin
+    | TkUtf8ByteArray {-# UNPACK #-} !BA.ByteArray
     | TkListLen  {-# UNPACK #-} !Word
     | TkListBegin
     | TkMapLen   {-# UNPACK #-} !Word
@@ -118,8 +121,10 @@ convFlatTerm (Enc.TkInteger  n  ts)
   | otherwise                       = TkInteger   n : convFlatTerm ts
 convFlatTerm (Enc.TkBytes    bs ts) = TkBytes    bs : convFlatTerm ts
 convFlatTerm (Enc.TkBytesBegin  ts) = TkBytesBegin  : convFlatTerm ts
+convFlatTerm (Enc.TkByteArray a ts) = TkByteArray a : convFlatTerm ts
 convFlatTerm (Enc.TkString   st ts) = TkString   st : convFlatTerm ts
 convFlatTerm (Enc.TkStringBegin ts) = TkStringBegin : convFlatTerm ts
+convFlatTerm (Enc.TkUtf8ByteArray a ts) = TkUtf8ByteArray a : convFlatTerm ts
 convFlatTerm (Enc.TkListLen  n  ts) = TkListLen   n : convFlatTerm ts
 convFlatTerm (Enc.TkListBegin   ts) = TkListBegin   : convFlatTerm ts
 convFlatTerm (Enc.TkMapLen   n  ts) = TkMapLen    n : convFlatTerm ts
@@ -218,15 +223,17 @@ fromFlatTerm decoder ft =
     go ts (ConsumeMapLen64  _)                   = unexpected "decodeMapLen64"  ts
 #endif
 
-    go (TkFloat16 f : ts) (ConsumeFloat  k) = k (unF# f) >>= go ts
-    go (TkFloat32 f : ts) (ConsumeFloat  k) = k (unF# f) >>= go ts
-    go (TkFloat16 f : ts) (ConsumeDouble k) = k (unD# (float2Double f)) >>= go ts
-    go (TkFloat32 f : ts) (ConsumeDouble k) = k (unD# (float2Double f)) >>= go ts
-    go (TkFloat64 f : ts) (ConsumeDouble k) = k (unD# f) >>= go ts
-    go (TkBytes  bs : ts) (ConsumeBytes  k) = k bs >>= go ts
-    go (TkString st : ts) (ConsumeString k) = k st >>= go ts
-    go (TkBool    b : ts) (ConsumeBool   k) = k b >>= go ts
-    go (TkSimple  n : ts) (ConsumeSimple k) = k (unW8# n) >>= go ts
+    go (TkFloat16 f        : ts) (ConsumeFloat  k)        = k (unF# f) >>= go ts
+    go (TkFloat32 f        : ts) (ConsumeFloat  k)        = k (unF# f) >>= go ts
+    go (TkFloat16 f        : ts) (ConsumeDouble k)        = k (unD# (float2Double f)) >>= go ts
+    go (TkFloat32 f        : ts) (ConsumeDouble k)        = k (unD# (float2Double f)) >>= go ts
+    go (TkFloat64 f        : ts) (ConsumeDouble k)        = k (unD# f) >>= go ts
+    go (TkBytes  bs        : ts) (ConsumeBytes  k)        = k bs >>= go ts
+    go (TkByteArray st     : ts) (ConsumeByteArray k)     = k st >>= go ts
+    go (TkString st        : ts) (ConsumeString k)        = k st >>= go ts
+    go (TkUtf8ByteArray st : ts) (ConsumeUtf8ByteArray k) = k st >>= go ts
+    go (TkBool    b        : ts) (ConsumeBool   k)        = k b >>= go ts
+    go (TkSimple  n        : ts) (ConsumeSimple k)        = k (unW8# n) >>= go ts
 
     go (TkBytesBegin  : ts) (ConsumeBytesIndef   da) = da >>= go ts
     go (TkStringBegin : ts) (ConsumeStringIndef  da) = da >>= go ts
@@ -269,12 +276,14 @@ fromFlatTerm decoder ft =
     go ts (ConsumeMapLen  _) = unexpected "decodeMapLen"  ts
     go ts (ConsumeTag     _) = unexpected "decodeTag"     ts
 
-    go ts (ConsumeFloat  _) = unexpected "decodeFloat"  ts
-    go ts (ConsumeDouble _) = unexpected "decodeDouble" ts
-    go ts (ConsumeBytes  _) = unexpected "decodeBytes"  ts
-    go ts (ConsumeString _) = unexpected "decodeString" ts
-    go ts (ConsumeBool   _) = unexpected "decodeBool"   ts
-    go ts (ConsumeSimple _) = unexpected "decodeSimple" ts
+    go ts (ConsumeFloat         _) = unexpected "decodeFloat"         ts
+    go ts (ConsumeDouble        _) = unexpected "decodeDouble"        ts
+    go ts (ConsumeBytes         _) = unexpected "decodeBytes"         ts
+    go ts (ConsumeByteArray     _) = unexpected "decodeByteArray"     ts
+    go ts (ConsumeString        _) = unexpected "decodeString"        ts
+    go ts (ConsumeUtf8ByteArray _) = unexpected "decodeUtf8ByteArray" ts
+    go ts (ConsumeBool          _) = unexpected "decodeBool"          ts
+    go ts (ConsumeSimple        _) = unexpected "decodeSimple"        ts
 
 #if defined(ARCH_32bit)
     -- 64bit variants for 32bit machines
@@ -307,8 +316,10 @@ tokenTypeOf (TkInt n)
 tokenTypeOf TkInteger{}     = TypeInteger
 tokenTypeOf TkBytes{}       = TypeBytes
 tokenTypeOf TkBytesBegin{}  = TypeBytesIndef
+tokenTypeOf TkByteArray{}   = TypeBytes
 tokenTypeOf TkString{}      = TypeString
 tokenTypeOf TkStringBegin{} = TypeStringIndef
+tokenTypeOf TkUtf8ByteArray{} = TypeString
 tokenTypeOf TkListLen{}     = TypeListLen
 tokenTypeOf TkListBegin{}   = TypeListLenIndef
 tokenTypeOf TkMapLen{}      = TypeMapLen
@@ -354,29 +365,31 @@ data Loc = TopLevelSingle
 
 -- | Validate an arbitrary @'FlatTerm'@ at an arbitrary location.
 validateTerm :: Loc -> FlatTerm -> Either String FlatTerm
-validateTerm _loc (TkInt       _   : ts) = return ts
-validateTerm _loc (TkInteger   _   : ts) = return ts
-validateTerm _loc (TkBytes     _   : ts) = return ts
-validateTerm  loc (TkBytesBegin    : ts) = validateBytes loc 0 ts
-validateTerm _loc (TkString    _   : ts) = return ts
-validateTerm  loc (TkStringBegin   : ts) = validateString loc 0 ts
-validateTerm  loc (TkListLen   len : ts)
-    | len <= maxInt                      = validateListN loc 0 (fromIntegral len) ts
-    | otherwise                          = Left "list len too long (> max int)"
-validateTerm  loc (TkListBegin     : ts) = validateList  loc 0     ts
-validateTerm  loc (TkMapLen    len : ts)
-    | len <= maxInt                      = validateMapN  loc 0 (fromIntegral len) ts
-    | otherwise                          = Left "map len too long (> max int)"
-validateTerm  loc (TkMapBegin      : ts) = validateMap   loc 0     ts
-validateTerm  loc (TkTag       w   : ts) = validateTerm  (InTagged w loc) ts
-validateTerm _loc (TkBool      _   : ts) = return ts
-validateTerm _loc (TkNull          : ts) = return ts
-validateTerm  loc (TkBreak         : _)  = unexpectedToken TkBreak loc
-validateTerm _loc (TkSimple  _     : ts) = return ts
-validateTerm _loc (TkFloat16 _     : ts) = return ts
-validateTerm _loc (TkFloat32 _     : ts) = return ts
-validateTerm _loc (TkFloat64 _     : ts) = return ts
-validateTerm  loc                    []  = unexpectedEof loc
+validateTerm _loc (TkInt       _     : ts) = return ts
+validateTerm _loc (TkInteger   _     : ts) = return ts
+validateTerm _loc (TkBytes     _     : ts) = return ts
+validateTerm  loc (TkBytesBegin      : ts) = validateBytes loc 0 ts
+validateTerm _loc (TkByteArray _     : ts) = return ts
+validateTerm _loc (TkString    _     : ts) = return ts
+validateTerm  loc (TkStringBegin     : ts) = validateString loc 0 ts
+validateTerm _loc (TkUtf8ByteArray _ : ts) = return ts
+validateTerm  loc (TkListLen   len   : ts)
+    | len <= maxInt                        = validateListN loc 0 (fromIntegral len) ts
+    | otherwise                            = Left "list len too long (> max int)"
+validateTerm  loc (TkListBegin       : ts) = validateList  loc 0     ts
+validateTerm  loc (TkMapLen    len   : ts)
+    | len <= maxInt                        = validateMapN  loc 0 (fromIntegral len) ts
+    | otherwise                            = Left "map len too long (> max int)"
+validateTerm  loc (TkMapBegin        : ts) = validateMap   loc 0     ts
+validateTerm  loc (TkTag       w     : ts) = validateTerm  (InTagged w loc) ts
+validateTerm _loc (TkBool      _     : ts) = return ts
+validateTerm _loc (TkNull            : ts) = return ts
+validateTerm  loc (TkBreak           : _)  = unexpectedToken TkBreak loc
+validateTerm _loc (TkSimple  _       : ts) = return ts
+validateTerm _loc (TkFloat16 _       : ts) = return ts
+validateTerm _loc (TkFloat32 _       : ts) = return ts
+validateTerm _loc (TkFloat64 _       : ts) = return ts
+validateTerm  loc                      []  = unexpectedEof loc
 
 unexpectedToken :: TermToken -> Loc -> Either String a
 unexpectedToken tok loc = Left $ "unexpected token " ++ show tok

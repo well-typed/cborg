@@ -40,12 +40,16 @@ import           Test.Tasty.QuickCheck hiding (Fixed(..))
 import           Test.QuickCheck.Instances ()
 import           Test.Tasty.HUnit
 import           GHC.Generics  (Generic)
-import qualified Data.Text            as Text
-import qualified Data.Text.Lazy       as Text.Lazy
-import qualified Data.ByteString      as BS
-import qualified Data.ByteString.Lazy as BS.Lazy
+import qualified Data.Text                      as Text
+import qualified Data.Text.Encoding             as Text
+import qualified Data.Text.Lazy                 as Text.Lazy
+import qualified Data.ByteString                as BS
+import qualified Data.ByteString.Lazy           as BS.Lazy
+import qualified Data.ByteString.Short          as BSS
+import qualified Data.ByteString.Short.Internal as BSS
 import           System.Exit (ExitCode(..))
 
+import qualified Codec.CBOR.ByteArray       as CBOR.BA
 import           Codec.CBOR.FlatTerm (toFlatTerm, fromFlatTerm)
 import           Codec.Serialise
 import           Codec.Serialise.Encoding
@@ -65,6 +69,10 @@ import qualified Data.Vector.Unboxed        as Vector.Unboxed
 import qualified Data.Vector.Storable       as Vector.Storable
 import qualified Data.Vector.Primitive      as Vector.Primitive
 import           GHC.Fingerprint.Type (Fingerprint(..))
+import           Data.Primitive.ByteArray   as BA
+
+import           Control.Monad (zipWithM_)
+import           Control.Monad.ST
 
 import           Tests.Orphanage()
 
@@ -214,6 +222,8 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T Text.Lazy.Text)
       , mkTest (T :: T BS.ByteString)
       , mkTest (T :: T BS.Lazy.ByteString)
+      , mkTest (T :: T BytesByteArray)
+      , mkTest (T :: T Utf8ByteArray)
       , mkTest (T :: T [Int])
       , mkTest (T :: T UTCTime)
       , mkTest (T :: T Version)
@@ -366,3 +376,41 @@ instance Arbitrary a => Arbitrary (List a) where
       where
         cnv :: [a] -> List a
         cnv = foldr Cons Nil
+
+newtype BytesByteArray = BytesBA ByteArray
+
+instance Eq BytesByteArray where
+    BytesBA x == BytesBA y = CBOR.BA.BA x == CBOR.BA.BA y
+
+instance Show BytesByteArray where
+    show (BytesBA ba) = show $ CBOR.BA.BA ba
+
+instance Serialise BytesByteArray where
+    encode (BytesBA ba) = encodeByteArray ba
+    decode = BytesBA <$> decodeByteArray
+
+instance Arbitrary BytesByteArray where
+    arbitrary = do
+        xs <- arbitrary :: Gen [Word8]
+        let n = length xs
+        return $ runST $ do
+            marr <- newByteArray n
+            zipWithM_ (writeByteArray marr) [0..n] xs
+            BytesBA <$> unsafeFreezeByteArray marr
+
+newtype Utf8ByteArray = Utf8BA ByteArray
+
+instance Eq Utf8ByteArray where
+    Utf8BA x == Utf8BA y = CBOR.BA.BA x == CBOR.BA.BA y
+
+instance Show Utf8ByteArray where
+    show (Utf8BA ba) = show $ CBOR.BA.BA ba
+
+instance Serialise Utf8ByteArray where
+    encode (Utf8BA ba) = encodeUtf8ByteArray ba
+    decode = Utf8BA <$> decodeUtf8ByteArray
+
+instance Arbitrary Utf8ByteArray where
+    arbitrary = do
+        BSS.SBS ba <- BSS.toShort . Text.encodeUtf8 <$> arbitrary
+        return $ Utf8BA $ BA.ByteArray ba

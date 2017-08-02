@@ -31,8 +31,10 @@ module Codec.CBOR.Encoding
   , encodeInteger            -- :: Integer -> Encoding
   , encodeBytes              -- :: B.ByteString -> Encoding
   , encodeBytesIndef         -- :: Encoding
+  , encodeByteArray          -- :: ByteArray -> Encoding
   , encodeString             -- :: T.Text -> Encoding
   , encodeStringIndef        -- :: Encoding
+  , encodeUtf8ByteArray      -- :: ByteArray -> Encoding
   , encodeListLen            -- :: Word -> Encoding
   , encodeListLenIndef       -- :: Encoding
   , encodeMapLen             -- :: Word -> Encoding
@@ -57,6 +59,9 @@ import           Data.Semigroup
 
 import qualified Data.ByteString as B
 import qualified Data.Text       as T
+
+import           Data.Primitive.ByteArray (ByteArray)
+import qualified Codec.CBOR.ByteArray as BA
 
 import           Prelude         hiding (encodeFloat)
 
@@ -95,10 +100,12 @@ data Tokens =
     | TkInt64    {-# UNPACK #-} !Int64        Tokens
 
     -- Bytes and string (type 2,3)
-    | TkBytes    {-# UNPACK #-} !B.ByteString Tokens
-    | TkBytesBegin                            Tokens
-    | TkString   {-# UNPACK #-} !T.Text       Tokens
-    | TkStringBegin                           Tokens
+    | TkBytes         {-# UNPACK #-} !B.ByteString Tokens
+    | TkBytesBegin                                 Tokens
+    | TkByteArray     {-# UNPACK #-} !BA.ByteArray Tokens
+    | TkString        {-# UNPACK #-} !T.Text       Tokens
+    | TkUtf8ByteArray {-# UNPACK #-} !BA.ByteArray Tokens
+    | TkStringBegin                                Tokens
 
     -- Structures (type 4,5)
     | TkListLen  {-# UNPACK #-} !Word         Tokens
@@ -214,6 +221,12 @@ encodeInteger n = Encoding (TkInteger n)
 encodeBytes :: B.ByteString -> Encoding
 encodeBytes = Encoding . TkBytes
 
+-- | Encode a bytestring in a flattened format.
+--
+-- @since 0.2.0.0
+encodeByteArray :: ByteArray -> Encoding
+encodeByteArray = Encoding . TkByteArray . BA.BA
+
 -- | Encode a token specifying the beginning of a string of bytes of
 -- indefinite length. In reality, this specifies a stream of many
 -- occurrences of `encodeBytes`, each specifying a single chunk of the
@@ -235,6 +248,12 @@ encodeString = Encoding . TkString
 -- @since 0.2.0.0
 encodeStringIndef :: Encoding
 encodeStringIndef = Encoding TkStringBegin
+
+-- | Encode a UTF-8 string in a flattened format.
+--
+-- @since 0.2.0.0
+encodeUtf8ByteArray :: ByteArray -> Encoding
+encodeUtf8ByteArray = Encoding . TkUtf8ByteArray . BA.BA
 
 -- | Encode the length of a list, used to indicate that the following
 -- tokens represent the list values.

@@ -60,6 +60,7 @@ library
     Codec.CBOR.Read
     Codec.CBOR.Write
     Codec.CBOR.Term
+    Codec.CBOR.ByteArray
 
   other-extensions:
     CPP, ForeignFunctionInterface, MagicHash,

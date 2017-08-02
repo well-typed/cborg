@@ -50,6 +50,7 @@ import           GHC.Word
 #endif
 #endif
 
+import qualified Codec.CBOR.ByteArray                  as BA
 import           Codec.CBOR.Encoding
 import           Codec.CBOR.Magic
 
@@ -93,7 +94,9 @@ toBuilder =
 
               TkBytes    x vs' -> BI.runBuilderWith (bytesMP  x) (step vs' k) (BI.BufferRange op ope0)
               TkBytesBegin vs' -> PI.runB bytesBeginMP  () op >>= go vs'
+              TkByteArray x vs' -> BI.runBuilderWith (byteArrayMP x) (step vs' k) (BI.BufferRange op ope0)
 
+              TkUtf8ByteArray x vs' -> BI.runBuilderWith (utf8ByteArrayMP x) (step vs' k) (BI.BufferRange op ope0)
               TkString   x vs' -> BI.runBuilderWith (stringMP x) (step vs' k) (BI.BufferRange op ope0)
               TkStringBegin vs'-> PI.runB stringBeginMP () op >>= go vs'
 
@@ -351,6 +354,9 @@ bytesLenMP =
     condB (<= 0xffff)     (fromIntegral >$< withConstHeader 0x59 P.word16BE) $
     condB (<= 0xffffffff) (fromIntegral >$< withConstHeader 0x5a P.word32BE) $
                           (fromIntegral >$< withConstHeader 0x5b P.word64BE)
+byteArrayMP :: BA.ByteArray -> B.Builder
+byteArrayMP ba =
+    P.primBounded bytesLenMP (fromIntegral $ BA.sizeofByteArray ba) <> BA.toBuilder ba
 
 bytesBeginMP :: P.BoundedPrim ()
 bytesBeginMP = constHeader 0x5f
@@ -387,6 +393,10 @@ stringLenMP =
 
 stringBeginMP :: P.BoundedPrim ()
 stringBeginMP = constHeader 0x7f
+
+utf8ByteArrayMP :: BA.ByteArray -> B.Builder
+utf8ByteArrayMP t =
+    P.primBounded stringLenMP (fromIntegral $ BA.sizeofByteArray t) <> BA.toBuilder t
 
 {-
    Major type 4:  an array of data items.  Arrays are also called lists,
