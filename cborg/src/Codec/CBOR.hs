@@ -28,13 +28,16 @@ import Codec.CBOR.Term     (Term, encodeTerm, decodeTerm)
 The @cborg@ library is a low-level parsing and encoding library for the
 Compact Binary Object Representation (CBOR) defined in RFC 7049. CBOR is a
 language-agnostic, extensible, and size- and computation-efficient encoding
-for arbitrary data, with bijections to ubiquitous JSON and well-defined
-canonical representation.
+for arbitrary data, with a well-defined bijection to the ubiquitous JSON format
+and a precisely specified canonical form.
 
 Note, however, that @cborg@ does not itself aim to be a serialisation
-library; it merely serves as the substrate on which one might be built. See
-the [serialise](/package/serialise) library if you are looking for convenient
-serialisation of Haskell values.
+library; it merely serves as the substrate on which such a library might be
+built. See the [serialise](/package/serialise) library if you are looking for
+convenient serialisation of Haskell values.
+
+Instead, @cborg@ targets cases where precise control over the CBOR object
+structure is needed such as when working with externally-specified CBOR formats.
 
 -}
 
