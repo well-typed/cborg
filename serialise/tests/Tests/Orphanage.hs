@@ -24,6 +24,7 @@ import           Test.QuickCheck.Gen
 import           Test.QuickCheck.Arbitrary
 
 import qualified Data.Vector.Primitive      as Vector.Primitive
+import qualified Data.ByteString.Short      as BSS
 
 --------------------------------------------------------------------------------
 -- QuickCheck Orphans
@@ -187,6 +188,9 @@ deriving instance Typeable Fingerprint
 deriving instance Show a => Show (Const a b)
 deriving instance Eq a   => Eq   (Const a b)
 #endif
+
+instance Arbitrary BSS.ShortByteString where
+  arbitrary = BSS.pack <$> arbitrary
 
 instance (Vector.Primitive.Prim a, Arbitrary a
          ) => Arbitrary (Vector.Primitive.Vector a) where

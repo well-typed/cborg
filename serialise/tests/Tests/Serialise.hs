@@ -222,6 +222,7 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T Text.Lazy.Text)
       , mkTest (T :: T BS.ByteString)
       , mkTest (T :: T BS.Lazy.ByteString)
+      , mkTest (T :: T BSS.ShortByteString)
       , mkTest (T :: T BytesByteArray)
       , mkTest (T :: T Utf8ByteArray)
       , mkTest (T :: T [Int])

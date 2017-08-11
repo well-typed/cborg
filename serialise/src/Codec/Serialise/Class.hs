@@ -54,6 +54,7 @@ import qualified Data.List.NonEmpty                  as NonEmpty
 
 import qualified Data.Foldable                       as Foldable
 import qualified Data.ByteString                     as BS
+import qualified Data.ByteString.Short.Internal      as BSS
 import qualified Data.Text                           as Text
 
 -- TODO FIXME: more instances
@@ -68,6 +69,7 @@ import qualified Data.IntMap                         as IntMap
 import qualified Data.HashSet                        as HashSet
 import qualified Data.HashMap.Strict                 as HashMap
 import qualified Data.Tree                           as Tree
+import qualified Data.Primitive.ByteArray            as BA
 import qualified Data.Vector                         as Vector
 import qualified Data.Vector.Unboxed                 as Vector.Unboxed
 import qualified Data.Vector.Storable                as Vector.Storable
@@ -324,6 +326,13 @@ instance Serialise Text.Text where
 instance Serialise BS.ByteString where
     encode = encodeBytes
     decode = decodeBytes
+
+-- | @since 0.2.0.0
+instance Serialise BSS.ShortByteString where
+    encode (BSS.SBS ba) = encodeByteArray $ BA.ByteArray ba
+    decode = do
+        BA.ByteArray ba <- decodeByteArray
+        return $ BSS.SBS ba
 
 encodeChunked :: Serialise c
               => Encoding
