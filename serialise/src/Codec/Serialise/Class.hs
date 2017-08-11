@@ -54,6 +54,7 @@ import qualified Data.List.NonEmpty                  as NonEmpty
 
 import qualified Data.Foldable                       as Foldable
 import qualified Data.ByteString                     as BS
+import qualified Data.ByteString.Short.Internal      as BSS
 import qualified Data.Text                           as Text
 
 -- TODO FIXME: more instances
@@ -68,6 +69,7 @@ import qualified Data.IntMap                         as IntMap
 import qualified Data.HashSet                        as HashSet
 import qualified Data.HashMap.Strict                 as HashMap
 import qualified Data.Tree                           as Tree
+import qualified Data.Primitive.ByteArray            as Prim
 import qualified Data.Vector                         as Vector
 import qualified Data.Vector.Unboxed                 as Vector.Unboxed
 import qualified Data.Vector.Storable                as Vector.Storable
@@ -105,6 +107,8 @@ import           GHC.Generics
 import           Codec.CBOR.Decoding
 import           Codec.CBOR.Encoding
 import           Codec.CBOR.Term
+import qualified Codec.CBOR.ByteArray                as BA
+import qualified Codec.CBOR.ByteArray.Sliced         as BAS
 
 
 --------------------------------------------------------------------------------
@@ -324,6 +328,14 @@ instance Serialise Text.Text where
 instance Serialise BS.ByteString where
     encode = encodeBytes
     decode = decodeBytes
+
+-- | @since 0.2.0.0
+instance Serialise BSS.ShortByteString where
+    encode sbs@(BSS.SBS ba) =
+        encodeByteArray $ BAS.SBA (Prim.ByteArray ba) 0 (BSS.length sbs)
+    decode = do
+        BA.BA (Prim.ByteArray ba) <- decodeByteArray
+        return $ BSS.SBS ba
 
 encodeChunked :: Serialise c
               => Encoding
