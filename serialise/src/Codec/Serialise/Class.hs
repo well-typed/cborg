@@ -1242,7 +1242,7 @@ instance Typeable a => Serialise (TypeRep (a :: k)) where
         Just HRefl -> pure rep
         Nothing    -> fail $ unlines
                       [ "Codec.CBOR.Class.decode(TypeRep): Type mismatch"
-                      , "    Deserialized type: " ++ show rep
+                      , "    Deserialised type: " ++ show rep
                       , "    Expected type:     " ++ show expected
                       ]
     where expected = typeRep :: TypeRep a
