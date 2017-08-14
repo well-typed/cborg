@@ -10,6 +10,7 @@ import qualified Tests.Reference as Reference
 import qualified Tests.Serialise as Serialise
 import qualified Tests.Negative  as Negative
 import qualified Tests.Deriving  as Deriving
+import qualified Tests.GeneralisedUTF8  as GeneralisedUTF8
 
 main :: IO ()
 main = Reference.loadTestCases >>= \tcs -> defaultMain $
@@ -22,4 +23,5 @@ main = Reference.loadTestCases >>= \tcs -> defaultMain $
     , IO.testTree
     , Regress.testTree
     , Deriving.testTree
+    , GeneralisedUTF8.testTree
     ]
