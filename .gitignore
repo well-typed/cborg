@@ -1,9 +1,9 @@
 *~
-/dist*
+dist*
 /.cabal-sandbox
 /cabal.sandbox.config
 /cabal.project.local
-/.stack-work
+.stack-work
 /bench/data
 *.o
 *.hi
@@ -13,5 +13,5 @@
 *.html
 *#
 .#*
-/.hpc
+.hpc
 *.tix
