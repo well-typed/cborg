@@ -518,15 +518,22 @@ nullMP = constHeader 0xf6
 undefMP :: P.BoundedPrim ()
 undefMP = constHeader 0xf7
 
+-- Canonical encoding of a NaN as per RFC 7049, section 3.9.
+canonicalNaN :: PI.BoundedPrim a
+canonicalNaN = P.liftFixedToBounded $ const (0xf9, (0x7e, 0x00))
+                                   >$< P.word8 >*< P.word8 >*< P.word8
+
 halfMP :: P.BoundedPrim Float
-halfMP = floatToWord16 >$<
-         withConstHeader 0xf9 P.word16BE
+halfMP = condB isNaN canonicalNaN
+                     (floatToWord16 >$< withConstHeader 0xf9 P.word16BE)
 
 floatMP :: P.BoundedPrim Float
-floatMP = withConstHeader 0xfa P.floatBE
+floatMP = condB isNaN canonicalNaN
+                      (withConstHeader 0xfa P.floatBE)
 
 doubleMP :: P.BoundedPrim Double
-doubleMP = withConstHeader 0xfb P.doubleBE
+doubleMP = condB isNaN canonicalNaN
+                       (withConstHeader 0xfb P.doubleBE)
 
 breakMP :: P.BoundedPrim ()
 breakMP = constHeader 0xff

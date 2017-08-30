@@ -68,7 +68,10 @@ module Codec.CBOR.Decoding
   , decodeBool          -- :: Decoder s Bool
   , decodeNull          -- :: Decoder s ()
   , decodeSimple        -- :: Decoder s Word8
-  , decodeSimpleCanonical -- :: Decoder s Word8
+  , decodeFloat16Canonical -- :: Decoder s Float
+  , decodeFloatCanonical   -- :: Decoder s Float
+  , decodeDoubleCanonical  -- :: Decoder s Double
+  , decodeSimpleCanonical  -- :: Decoder s Word8
 
   -- ** Specialised Read input token operations
   , decodeWordOf        -- :: Word -> Decoder s ()
@@ -178,7 +181,10 @@ data DecodeAction s a
     | ConsumeBool    (Bool       -> ST s (DecodeAction s a))
     | ConsumeSimple  (Word#      -> ST s (DecodeAction s a))
 
-    | ConsumeSimpleCanonical (Word# -> ST s (DecodeAction s a))
+    | ConsumeFloat16Canonical (Float#  -> ST s (DecodeAction s a))
+    | ConsumeFloatCanonical   (Float#  -> ST s (DecodeAction s a))
+    | ConsumeDoubleCanonical  (Double# -> ST s (DecodeAction s a))
+    | ConsumeSimpleCanonical  (Word#   -> ST s (DecodeAction s a))
 
     | ConsumeBytesIndef   (ST s (DecodeAction s a))
     | ConsumeStringIndef  (ST s (DecodeAction s a))
@@ -633,6 +639,27 @@ decodeNull = Decoder (\k -> return (ConsumeNull (k ())))
 decodeSimple :: Decoder s Word8
 decodeSimple = Decoder (\k -> return (ConsumeSimple (\w# -> k (W8# w#))))
 {-# INLINE decodeSimple #-}
+
+-- | Decode canonical representation of a half-precision @'Float'@.
+--
+-- @since 0.2.0.0
+decodeFloat16Canonical :: Decoder s Float
+decodeFloat16Canonical = Decoder (\k -> return (ConsumeFloat16Canonical (\f# -> k (F# f#))))
+{-# INLINE decodeFloat16Canonical #-}
+
+-- | Decode canonical representation of a @'Float'@.
+--
+-- @since 0.2.0.0
+decodeFloatCanonical :: Decoder s Float
+decodeFloatCanonical = Decoder (\k -> return (ConsumeFloatCanonical (\f# -> k (F# f#))))
+{-# INLINE decodeFloatCanonical #-}
+
+-- | Decode canonical representation of a @'Double'@.
+--
+-- @since 0.2.0.0
+decodeDoubleCanonical :: Decoder s Double
+decodeDoubleCanonical = Decoder (\k -> return (ConsumeDoubleCanonical (\f# -> k (D# f#))))
+{-# INLINE decodeDoubleCanonical #-}
 
 -- | Decode canonical representation of a 'simple' CBOR value and give back a
 -- @'Word8'@. You probably don't ever need to use this.

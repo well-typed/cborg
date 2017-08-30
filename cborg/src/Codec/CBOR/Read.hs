@@ -2,6 +2,7 @@
 {-# LANGUAGE MagicHash          #-}
 {-# LANGUAGE BangPatterns       #-}
 {-# LANGUAGE RankNTypes         #-}
+{-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 
 #if __GLASGOW_HASKELL__ > 706
@@ -550,6 +551,27 @@ go_fast !bs da@(ConsumeSimple k) =
       DecodeFailure           -> go_fast_end bs da
       DecodedToken sz (W# w#) -> k w# >>= go_fast (BS.unsafeDrop sz bs)
 
+go_fast !bs da@(ConsumeFloat16Canonical k) =
+    case tryConsumeFloat (BS.unsafeHead bs) bs of
+      DecodeFailure     -> go_fast_end bs da
+      DecodedToken sz (F# f#)
+        | isFloat16Canonical sz -> k f# >>= go_fast (BS.unsafeDrop sz bs)
+        | otherwise             -> go_fast_end bs da
+
+go_fast !bs da@(ConsumeFloatCanonical k) =
+    case tryConsumeFloat (BS.unsafeHead bs) bs of
+      DecodeFailure     -> go_fast_end bs da
+      DecodedToken sz f@(F# f#)
+        | isFloatCanonical sz bs f -> k f# >>= go_fast (BS.unsafeDrop sz bs)
+        | otherwise                -> go_fast_end bs da
+
+go_fast !bs da@(ConsumeDoubleCanonical k) =
+    case tryConsumeDouble (BS.unsafeHead bs) bs of
+      DecodeFailure     -> go_fast_end bs da
+      DecodedToken sz f@(D# f#)
+        | isDoubleCanonical sz bs f -> k f# >>= go_fast (BS.unsafeDrop sz bs)
+        | otherwise                 -> go_fast_end bs da
+
 go_fast !bs da@(ConsumeSimpleCanonical k) =
     case tryConsumeSimple (BS.unsafeHead bs) bs of
       DecodeFailure           -> go_fast_end bs da
@@ -911,6 +933,27 @@ go_fast_end !bs (ConsumeSimple k) =
       DecodeFailure           -> return $! SlowFail bs "expected simple"
       DecodedToken sz (W# w#) -> k w# >>= go_fast_end (BS.unsafeDrop sz bs)
 
+go_fast_end !bs (ConsumeFloat16Canonical k) =
+    case tryConsumeFloat (BS.unsafeHead bs) bs of
+      DecodeFailure     -> return $! SlowFail bs "expected float"
+      DecodedToken sz (F# f#)
+        | isFloat16Canonical sz -> k f# >>= go_fast_end (BS.unsafeDrop sz bs)
+        | otherwise             -> return $! SlowFail bs "non-canonical float16"
+
+go_fast_end !bs (ConsumeFloatCanonical k) =
+    case tryConsumeFloat (BS.unsafeHead bs) bs of
+      DecodeFailure     -> return $! SlowFail bs "expected float"
+      DecodedToken sz f@(F# f#)
+        | isFloatCanonical sz bs f -> k f# >>= go_fast_end (BS.unsafeDrop sz bs)
+        | otherwise                -> return $! SlowFail bs "non-canonical float"
+
+go_fast_end !bs (ConsumeDoubleCanonical k) =
+    case tryConsumeDouble (BS.unsafeHead bs) bs of
+      DecodeFailure           -> return $! SlowFail bs "expected double"
+      DecodedToken sz f@(D# f#)
+        | isDoubleCanonical sz bs f -> k f# >>= go_fast_end (BS.unsafeDrop sz bs)
+        | otherwise                 -> return $! SlowFail bs "non-canonical double"
+
 go_fast_end !bs (ConsumeSimpleCanonical k) =
     case tryConsumeSimple (BS.unsafeHead bs) bs of
       DecodeFailure           -> return $! SlowFail bs "expected simple"
@@ -1203,6 +1246,24 @@ data DecodedToken a = DecodedToken !Int !a | DecodeFailure
 
 data LongToken a = Fits !a | TooLong !Int
   deriving Show
+
+{-# INLINE isFloat16Canonical #-}
+isFloat16Canonical :: Int -> Bool
+isFloat16Canonical sz
+  | sz == 3   = True
+  | otherwise = False
+
+{-# INLINE isFloatCanonical #-}
+isFloatCanonical :: Int -> BS.ByteString -> Float -> Bool
+isFloatCanonical sz bs f
+  | isNaN f   = sz == 3 && "\xf9\x7e\x00" `BS.isPrefixOf` bs
+  | otherwise = sz == 5
+
+{-# INLINE isDoubleCanonical #-}
+isDoubleCanonical :: Int -> BS.ByteString -> Double -> Bool
+isDoubleCanonical sz bs f
+  | isNaN f   = sz == 3 && "\xf9\x7e\x00" `BS.isPrefixOf` bs
+  | otherwise = sz == 9
 
 {-# INLINE isWordCanonical #-}
 isWordCanonical :: Int -> Word# -> Bool

@@ -8,7 +8,7 @@ import Data.Word
 import Test.QuickCheck
 
 import Codec.CBOR.Decoding
-import Codec.CBOR.Encoding
+import Codec.CBOR.Encoding as E
 import Codec.Serialise.Class
 
 newtype Canonical a = Canonical { fromCanonical :: a }
@@ -53,3 +53,11 @@ instance Serialise (Canonical Int32) where
 instance Serialise (Canonical Int64) where
   encode = encodeInt64 . fromCanonical
   decode = Canonical <$> decodeInt64Canonical
+
+instance Serialise (Canonical Float) where
+    encode = E.encodeFloat . fromCanonical
+    decode = Canonical <$> decodeFloatCanonical
+
+instance Serialise (Canonical Double) where
+    encode = encodeDouble . fromCanonical
+    decode = Canonical <$> decodeDoubleCanonical
