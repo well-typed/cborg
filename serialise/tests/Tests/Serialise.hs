@@ -67,6 +67,7 @@ import qualified Data.Vector.Primitive      as Vector.Primitive
 import           GHC.Fingerprint.Type (Fingerprint(..))
 
 import           Tests.Orphanage()
+import           Tests.Serialise.Canonical
 
 --------------------------------------------------------------------------------
 -- Tests and properties
@@ -152,6 +153,16 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T Word16)
       , mkTest (T :: T Word32)
       , mkTest (T :: T Word64)
+      , mkTest (T :: T (Canonical Int))
+      , mkTest (T :: T (Canonical Int8))
+      , mkTest (T :: T (Canonical Int16))
+      , mkTest (T :: T (Canonical Int32))
+      , mkTest (T :: T (Canonical Int64))
+      , mkTest (T :: T (Canonical Word))
+      , mkTest (T :: T (Canonical Word8))
+      , mkTest (T :: T (Canonical Word16))
+      , mkTest (T :: T (Canonical Word32))
+      , mkTest (T :: T (Canonical Word64))
       , mkTest (T :: T Integer)
       , mkTest (T :: T Float)
       , mkTest (T :: T Double)
