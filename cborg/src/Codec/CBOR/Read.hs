@@ -23,8 +23,9 @@
 -- back into ordinary values.
 --
 module Codec.CBOR.Read
-  ( deserialiseFromBytes   -- :: Decoder a -> ByteString -> Either String (ByteString, a)
-  , deserialiseIncremental -- :: Decoder a -> ST s (IDecode s a)
+  ( deserialiseFromBytes         -- :: Decoder a -> ByteString -> Either String (ByteString, a)
+  , deserialiseFromBytesWithSize -- :: Decoder a -> ByteString -> Either String (ByteString, ByteOffset, a)
+  , deserialiseIncremental       -- :: Decoder a -> ST s (IDecode s a)
   , DeserialiseFailure(..)
   , IDecode(..)
   , ByteOffset
@@ -110,22 +111,34 @@ deserialiseFromBytes :: (forall s. Decoder s a)
                      -> LBS.ByteString
                      -> Either DeserialiseFailure (LBS.ByteString, a)
 deserialiseFromBytes d lbs =
-    runIDecode (deserialiseIncremental d) lbs
+    fmap f $ runIDecode (deserialiseIncremental d) lbs
+  where f (rest, _, x) = (rest, x)
 
+-- | Given a @'Decoder'@ and some @'LBS.ByteString'@ representing
+-- an encoded CBOR value, return @'Either'@ the decoded CBOR value
+-- or an error. In addition to the decoded value return any remaining input
+-- content and the number of bytes consumed.
+--
+-- @since 0.2.0.0
+deserialiseFromBytesWithSize :: (forall s. Decoder s a)
+                             -> LBS.ByteString
+                             -> Either DeserialiseFailure (LBS.ByteString, ByteOffset, a)
+deserialiseFromBytesWithSize d lbs =
+    runIDecode (deserialiseIncremental d) lbs
 
 runIDecode :: (forall s. ST s (IDecode s a))
            -> LBS.ByteString
-           -> Either DeserialiseFailure (LBS.ByteString, a)
+           -> Either DeserialiseFailure (LBS.ByteString, ByteOffset, a)
 runIDecode d lbs =
     runST (go lbs =<< d)
   where
     go :: LBS.ByteString
        -> IDecode s a
-       -> ST s (Either DeserialiseFailure (LBS.ByteString, a))
-    go  _                  (Fail _ _ err) = return (Left err)
-    go  lbs'               (Done bs _ x)  = return (Right (LBS.Chunk bs lbs', x))
-    go  LBS.Empty          (Partial  k)   = k Nothing   >>= go LBS.Empty
-    go (LBS.Chunk bs lbs') (Partial  k)   = k (Just bs) >>= go lbs'
+       -> ST s (Either DeserialiseFailure (LBS.ByteString, ByteOffset, a))
+    go  _                  (Fail _ _ err)  = return (Left err)
+    go  lbs'               (Done bs off x) = return (Right (LBS.Chunk bs lbs', off, x))
+    go  LBS.Empty          (Partial  k)    = k Nothing   >>= go LBS.Empty
+    go (LBS.Chunk bs lbs') (Partial  k)    = k (Just bs) >>= go lbs'
 
 -- | Run a @'Decoder'@ incrementally, returning a continuation
 -- representing the result of the incremental decode.
