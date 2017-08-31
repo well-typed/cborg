@@ -516,8 +516,8 @@ go_fast !bs da@(ConsumeTag64Canonical k) =
 
 go_fast !bs da@(ConsumeInteger k) =
     case tryConsumeInteger (BS.unsafeHead bs) bs of
-      DecodedToken sz (BigIntToken n) -> k n >>= go_fast (BS.unsafeDrop sz bs)
-      _                               -> go_fast_end bs da
+      DecodedToken sz (BigIntToken _ n) -> k n >>= go_fast (BS.unsafeDrop sz bs)
+      _                                 -> go_fast_end bs da
 
 go_fast !bs da@(ConsumeFloat k) =
     case tryConsumeFloat (BS.unsafeHead bs) bs of
@@ -550,6 +550,12 @@ go_fast !bs da@(ConsumeSimple k) =
     case tryConsumeSimple (BS.unsafeHead bs) bs of
       DecodeFailure           -> go_fast_end bs da
       DecodedToken sz (W# w#) -> k w# >>= go_fast (BS.unsafeDrop sz bs)
+
+go_fast !bs da@(ConsumeIntegerCanonical k) =
+    case tryConsumeInteger (BS.unsafeHead bs) bs of
+      DecodedToken sz (BigIntToken True n) -> k n >>= go_fast (BS.unsafeDrop sz bs)
+      _                                    -> go_fast_end bs da
+
 
 go_fast !bs da@(ConsumeFloat16Canonical k) =
     case tryConsumeFloat (BS.unsafeHead bs) bs of
@@ -895,7 +901,7 @@ go_fast_end !bs (ConsumeTag64 k) =
 go_fast_end !bs (ConsumeInteger k) =
     case tryConsumeInteger (BS.unsafeHead bs) bs of
       DecodeFailure                         -> return $! SlowFail bs "expected integer"
-      DecodedToken sz (BigIntToken n)       -> k n >>= go_fast_end (BS.unsafeDrop sz bs)
+      DecodedToken sz (BigIntToken _ n)     -> k n >>= go_fast_end (BS.unsafeDrop sz bs)
       DecodedToken sz (BigUIntNeedBody len) -> return $! SlowConsumeTokenBytes (BS.unsafeDrop sz bs) (adjustContBigUIntNeedBody k) len
       DecodedToken sz (BigNIntNeedBody len) -> return $! SlowConsumeTokenBytes (BS.unsafeDrop sz bs) (adjustContBigNIntNeedBody k) len
       DecodedToken sz  BigUIntNeedHeader    -> return $! SlowDecodeAction      (BS.unsafeDrop sz bs) (adjustContBigUIntNeedHeader k)
@@ -932,6 +938,17 @@ go_fast_end !bs (ConsumeSimple k) =
     case tryConsumeSimple (BS.unsafeHead bs) bs of
       DecodeFailure           -> return $! SlowFail bs "expected simple"
       DecodedToken sz (W# w#) -> k w# >>= go_fast_end (BS.unsafeDrop sz bs)
+
+go_fast_end !bs (ConsumeIntegerCanonical k) =
+    case tryConsumeInteger (BS.unsafeHead bs) bs of
+      DecodeFailure                         -> return $! SlowFail bs "expected integer"
+      DecodedToken sz (BigIntToken canonical n)
+        | canonical -> k n >>= go_fast_end (BS.unsafeDrop sz bs)
+        | otherwise -> return $! SlowFail bs "non-canonical integer"
+      DecodedToken sz (BigUIntNeedBody len) -> return $! SlowConsumeTokenBytes (BS.unsafeDrop sz bs) (adjustContBigUIntNeedBody k) len
+      DecodedToken sz (BigNIntNeedBody len) -> return $! SlowConsumeTokenBytes (BS.unsafeDrop sz bs) (adjustContBigNIntNeedBody k) len
+      DecodedToken sz  BigUIntNeedHeader    -> return $! SlowDecodeAction      (BS.unsafeDrop sz bs) (adjustContBigUIntNeedHeader k)
+      DecodedToken sz  BigNIntNeedHeader    -> return $! SlowDecodeAction      (BS.unsafeDrop sz bs) (adjustContBigNIntNeedHeader k)
 
 go_fast_end !bs (ConsumeFloat16Canonical k) =
     case tryConsumeFloat (BS.unsafeHead bs) bs of
@@ -1446,64 +1463,89 @@ tryConsumeInteger :: Word8 -> ByteString -> DecodedToken (BigIntToken Integer)
 tryConsumeInteger hdr !bs = case fromIntegral hdr :: Word of
 
   -- Positive integers (type 0)
-  0x00 -> DecodedToken 1 (BigIntToken 0)
-  0x01 -> DecodedToken 1 (BigIntToken 1)
-  0x02 -> DecodedToken 1 (BigIntToken 2)
-  0x03 -> DecodedToken 1 (BigIntToken 3)
-  0x04 -> DecodedToken 1 (BigIntToken 4)
-  0x05 -> DecodedToken 1 (BigIntToken 5)
-  0x06 -> DecodedToken 1 (BigIntToken 6)
-  0x07 -> DecodedToken 1 (BigIntToken 7)
-  0x08 -> DecodedToken 1 (BigIntToken 8)
-  0x09 -> DecodedToken 1 (BigIntToken 9)
-  0x0a -> DecodedToken 1 (BigIntToken 10)
-  0x0b -> DecodedToken 1 (BigIntToken 11)
-  0x0c -> DecodedToken 1 (BigIntToken 12)
-  0x0d -> DecodedToken 1 (BigIntToken 13)
-  0x0e -> DecodedToken 1 (BigIntToken 14)
-  0x0f -> DecodedToken 1 (BigIntToken 15)
-  0x10 -> DecodedToken 1 (BigIntToken 16)
-  0x11 -> DecodedToken 1 (BigIntToken 17)
-  0x12 -> DecodedToken 1 (BigIntToken 18)
-  0x13 -> DecodedToken 1 (BigIntToken 19)
-  0x14 -> DecodedToken 1 (BigIntToken 20)
-  0x15 -> DecodedToken 1 (BigIntToken 21)
-  0x16 -> DecodedToken 1 (BigIntToken 22)
-  0x17 -> DecodedToken 1 (BigIntToken 23)
-  0x18 -> DecodedToken 2 (BigIntToken (fromIntegral (eatTailWord8 bs)))
-  0x19 -> DecodedToken 3 (BigIntToken (fromIntegral (eatTailWord16 bs)))
-  0x1a -> DecodedToken 5 (BigIntToken (fromIntegral (eatTailWord32 bs)))
-  0x1b -> DecodedToken 9 (BigIntToken (fromIntegral (eatTailWord64 bs)))
+  0x00 -> DecodedToken 1 (BigIntToken True 0)
+  0x01 -> DecodedToken 1 (BigIntToken True 1)
+  0x02 -> DecodedToken 1 (BigIntToken True 2)
+  0x03 -> DecodedToken 1 (BigIntToken True 3)
+  0x04 -> DecodedToken 1 (BigIntToken True 4)
+  0x05 -> DecodedToken 1 (BigIntToken True 5)
+  0x06 -> DecodedToken 1 (BigIntToken True 6)
+  0x07 -> DecodedToken 1 (BigIntToken True 7)
+  0x08 -> DecodedToken 1 (BigIntToken True 8)
+  0x09 -> DecodedToken 1 (BigIntToken True 9)
+  0x0a -> DecodedToken 1 (BigIntToken True 10)
+  0x0b -> DecodedToken 1 (BigIntToken True 11)
+  0x0c -> DecodedToken 1 (BigIntToken True 12)
+  0x0d -> DecodedToken 1 (BigIntToken True 13)
+  0x0e -> DecodedToken 1 (BigIntToken True 14)
+  0x0f -> DecodedToken 1 (BigIntToken True 15)
+  0x10 -> DecodedToken 1 (BigIntToken True 16)
+  0x11 -> DecodedToken 1 (BigIntToken True 17)
+  0x12 -> DecodedToken 1 (BigIntToken True 18)
+  0x13 -> DecodedToken 1 (BigIntToken True 19)
+  0x14 -> DecodedToken 1 (BigIntToken True 20)
+  0x15 -> DecodedToken 1 (BigIntToken True 21)
+  0x16 -> DecodedToken 1 (BigIntToken True 22)
+  0x17 -> DecodedToken 1 (BigIntToken True 23)
+
+  0x18 -> let !w@(W# w#) = eatTailWord8 bs
+              sz = 2
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (fromIntegral w))
+  0x19 -> let !w@(W# w#) = eatTailWord16 bs
+              sz = 3
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (fromIntegral w))
+  0x1a -> let !w@(W# w#) = eatTailWord32 bs
+              sz = 5
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (fromIntegral w))
+  0x1b -> let !w@(W64# w#) = eatTailWord64 bs
+              sz = 9
+#if defined(ARCH_32bit)
+          in DecodedToken sz (BigIntToken (isWord64Canonical sz w#) (fromIntegral w))
+#else
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (fromIntegral w))
+#endif
 
   -- Negative integers (type 1)
-  0x20 -> DecodedToken 1 (BigIntToken (-1))
-  0x21 -> DecodedToken 1 (BigIntToken (-2))
-  0x22 -> DecodedToken 1 (BigIntToken (-3))
-  0x23 -> DecodedToken 1 (BigIntToken (-4))
-  0x24 -> DecodedToken 1 (BigIntToken (-5))
-  0x25 -> DecodedToken 1 (BigIntToken (-6))
-  0x26 -> DecodedToken 1 (BigIntToken (-7))
-  0x27 -> DecodedToken 1 (BigIntToken (-8))
-  0x28 -> DecodedToken 1 (BigIntToken (-9))
-  0x29 -> DecodedToken 1 (BigIntToken (-10))
-  0x2a -> DecodedToken 1 (BigIntToken (-11))
-  0x2b -> DecodedToken 1 (BigIntToken (-12))
-  0x2c -> DecodedToken 1 (BigIntToken (-13))
-  0x2d -> DecodedToken 1 (BigIntToken (-14))
-  0x2e -> DecodedToken 1 (BigIntToken (-15))
-  0x2f -> DecodedToken 1 (BigIntToken (-16))
-  0x30 -> DecodedToken 1 (BigIntToken (-17))
-  0x31 -> DecodedToken 1 (BigIntToken (-18))
-  0x32 -> DecodedToken 1 (BigIntToken (-19))
-  0x33 -> DecodedToken 1 (BigIntToken (-20))
-  0x34 -> DecodedToken 1 (BigIntToken (-21))
-  0x35 -> DecodedToken 1 (BigIntToken (-22))
-  0x36 -> DecodedToken 1 (BigIntToken (-23))
-  0x37 -> DecodedToken 1 (BigIntToken (-24))
-  0x38 -> DecodedToken 2 (BigIntToken (-1 - fromIntegral (eatTailWord8 bs)))
-  0x39 -> DecodedToken 3 (BigIntToken (-1 - fromIntegral (eatTailWord16 bs)))
-  0x3a -> DecodedToken 5 (BigIntToken (-1 - fromIntegral (eatTailWord32 bs)))
-  0x3b -> DecodedToken 9 (BigIntToken (-1 - fromIntegral (eatTailWord64 bs)))
+  0x20 -> DecodedToken 1 (BigIntToken True (-1))
+  0x21 -> DecodedToken 1 (BigIntToken True (-2))
+  0x22 -> DecodedToken 1 (BigIntToken True (-3))
+  0x23 -> DecodedToken 1 (BigIntToken True (-4))
+  0x24 -> DecodedToken 1 (BigIntToken True (-5))
+  0x25 -> DecodedToken 1 (BigIntToken True (-6))
+  0x26 -> DecodedToken 1 (BigIntToken True (-7))
+  0x27 -> DecodedToken 1 (BigIntToken True (-8))
+  0x28 -> DecodedToken 1 (BigIntToken True (-9))
+  0x29 -> DecodedToken 1 (BigIntToken True (-10))
+  0x2a -> DecodedToken 1 (BigIntToken True (-11))
+  0x2b -> DecodedToken 1 (BigIntToken True (-12))
+  0x2c -> DecodedToken 1 (BigIntToken True (-13))
+  0x2d -> DecodedToken 1 (BigIntToken True (-14))
+  0x2e -> DecodedToken 1 (BigIntToken True (-15))
+  0x2f -> DecodedToken 1 (BigIntToken True (-16))
+  0x30 -> DecodedToken 1 (BigIntToken True (-17))
+  0x31 -> DecodedToken 1 (BigIntToken True (-18))
+  0x32 -> DecodedToken 1 (BigIntToken True (-19))
+  0x33 -> DecodedToken 1 (BigIntToken True (-20))
+  0x34 -> DecodedToken 1 (BigIntToken True (-21))
+  0x35 -> DecodedToken 1 (BigIntToken True (-22))
+  0x36 -> DecodedToken 1 (BigIntToken True (-23))
+  0x37 -> DecodedToken 1 (BigIntToken True (-24))
+  0x38 -> let !w@(W# w#) = eatTailWord8 bs
+              sz = 2
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (-1 - fromIntegral w))
+  0x39 -> let !w@(W# w#) = eatTailWord16 bs
+              sz = 3
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (-1 - fromIntegral w))
+  0x3a -> let !w@(W# w#) = eatTailWord32 bs
+              sz = 5
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (-1 - fromIntegral w))
+  0x3b -> let !w@(W64# w#) = eatTailWord64 bs
+              sz = 9
+#if defined(ARCH_32bit)
+          in DecodedToken sz (BigIntToken (isWord64Canonical sz w#) (-1 - fromIntegral w))
+#else
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (-1 - fromIntegral w))
+#endif
 
   0xc2 -> readBigUInt bs
   0xc3 -> readBigNInt bs
@@ -2269,7 +2311,7 @@ readString64 bs
 -- decoding a big int across an input buffer boundary ought to be rare, and
 -- allocating a new continuation closure isn't that expensive.
 
-data BigIntToken a = BigIntToken Integer
+data BigIntToken a = BigIntToken Bool {- canonical? -} Integer
                    | BigUIntNeedBody Int
                    | BigNIntNeedBody Int
                    | BigUIntNeedHeader
@@ -2316,7 +2358,8 @@ readBigUInt bs
     , BS.length bs' >= tokenSize hdr
     = case tryConsumeBytes hdr bs' of
         DecodeFailure                 -> DecodeFailure
-        DecodedToken sz (Fits bstr)   -> DecodedToken (1+sz) (BigIntToken (uintegerFromBytes bstr))
+        DecodedToken sz (Fits bstr)   -> DecodedToken (1+sz)
+          (BigIntToken (isBigIntRepCanonical bstr) (uintegerFromBytes bstr))
         DecodedToken sz (TooLong len) -> DecodedToken (1+sz) (BigUIntNeedBody len)
 
     | otherwise
@@ -2331,8 +2374,16 @@ readBigNInt bs
     , BS.length bs' >= tokenSize hdr
     = case tryConsumeBytes hdr bs' of
         DecodeFailure                 -> DecodeFailure
-        DecodedToken sz (Fits bstr)   -> DecodedToken (1+sz) (BigIntToken (nintegerFromBytes bstr))
+        DecodedToken sz (Fits bstr)   -> DecodedToken (1+sz)
+          (BigIntToken (isBigIntRepCanonical bstr) (nintegerFromBytes bstr))
         DecodedToken sz (TooLong len) -> DecodedToken (1+sz) (BigNIntNeedBody len)
 
     | otherwise
     = DecodedToken 1 BigNIntNeedHeader
+
+-- Binary representation of a big integer is canonical if it's at least 9 bytes
+-- long (as for smaller values the canonical representation is the same one as
+-- for Int) and the leading byte is not zero (meaning that it's the smallest
+-- representation for the number in question).
+isBigIntRepCanonical :: ByteString -> Bool
+isBigIntRepCanonical bstr = BS.length bstr > 8 && BS.unsafeHead bstr /= 0x00

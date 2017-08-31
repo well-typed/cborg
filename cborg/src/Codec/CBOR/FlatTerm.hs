@@ -233,6 +233,8 @@ fromFlatTerm decoder ft =
         | n >= minInt32 && n <= maxInt32     = k (unI# n) >>= go ts
     go (TkInteger n : ts) (ConsumeInt32Canonical k)
         | n >= minInt32 && n <= maxInt32     = k (unI# (fromIntegral n)) >>= go ts
+    go (TkInt     n : ts) (ConsumeIntegerCanonical k) = k (fromIntegral n) >>= go ts
+    go (TkInteger n : ts) (ConsumeIntegerCanonical k) = k n >>= go ts
     go (TkListLen n : ts) (ConsumeListLenCanonical k)
         | n <= maxInt                        = k (unI# (fromIntegral n)) >>= go ts
     go (TkMapLen  n : ts) (ConsumeMapLenCanonical  k)
@@ -344,6 +346,7 @@ fromFlatTerm decoder ft =
     go ts (ConsumeInt8Canonical    _) = unexpected "decodeInt8Canonical"    ts
     go ts (ConsumeInt16Canonical   _) = unexpected "decodeInt16Canonical"   ts
     go ts (ConsumeInt32Canonical   _) = unexpected "decodeInt32Canonical"   ts
+    go ts (ConsumeIntegerCanonical _) = unexpected "decodeIntegerCanonical" ts
 
     go ts (ConsumeListLenCanonical _) = unexpected "decodeListLenCanonical" ts
     go ts (ConsumeMapLenCanonical  _) = unexpected "decodeMapLenCanonical"  ts

@@ -68,6 +68,7 @@ module Codec.CBOR.Decoding
   , decodeBool          -- :: Decoder s Bool
   , decodeNull          -- :: Decoder s ()
   , decodeSimple        -- :: Decoder s Word8
+  , decodeIntegerCanonical -- :: Decoder s Integer
   , decodeFloat16Canonical -- :: Decoder s Float
   , decodeFloatCanonical   -- :: Decoder s Float
   , decodeDoubleCanonical  -- :: Decoder s Double
@@ -181,6 +182,7 @@ data DecodeAction s a
     | ConsumeBool    (Bool       -> ST s (DecodeAction s a))
     | ConsumeSimple  (Word#      -> ST s (DecodeAction s a))
 
+    | ConsumeIntegerCanonical (Integer -> ST s (DecodeAction s a))
     | ConsumeFloat16Canonical (Float#  -> ST s (DecodeAction s a))
     | ConsumeFloatCanonical   (Float#  -> ST s (DecodeAction s a))
     | ConsumeDoubleCanonical  (Double# -> ST s (DecodeAction s a))
@@ -639,6 +641,13 @@ decodeNull = Decoder (\k -> return (ConsumeNull (k ())))
 decodeSimple :: Decoder s Word8
 decodeSimple = Decoder (\k -> return (ConsumeSimple (\w# -> k (W8# w#))))
 {-# INLINE decodeSimple #-}
+
+-- | Decode canonical representation of an @'Integer'@.
+--
+-- @since 0.2.0.0
+decodeIntegerCanonical :: Decoder s Integer
+decodeIntegerCanonical = Decoder (\k -> return (ConsumeIntegerCanonical (\n -> k n)))
+{-# INLINE decodeIntegerCanonical #-}
 
 -- | Decode canonical representation of a half-precision @'Float'@.
 --

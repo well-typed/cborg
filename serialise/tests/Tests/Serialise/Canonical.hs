@@ -1,7 +1,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE StandaloneDeriving #-}
 module Tests.Serialise.Canonical where
 
+import Data.Bits
 import Data.Int
 import Data.Typeable
 import Data.Word
@@ -12,7 +14,34 @@ import Codec.CBOR.Encoding as E
 import Codec.Serialise.Class
 
 newtype Canonical a = Canonical { fromCanonical :: a }
-  deriving (Arbitrary, Typeable, Eq, Show)
+  deriving (Typeable, Eq, Show)
+
+-- | Generate "proper" big integers (as standard Arbitrary Integer instance
+-- doesn't really do that) to test canonicity.
+instance Arbitrary (Canonical Integer) where
+  arbitrary = do
+    c <- choose (1, 5)
+    neg <- arbitrary
+    Canonical . (if neg then negate else id) . foldr combine 0
+      <$> vectorOf c arbitrary
+    where
+      combine :: Word64 -> Integer -> Integer
+      combine v acc = (acc `shiftL` finiteBitSize v) + toInteger v
+
+deriving instance Arbitrary (Canonical Word)
+deriving instance Arbitrary (Canonical Word8)
+deriving instance Arbitrary (Canonical Word16)
+deriving instance Arbitrary (Canonical Word32)
+deriving instance Arbitrary (Canonical Word64)
+deriving instance Arbitrary (Canonical Int)
+deriving instance Arbitrary (Canonical Int8)
+deriving instance Arbitrary (Canonical Int16)
+deriving instance Arbitrary (Canonical Int32)
+deriving instance Arbitrary (Canonical Int64)
+deriving instance Arbitrary (Canonical Float)
+deriving instance Arbitrary (Canonical Double)
+
+----------------------------------------
 
 instance Serialise (Canonical Word) where
   encode = encodeWord . fromCanonical
@@ -53,6 +82,10 @@ instance Serialise (Canonical Int32) where
 instance Serialise (Canonical Int64) where
   encode = encodeInt64 . fromCanonical
   decode = Canonical <$> decodeInt64Canonical
+
+instance Serialise (Canonical Integer) where
+  encode = encodeInteger . fromCanonical
+  decode = Canonical <$> decodeIntegerCanonical
 
 instance Serialise (Canonical Float) where
     encode = E.encodeFloat . fromCanonical

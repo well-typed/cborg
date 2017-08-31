@@ -166,6 +166,7 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T Integer)
       , mkTest (T :: T Float)
       , mkTest (T :: T Double)
+      , mkTest (T :: T (Canonical Integer))
       , mkTest (T :: T (Canonical Float))
       , mkTest (T :: T (Canonical Double))
       , mkTest (T :: T [()])
