@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
 
 -- |
--- Module      : Codec.CBOR.Tutorial
+-- Module      : Codec.Serialise.Tutorial
 -- Copyright   : (c) Duncan Coutts 2015-2017
 -- License     : BSD3-style (see LICENSE.txt)
 --
