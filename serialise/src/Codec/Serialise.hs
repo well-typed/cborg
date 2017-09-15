@@ -16,7 +16,7 @@
 -- and utilities to help you make your types serialisable.
 --
 -- For a full tutorial on using this module, see
--- "Codec.CBOR.Tutorial".
+-- "Codec.Serialise.Tutorial".
 --
 module Codec.Serialise
   ( -- * High level, one-shot API
