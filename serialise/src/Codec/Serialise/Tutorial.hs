@@ -53,7 +53,7 @@ import Codec.Serialise.Class
 As in modern serialisation libraries, @cborg@ offers
 instance derivation via GHC's 'GHC.Generic' mechanism,
 
-> import Serialise.Cborg
+> import Codec.Serialise
 > import qualified Data.ByteString.Lazy as BSL
 >
 > data Animal = HoppingAnimal { animalName :: String, hoppingHeight :: Int }
@@ -162,8 +162,8 @@ Below we will describe how to write these pieces.
 {- $encoding
 
 For the purposes of encoding, abstract CBOR representations are embodied by the
-'Serialise.Cborg.Encoding.Tokens' type. Such a representation can be efficiently
-built using the 'Serialise.Cborg.Encoding.Encoding' 'Monoid'.
+'Codec.CBOR.Encoding.Tokens' type. Such a representation can be efficiently
+built using the 'Codec.CBOR.Encoding.Encoding' 'Monoid'.
 
 For instance, to implement an encoder for the @Animal@ type above we might write,
 
@@ -295,7 +295,7 @@ We can use this same approach to handle field removal and type changes.
 
 When working with foreign encodings, it can sometimes be useful to capture a
 serialised CBOR term verbatim (for instance, so you can later re-serialise it in
-some later result). The 'Serialise.Cborg.Term.Term' type provides such a
+some later result). The 'Codec.CBOR.Term.Term' type provides such a
 representation, losslessly capturing a CBOR AST. It can be serialised and
 deserialised with its 'Serialise' instance.
 
@@ -305,9 +305,9 @@ deserialised with its 'Serialise' instance.
 
 We can also look In addition to serialisation and deserialisation, @cborg@
 provides a variety of tools for representing arbitrary CBOR encodings in the
-"Serialise.Cborg.FlatTerm" and "Serialise.Cborg.Pretty" modules.
+"Codec.CBOR.FlatTerm" and "Codec.CBOR.Pretty" modules.
 
-The 'Serialise.Cborg.FlatTerm.FlatTerm' type represents a single CBOR /term/, as
+The 'Codec.CBOR.FlatTerm.FlatTerm' type represents a single CBOR /term/, as
 would be found in the ultimate CBOR representation. For instance, we can easily
 look at the structure of our @Animal@ encoding above,
 
@@ -319,10 +319,10 @@ Right (HoppingAnimal {animalName = "Fred", hoppingHeight = 42})
 This can be useful both for understanding external CBOR formats, as well as
 understanding and testing your own hand-rolled encodings.
 
-The package also includes a pretty-printer in "Serialise.Cborg.Pretty", for
+The package also includes a pretty-printer in "Codec.CBOR.Pretty", for
 visualising the CBOR wire protocol alongside its semantic structure. For instance,
 
->>> putStrLn $ Serialise.Cborg.Pretty.prettyHexEnc $ encode $ HoppingAnimal "Fred" 42
+>>> putStrLn $ Codec.CBOR.Pretty.prettyHexEnc $ encode $ HoppingAnimal "Fred" 42
 83  # list(3)
    00  # word(0)
    64 46 72 65 64  # text("Fred")
