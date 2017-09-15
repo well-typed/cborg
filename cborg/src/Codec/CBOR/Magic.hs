@@ -236,13 +236,8 @@ eatTailWord64 xs = withBsPtr grabWord64 (BS.unsafeTail xs)
 -- with it.
 withBsPtr :: (Ptr b -> a) -> ByteString -> a
 withBsPtr f (BS.PS x off _) =
-#if MIN_VERSION_bytestring(0,10,6)
-    BS.accursedUnutterablePerformIO $ withForeignPtr x $
-        \(Ptr addr#) -> return $! (f (Ptr addr# `plusPtr` off))
-#else
     unsafeDupablePerformIO $ withForeignPtr x $
         \(Ptr addr#) -> return $! (f (Ptr addr# `plusPtr` off))
-#endif
 {-# INLINE withBsPtr #-}
 
 --------------------------------------------------------------------------------
