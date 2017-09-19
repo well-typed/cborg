@@ -169,9 +169,9 @@ For instance, to implement an encoder for the @Animal@ type above we might write
 
 > encodeAnimal :: Animal -> Encoding
 > encodeAnimal (HoppingAnimal name height) =
->     encodeListLen 3 <> encodeTag 0 <> encode name <> encode height
+>     encodeListLen 3 <> encodeWord 0 <> encode name <> encode height
 > encodeAnimal (WalkingAnimal name speed) =
->     encodeListLen 3 <> encodeTag 1 <> encode name <> encode speed
+>     encodeListLen 3 <> encodeWord 1 <> encode name <> encode speed
 
 Here we see that each encoding begins with a /length/, describing how many
 values belonging to our @Animal@ will follow. We then encode a /tag/, which
@@ -181,6 +181,9 @@ identifies which constructor. We then encode the fields using their respective
 It is recommended that you not deviate from this encoding scheme, including both
 the length and tag, to ensure that you have the option to migrate your types
 later on.
+
+Also note that the recommended encoding represents Haskell constructor indexes
+as CBOR words, not CBOR tags.
 
 -}
 
@@ -193,7 +196,7 @@ follows,
 > decodeAnimal :: Decoder s Animal
 > decodeAnimal = do
 >     len <- decodeListLen
->     tag <- decodeTag
+>     tag <- decodeWord
 >     case (len, tag) of
 >       (3, 0) -> HoppingAnimal <$> decode <*> decode
 >       (3, 1) -> WalkingAnimal <$> decode <*> decode
@@ -232,17 +235,17 @@ to our encoder and decoder,
 > encodeAnimal :: Animal -> Encoding
 > -- HoppingAnimal, SwimmingAnimal cases are unchanged...
 > encodeAnimal (HoppingAnimal name height) =
->     encodeListLen 3 <> encodeTag 0 <> encode name <> encode height
+>     encodeListLen 3 <> encodeWord 0 <> encode name <> encode height
 > encodeAnimal (WalkingAnimal name speed) =
->     encodeListLen 3 <> encodeTag 1 <> encode name <> encode speed
+>     encodeListLen 3 <> encodeWord 1 <> encode name <> encode speed
 > -- Here is out new case...
 > encodeAnimal (SwimmingAnimal numberOfFins) =
->     encodeListLen 2 <> encodeTag 2 <> encode numberOfFins
+>     encodeListLen 2 <> encodeWord 2 <> encode numberOfFins
 >
 > decodeAnimal :: Decoder s Animal
 > decodeAnimal = do
 >     len <- decodeListLen
->     tag <- decodeTag
+>     tag <- decodeWord
 >     case (len, tag) of
 >       -- these cases are unchanged...
 >       (3, 0) -> HoppingAnimal <$> decode <*> decode
@@ -266,17 +269,17 @@ a new tag,
 > encodeAnimal :: Animal -> Encoding
 > -- HoppingAnimal, SwimmingAnimal cases are unchanged...
 > encodeAnimal (HoppingAnimal name height) =
->     encodeListLen 3 <> encodeTag 0 <> encode name <> encode height
+>     encodeListLen 3 <> encodeWord 0 <> encode name <> encode height
 > encodeAnimal (WalkingAnimal name speed) =
->     encodeListLen 3 <> encodeTag 1 <> encode name <> encode speed
+>     encodeListLen 3 <> encodeWord 1 <> encode name <> encode speed
 > -- This is new...
 > encodeAnimal (WalkingAnimal animalName walkingSpeed numberOfFeet) =
->     encodeListLen 4 <> encodeTag 3 <> encode animalName <> encode walkingSpeed <> encode numberOfFins
+>     encodeListLen 4 <> encodeWord 3 <> encode animalName <> encode walkingSpeed <> encode numberOfFins
 >
 > decodeAnimal :: Decoder s Animal
 > decodeAnimal = do
 >     len <- decodeListLen
->     tag <- decodeTag
+>     tag <- decodeWord
 >     case (len, tag) of
 >       -- this cases are unchanged...
 >       (3, 0) -> HoppingAnimal <$> decode <*> decode
