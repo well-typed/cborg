@@ -210,12 +210,6 @@
     "diagnostic": "Infinity"
   },
   {
-    "cbor": "+n/AAAA=",
-    "hex": "fa7fc00000",
-    "roundtrip": false,
-    "diagnostic": "NaN"
-  },
-  {
     "cbor": "+v+AAAA=",
     "hex": "faff800000",
     "roundtrip": false,
@@ -226,12 +220,6 @@
     "hex": "fb7ff0000000000000",
     "roundtrip": false,
     "diagnostic": "Infinity"
-  },
-  {
-    "cbor": "+3/4AAAAAAAA",
-    "hex": "fb7ff8000000000000",
-    "roundtrip": false,
-    "diagnostic": "NaN"
   },
   {
     "cbor": "+//wAAAAAAAA",
