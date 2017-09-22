@@ -155,9 +155,15 @@ toRefTerm (TBool True)  = RefImpl.TTrue
 toRefTerm  TNull        = RefImpl.TNull
 toRefTerm (TSimple  23) = RefImpl.TUndef
 toRefTerm (TSimple   w) = RefImpl.TSimple (fromIntegral w)
-toRefTerm (THalf     f) = RefImpl.TFloat16 (Half.toHalf f)
-toRefTerm (TFloat    f) = RefImpl.TFloat32 f
-toRefTerm (TDouble   f) = RefImpl.TFloat64 f
+toRefTerm (THalf     f) = if isNaN f
+                          then RefImpl.TFloat16 RefImpl.canonicalNaN
+                          else RefImpl.TFloat16 (Half.toHalf f)
+toRefTerm (TFloat    f) = if isNaN f
+                          then RefImpl.TFloat16 RefImpl.canonicalNaN
+                          else RefImpl.TFloat32 f
+toRefTerm (TDouble   f) = if isNaN f
+                          then RefImpl.TFloat16 RefImpl.canonicalNaN
+                          else RefImpl.TFloat64 f
 
 
 fromRefTerm :: RefImpl.Term -> Term
@@ -191,8 +197,12 @@ fromRefTerm  RefImpl.TNull       = TNull
 fromRefTerm  RefImpl.TUndef      = TSimple 23
 fromRefTerm (RefImpl.TSimple  w) = TSimple w
 fromRefTerm (RefImpl.TFloat16 f) = THalf (Half.fromHalf f)
-fromRefTerm (RefImpl.TFloat32 f) = TFloat f
-fromRefTerm (RefImpl.TFloat64 f) = TDouble f
+fromRefTerm (RefImpl.TFloat32 f) = if isNaN f
+                                   then THalf (Half.fromHalf RefImpl.canonicalNaN)
+                                   else TFloat f
+fromRefTerm (RefImpl.TFloat64 f) = if isNaN f
+                                   then THalf (Half.fromHalf RefImpl.canonicalNaN)
+                                   else TDouble f
 
 -- NaNs are so annoying...
 eqTerm :: Term -> Term -> Bool

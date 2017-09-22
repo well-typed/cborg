@@ -38,6 +38,8 @@ module Tests.Reference.Implementation (
     decodeTokens,
     decodeToken,
 
+    canonicalNaN,
+
     diagnosticNotation,
 
     encodeTerm,
@@ -64,7 +66,7 @@ module Tests.Reference.Implementation (
 import           Data.Bits
 import           Data.Word
 import           Data.Int
-import           Numeric.Half (Half)
+import           Numeric.Half (Half(..))
 import qualified Numeric.Half as Half
 import           Data.List
 import           Numeric
@@ -816,6 +818,12 @@ canonicaliseTerm (TBigInt n)
                            = TNInt (toUInt (fromIntegral (-1 - n)))
   | otherwise              = TBigInt n
 canonicaliseTerm (TFloat16 f)   = TFloat16 (canonicaliseHalf f)
+canonicaliseTerm (TFloat32 f)   = if isNaN f
+                                  then TFloat16 canonicalNaN
+                                  else TFloat32 f
+canonicaliseTerm (TFloat64 f)   = if isNaN f
+                                  then TFloat16 canonicalNaN
+                                  else TFloat64 f
 canonicaliseTerm (TBytess  wss) = TBytess  (filter (not . null) wss)
 canonicaliseTerm (TStrings css) = TStrings (filter (not . null) css)
 canonicaliseTerm (TArray  ts) = TArray  (map canonicaliseTerm ts)
@@ -828,12 +836,16 @@ canonicaliseTerm t = t
 canonicaliseUInt :: UInt -> UInt
 canonicaliseUInt = toUInt . fromUInt
 
--- some NaNs do not roundtrip https://github.com/ekmett/half/issues/3
 canonicaliseHalf :: Half -> Half
-canonicaliseHalf = Half.toHalf . Half.fromHalf
+canonicaliseHalf f
+  | isNaN f   = canonicalNaN
+  | otherwise = f
 
 canonicaliseTermPair :: (Term, Term) -> (Term, Term)
 canonicaliseTermPair (x,y) = (canonicaliseTerm x, canonicaliseTerm y)
+
+canonicalNaN :: Half
+canonicalNaN = Half 0x7e00
 
 -------------------------------------------------------------------------------
 

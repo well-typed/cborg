@@ -196,6 +196,52 @@ fromFlatTerm decoder ft =
     go (TkTag     n : ts) (ConsumeTag     k)
         | n <= maxWord                       = k (unW# (fromIntegral n)) >>= go ts
 
+    go (TkInt     n : ts) (ConsumeWordCanonical k)
+        | n >= 0                             = k (unW# (fromIntegral n)) >>= go ts
+    go (TkInteger n : ts) (ConsumeWordCanonical k)
+        | n >= 0                             = k (unW# (fromIntegral n)) >>= go ts
+    go (TkInt     n : ts) (ConsumeWord8Canonical k)
+        | n >= 0 && n <= maxWord8            = k (unW# (fromIntegral n)) >>= go ts
+    go (TkInteger n : ts) (ConsumeWord8Canonical k)
+        | n >= 0 && n <= maxWord8            = k (unW# (fromIntegral n)) >>= go ts
+    go (TkInt     n : ts) (ConsumeWord16Canonical k)
+        | n >= 0 && n <= maxWord16           = k (unW# (fromIntegral n)) >>= go ts
+    go (TkInteger n : ts) (ConsumeWord16Canonical k)
+        | n >= 0 && n <= maxWord16           = k (unW# (fromIntegral n)) >>= go ts
+    go (TkInt     n : ts) (ConsumeWord32Canonical k)
+        -- NOTE: we have to be very careful about this branch
+        -- on 32 bit machines, because maxBound :: Int < maxBound :: Word32
+        | intIsValidWord32 n                 = k (unW# (fromIntegral n)) >>= go ts
+    go (TkInteger n : ts) (ConsumeWord32Canonical k)
+        | n >= 0 && n <= maxWord32           = k (unW# (fromIntegral n)) >>= go ts
+    go (TkInt     n : ts) (ConsumeNegWordCanonical k)
+        | n <  0                             = k (unW# (fromIntegral (-1-n))) >>= go ts
+    go (TkInteger n : ts) (ConsumeNegWordCanonical k)
+        | n <  0                             = k (unW# (fromIntegral (-1-n))) >>= go ts
+    go (TkInt     n : ts) (ConsumeIntCanonical k)     = k (unI# n) >>= go ts
+    go (TkInteger n : ts) (ConsumeInt k)
+        | n <= maxInt                        = k (unI# (fromIntegral n)) >>= go ts
+    go (TkInt     n : ts) (ConsumeInt8Canonical k)
+        | n >= minInt8 && n <= maxInt8       = k (unI# n) >>= go ts
+    go (TkInteger n : ts) (ConsumeInt8Canonical k)
+        | n >= minInt8 && n <= maxInt8       = k (unI# (fromIntegral n)) >>= go ts
+    go (TkInt     n : ts) (ConsumeInt16Canonical k)
+        | n >= minInt16 && n <= maxInt16     = k (unI# n) >>= go ts
+    go (TkInteger n : ts) (ConsumeInt16Canonical k)
+        | n >= minInt16 && n <= maxInt16     = k (unI# (fromIntegral n)) >>= go ts
+    go (TkInt     n : ts) (ConsumeInt32Canonical k)
+        | n >= minInt32 && n <= maxInt32     = k (unI# n) >>= go ts
+    go (TkInteger n : ts) (ConsumeInt32Canonical k)
+        | n >= minInt32 && n <= maxInt32     = k (unI# (fromIntegral n)) >>= go ts
+    go (TkInt     n : ts) (ConsumeIntegerCanonical k) = k (fromIntegral n) >>= go ts
+    go (TkInteger n : ts) (ConsumeIntegerCanonical k) = k n >>= go ts
+    go (TkListLen n : ts) (ConsumeListLenCanonical k)
+        | n <= maxInt                        = k (unI# (fromIntegral n)) >>= go ts
+    go (TkMapLen  n : ts) (ConsumeMapLenCanonical  k)
+        | n <= maxInt                        = k (unI# (fromIntegral n)) >>= go ts
+    go (TkTag     n : ts) (ConsumeTagCanonical     k)
+        | n <= maxWord                       = k (unW# (fromIntegral n)) >>= go ts
+
 #if defined(ARCH_32bit)
     -- 64bit variants for 32bit machines
     go (TkInt       n : ts) (ConsumeWord64    k)
@@ -212,10 +258,27 @@ fromFlatTerm decoder ft =
 
     go (TkTag       n : ts) (ConsumeTag64     k) = k (unW64# n) >>= go ts
 
+    go (TkInt       n : ts) (ConsumeWord64Canonical    k)
+      | n >= 0                                   = k (unW64# (fromIntegral n)) >>= go ts
+    go (TkInteger   n : ts) (ConsumeWord64Canonical    k)
+      | n >= 0                                   = k (unW64# (fromIntegral n)) >>= go ts
+    go (TkInt       n : ts) (ConsumeNegWord64Canonical k)
+      | n < 0                                    = k (unW64# (fromIntegral (-1-n))) >>= go ts
+    go (TkInteger   n : ts) (ConsumeNegWord64Canonical k)
+      | n < 0                                    = k (unW64# (fromIntegral (-1-n))) >>= go ts
+
+    go (TkInt       n : ts) (ConsumeInt64Canonical     k) = k (unI64# (fromIntegral n)) >>= go ts
+    go (TkInteger   n : ts) (ConsumeInt64Canonical     k) = k (unI64# (fromIntegral n)) >>= go ts
+
+    go (TkTag       n : ts) (ConsumeTag64Canonical     k) = k (unW64# n) >>= go ts
+
+
     -- TODO FIXME (aseipp/dcoutts): are these going to be utilized?
     -- see fallthrough case below if/when fixed.
-    go ts (ConsumeListLen64 _)                   = unexpected "decodeListLen64" ts
-    go ts (ConsumeMapLen64  _)                   = unexpected "decodeMapLen64"  ts
+    go ts (ConsumeListLen64 _)          = unexpected "decodeListLen64" ts
+    go ts (ConsumeMapLen64  _)          = unexpected "decodeMapLen64"  ts
+    go ts (ConsumeListLen64Canonical _) = unexpected "decodeListLen64Canonical" ts
+    go ts (ConsumeMapLen64Canonical  _) = unexpected "decodeMapLen64Canonical"  ts
 #endif
 
     go (TkFloat16 f : ts) (ConsumeFloat  k) = k (unF# f) >>= go ts
@@ -227,6 +290,11 @@ fromFlatTerm decoder ft =
     go (TkString st : ts) (ConsumeString k) = k st >>= go ts
     go (TkBool    b : ts) (ConsumeBool   k) = k b >>= go ts
     go (TkSimple  n : ts) (ConsumeSimple k) = k (unW8# n) >>= go ts
+
+    go (TkFloat16 f : ts) (ConsumeFloat16Canonical k) = k (unF# f) >>= go ts
+    go (TkFloat32 f : ts) (ConsumeFloatCanonical   k) = k (unF# f) >>= go ts
+    go (TkFloat64 f : ts) (ConsumeDoubleCanonical  k) = k (unD# f) >>= go ts
+    go (TkSimple  n : ts) (ConsumeSimpleCanonical  k) = k (unW8# n) >>= go ts
 
     go (TkBytesBegin  : ts) (ConsumeBytesIndef   da) = da >>= go ts
     go (TkStringBegin : ts) (ConsumeStringIndef  da) = da >>= go ts
@@ -269,12 +337,32 @@ fromFlatTerm decoder ft =
     go ts (ConsumeMapLen  _) = unexpected "decodeMapLen"  ts
     go ts (ConsumeTag     _) = unexpected "decodeTag"     ts
 
+    go ts (ConsumeWordCanonical    _) = unexpected "decodeWordCanonical"    ts
+    go ts (ConsumeWord8Canonical   _) = unexpected "decodeWord8Canonical"   ts
+    go ts (ConsumeWord16Canonical  _) = unexpected "decodeWord16Canonical"  ts
+    go ts (ConsumeWord32Canonical  _) = unexpected "decodeWord32Canonical"  ts
+    go ts (ConsumeNegWordCanonical _) = unexpected "decodeNegWordCanonical" ts
+    go ts (ConsumeIntCanonical     _) = unexpected "decodeIntCanonical"     ts
+    go ts (ConsumeInt8Canonical    _) = unexpected "decodeInt8Canonical"    ts
+    go ts (ConsumeInt16Canonical   _) = unexpected "decodeInt16Canonical"   ts
+    go ts (ConsumeInt32Canonical   _) = unexpected "decodeInt32Canonical"   ts
+    go ts (ConsumeIntegerCanonical _) = unexpected "decodeIntegerCanonical" ts
+
+    go ts (ConsumeListLenCanonical _) = unexpected "decodeListLenCanonical" ts
+    go ts (ConsumeMapLenCanonical  _) = unexpected "decodeMapLenCanonical"  ts
+    go ts (ConsumeTagCanonical     _) = unexpected "decodeTagCanonical"     ts
+
     go ts (ConsumeFloat  _) = unexpected "decodeFloat"  ts
     go ts (ConsumeDouble _) = unexpected "decodeDouble" ts
     go ts (ConsumeBytes  _) = unexpected "decodeBytes"  ts
     go ts (ConsumeString _) = unexpected "decodeString" ts
     go ts (ConsumeBool   _) = unexpected "decodeBool"   ts
     go ts (ConsumeSimple _) = unexpected "decodeSimple" ts
+
+    go ts (ConsumeFloat16Canonical _) = unexpected "decodeFloat16Canonical" ts
+    go ts (ConsumeFloatCanonical   _) = unexpected "decodeFloatCanonical"   ts
+    go ts (ConsumeDoubleCanonical  _) = unexpected "decodeDoubleCanonical"  ts
+    go ts (ConsumeSimpleCanonical  _) = unexpected "decodeSimpleCanonical"  ts
 
 #if defined(ARCH_32bit)
     -- 64bit variants for 32bit machines
@@ -284,6 +372,13 @@ fromFlatTerm decoder ft =
     go ts (ConsumeTag64     _) = unexpected "decodeTag64"     ts
   --go ts (ConsumeListLen64 _) = unexpected "decodeListLen64" ts
   --go ts (ConsumeMapLen64  _) = unexpected "decodeMapLen64"  ts
+
+    go ts (ConsumeWord64Canonical    _) = unexpected "decodeWord64Canonical"    ts
+    go ts (ConsumeNegWord64Canonical _) = unexpected "decodeNegWord64Canonical" ts
+    go ts (ConsumeInt64Canonical     _) = unexpected "decodeInt64Canonical"     ts
+    go ts (ConsumeTag64Canonical     _) = unexpected "decodeTag64Canonical"     ts
+  --go ts (ConsumeListLen64Canonical _) = unexpected "decodeListLen64Canonical" ts
+  --go ts (ConsumeMapLen64Canonical  _) = unexpected "decodeMapLen64Canonical"  ts
 #endif
 
     go ts (ConsumeBytesIndef   _) = unexpected "decodeBytesIndef"   ts

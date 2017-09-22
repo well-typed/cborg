@@ -104,6 +104,7 @@ test-suite tests
     Tests.Negative
     Tests.Orphanage
     Tests.Serialise
+    Tests.Serialise.Canonical
     Tests.Regress
     Tests.Regress.Issue13
     Tests.Regress.Issue67
