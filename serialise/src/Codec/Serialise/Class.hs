@@ -24,6 +24,8 @@ module Codec.Serialise.Class
    Serialise(..)
  , GSerialiseEncode(..)
  , GSerialiseDecode(..)
+ , GSerialiseProd(..)
+ , GSerialiseSum(..)
  , encodeVector
  , decodeVector
  ) where
