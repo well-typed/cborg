@@ -946,7 +946,7 @@ go_fast_end !bs (ConsumeBytes k) =
 go_fast_end !bs (ConsumeByteArray k) =
     case tryConsumeBytes (BS.unsafeHead bs) bs of
       DecodeFailure                 -> return $! SlowFail bs "expected string"
-      DecodedToken sz (Fits str)    -> k (BA.fromByteString str) >>= go_fast_end (BS.unsafeDrop sz bs)
+      DecodedToken sz (Fits str)    -> (k $! BA.fromByteString str) >>= go_fast_end (BS.unsafeDrop sz bs)
       DecodedToken sz (TooLong len) -> return $! SlowConsumeTokenByteArray (BS.unsafeDrop sz bs) k len
 
 go_fast_end !bs (ConsumeString k) =
@@ -960,7 +960,7 @@ go_fast_end !bs (ConsumeString k) =
 go_fast_end !bs (ConsumeUtf8ByteArray k) =
     case tryConsumeString (BS.unsafeHead bs) bs of
       DecodeFailure                 -> return $! SlowFail bs "expected string"
-      DecodedToken sz (Fits str)    -> k (BA.fromByteString str) >>= go_fast_end (BS.unsafeDrop sz bs)
+      DecodedToken sz (Fits str)    -> (k $! BA.fromByteString str) >>= go_fast_end (BS.unsafeDrop sz bs)
       DecodedToken sz (TooLong len) -> return $! SlowConsumeTokenUtf8ByteArray (BS.unsafeDrop sz bs) k len
 
 go_fast_end !bs (ConsumeBool k) =

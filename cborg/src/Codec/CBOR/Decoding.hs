@@ -529,6 +529,10 @@ decodeBytesIndef = Decoder (\k -> return (ConsumeBytesIndef (k ())))
 
 -- | Decode a string of bytes as a 'ByteArray'.
 --
+-- Also note that this will eagerly copy the content out of the input
+-- to ensure that the input does not leak in the event that the 'ByteArray' is
+-- live but not forced.
+--
 -- @since 0.2.0.0
 decodeByteArray :: Decoder s ByteArray
 decodeByteArray = Decoder (\k -> return (ConsumeByteArray k))
@@ -551,6 +555,10 @@ decodeStringIndef = Decoder (\k -> return (ConsumeStringIndef (k ())))
 
 -- | Decode a textual string as UTF-8 encoded 'ByteArray'. Note that
 -- the result is not validated to be well-formed UTF-8.
+--
+-- Also note that this will eagerly copy the content out of the input
+-- to ensure that the input does not leak in the event that the 'ByteArray' is
+-- live but not forced.
 --
 -- @since 0.2.0.0
 decodeUtf8ByteArray :: Decoder s ByteArray
