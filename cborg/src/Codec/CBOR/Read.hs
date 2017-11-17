@@ -141,7 +141,10 @@ runIDecode d lbs =
        -> IDecode s a
        -> ST s (Either DeserialiseFailure (LBS.ByteString, ByteOffset, a))
     go  _                  (Fail _ _ err)  = return (Left err)
-    go  lbs'               (Done bs off x) = return (Right (LBS.Chunk bs lbs', off, x))
+    go  lbs'               (Done bs off x) = let rest
+                                                   | BS.null bs = lbs'
+                                                   | otherwise  = LBS.Chunk bs lbs'
+                                             in return (Right (rest, off, x))
     go  LBS.Empty          (Partial  k)    = k Nothing   >>= go LBS.Empty
     go (LBS.Chunk bs lbs') (Partial  k)    = k (Just bs) >>= go lbs'
 
