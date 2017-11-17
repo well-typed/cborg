@@ -26,8 +26,9 @@ module Codec.CBOR.ByteArray
   , toSliced
   ) where
 
+import Data.Char (ord)
 import Data.Word
-import GHC.Exts (IsList(..))
+import GHC.Exts (IsList(..), IsString(..))
 
 import qualified Data.Primitive.ByteArray as Prim
 import qualified Data.ByteString as BS
@@ -63,6 +64,13 @@ instance Eq ByteArray where
 
 instance Ord ByteArray where
   ba1 `compare` ba2 = toSliced ba1 `compare` toSliced ba2
+
+instance IsString ByteArray where
+  fromString = fromList . map checkedOrd
+    where
+      checkedOrd c
+        | c > '\xff' = error "IsString(Codec.CBOR.ByteArray): Non-ASCII character"
+        | otherwise  = fromIntegral $ ord c
 
 instance IsList ByteArray where
   type Item ByteArray = Word8

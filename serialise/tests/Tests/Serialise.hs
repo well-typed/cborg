@@ -19,6 +19,7 @@ import           Data.List.NonEmpty ( NonEmpty )
 import qualified Data.Semigroup as Semigroup
 #endif
 
+import           Data.Char (ord)
 import           Data.Complex
 import           Data.Int
 import           Data.Fixed
@@ -297,7 +298,7 @@ testGenerics = testGroup "Format of Generics encoding"
       (TkListLen 3 $ TkWord 0 $ TkInt 12 $ TkFloat32 0.5 $ TkEnd)
   , format
       (P3 12 0.5 "asdf")
-      (TkListLen 4 $ TkWord 0 $ TkInt 12 $ TkFloat32 0.5 $ TkString "asdf" $ TkEnd)
+      (TkListLen 4 $ TkWord 0 $ TkInt 12 $ TkFloat32 0.5 $ tkStr "asdf" $ TkEnd)
   , format
       (C1 12)
       (TkListLen 2 $ TkWord 0 $ TkInt 12 $ TkEnd)
@@ -306,17 +307,19 @@ testGenerics = testGroup "Format of Generics encoding"
       (TkListLen 3 $ TkWord 1 $ TkInt 12 $ TkFloat32 0.5 $ TkEnd)
   , format
       (C3 12 0.5 "asdf")
-      (TkListLen 4 $ TkWord 2 $ TkInt 12 $ TkFloat32 0.5 $ TkString "asdf" $ TkEnd)
+      (TkListLen 4 $ TkWord 2 $ TkInt 12 $ TkFloat32 0.5 $ tkStr "asdf" $ TkEnd)
   , format
        C4
       (TkListLen 1 $ TkWord 3 $ TkEnd)
   , format
       (Cons "foo" (Cons "bar" Nil) :: List String)
-      (TkListLen 3 $ TkWord 0 $ TkString "foo" $
-       TkListLen 3 $ TkWord 0 $ TkString "bar" $
+      (TkListLen 3 $ TkWord 0 $ tkStr "foo" $
+       TkListLen 3 $ TkWord 0 $ tkStr "bar" $
        TkListLen 1 $ TkWord 1 $
        TkEnd)
   ]
+
+  where tkStr = TkUtf8ByteArray . fromList . map (fromIntegral . ord)
 
 --------------------------------------------------------------------------------
 -- Extra machinery

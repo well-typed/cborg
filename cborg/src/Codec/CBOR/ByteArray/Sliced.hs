@@ -26,6 +26,7 @@ module Codec.CBOR.ByteArray.Sliced
   ) where
 
 import GHC.Exts
+import Data.Char (chr, ord)
 import Data.Word
 import Foreign.Ptr
 import Control.Monad.ST
@@ -89,6 +90,13 @@ toBuilder = \(SBA ba off len) -> BSB.builder (go ba off len)
         outRemaining = ope `minusPtr` op
         inpRemaining = ipe - ip
 
+instance IsString SlicedByteArray where
+  fromString = fromList . map checkedOrd
+    where
+      checkedOrd c
+        | c > '\xff' = error "IsString(Codec.CBOR.ByteArray.Sliced): Non-ASCII character"
+        | otherwise  = fromIntegral $ ord c
+
 instance IsList SlicedByteArray where
   type Item SlicedByteArray = Word8
   fromList xs = fromListN (Prelude.length xs) xs
@@ -101,7 +109,7 @@ instance IsList SlicedByteArray where
       foldrByteArray (:) [] off len arr
 
 instance Show SlicedByteArray where
-  showsPrec _ = shows . toList
+  showsPrec _ = shows . map (chr . fromIntegral) . toList
 
 instance Eq SlicedByteArray where
   SBA arr1 off1 len1 == SBA arr2 off2 len2

@@ -33,6 +33,7 @@ module Codec.Serialise.Class
 import           Control.Applicative
 
 import           Control.Monad
+import           Data.Char
 import           Data.Hashable
 import           Data.Int
 import           Data.Monoid
@@ -109,6 +110,7 @@ import           GHC.Generics
 import           Codec.CBOR.Decoding
 import           Codec.CBOR.Encoding
 import           Codec.CBOR.Term
+import           Codec.Serialise.Internal.GeneralisedUTF8
 import qualified Codec.CBOR.ByteArray                as BA
 import qualified Codec.CBOR.ByteArray.Sliced         as BAS
 
@@ -310,16 +312,37 @@ instance Serialise (Proxy a) where
 
 -- | @since 0.2.0.0
 instance Serialise Char where
-    encode c = encodeString (Text.singleton c)
-    decode = do t <- decodeString
-                if Text.length t == 1
-                  then return $! Text.head t
-                  else fail "expected a single char, found a string"
+    -- Here we've taken great pains to ensure that surrogate characters, which
+    -- are not representable in UTF-8 yet still admitted by Char,
+    -- round-trip properly. We scan the encoded characters during encoding
+    -- looking for surrogates; if we find any we encode the string as a
+    -- a list of code-points encoded as words. This is slow, but should be rare.
+    encode c
+      | isSurrogate c = encodeWord (fromIntegral $ ord c)
+      | otherwise     = encodeString (Text.singleton c)
+    decode = do ty <- peekTokenType
+                case ty of
+                  TypeUInt -> chr . fromIntegral <$> decodeWord
+                  TypeString -> do
+                    t <- decodeString
+                    if Text.length t == 1
+                      then return $! Text.head t
+                      else fail "expected a single char, found a string"
+                  _ -> fail "expected a word or string"
 
     -- For [Char]/String we have a special encoding
-    encodeList cs = encodeString (Text.pack cs)
-    decodeList    = do txt <- decodeString
-                       return (Text.unpack txt) -- unpack lazily
+    encodeList cs =
+        case encodeGenUTF8 cs of
+          (ba, ConformantUTF8)  -> encodeUtf8ByteArray ba
+          (ba, GeneralisedUTF8) -> encodeByteArray ba
+    decodeList    = do
+        ty <- peekTokenType
+        case ty of
+          TypeBytes  -> decodeGenUTF8 . BA.unBA <$> decodeByteArray
+          TypeString -> do
+              txt <- decodeString
+              return (Text.unpack txt) -- unpack lazily
+          _          -> fail "expected a list or string"
 
 -- | @since 0.2.0.0
 instance Serialise Text.Text where

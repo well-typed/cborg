@@ -60,6 +60,7 @@ library
     Codec.Serialise.IO
     Codec.Serialise.Properties
     Codec.Serialise.Tutorial
+    Codec.Serialise.Internal.GeneralisedUTF8
 
   build-depends:
     array                   >= 0.4     && < 0.6,
@@ -110,10 +111,12 @@ test-suite tests
     Tests.Regress.Issue67
     Tests.Regress.Issue80
     Tests.Regress.Issue106
+    Tests.Regress.Issue135
     Tests.Regress.FlatTerm
     Tests.Reference
     Tests.Reference.Implementation
     Tests.Deriving
+    Tests.GeneralisedUTF8
 
   build-depends:
     array                   >= 0.4     && < 0.6,
