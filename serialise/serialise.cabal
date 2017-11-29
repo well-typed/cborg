@@ -43,7 +43,7 @@ source-repository head
 -- Flags
 
 flag newtime15
-  default: False
+  default: True
   manual: False
   description: Use the new time 1.5 library
 
