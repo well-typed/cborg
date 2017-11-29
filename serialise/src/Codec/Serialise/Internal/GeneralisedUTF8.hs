@@ -21,7 +21,7 @@ data UTF8Encoding = ConformantUTF8 | GeneralisedUTF8
 
 -- | Is a 'Char' a UTF-16 surrogate?
 isSurrogate :: Char -> Bool
-isSurrogate c = (ord c .&. 0xd800) == 0xd800
+isSurrogate c = c >= '\xd800' && c <= '\xdfff'
 
 -- | Encode a string as (generalized) UTF-8. In addition to the encoding, we
 -- return a flag indicating whether the encoded string contained any surrogate
