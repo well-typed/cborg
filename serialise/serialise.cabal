@@ -43,7 +43,7 @@ source-repository head
 -- Flags
 
 flag newtime15
-  default: False
+  default: True
   manual: False
   description: Use the new time 1.5 library
 
@@ -121,7 +121,7 @@ test-suite tests
   build-depends:
     array                   >= 0.4     && < 0.6,
     base                    >= 4.6     && < 5.0,
-    binary                  >= 0.7     && < 0.9,
+    binary                  >= 0.7     && < 0.10,
     bytestring              >= 0.10.4  && < 0.11,
     directory               >= 1.0     && < 1.4,
     filepath                >= 1.0     && < 1.5,
@@ -135,16 +135,16 @@ test-suite tests
     cborg,
     serialise,
 
-    aeson                   >= 0.7     && < 1.2,
+    aeson                   >= 0.7     && < 1.3,
     base64-bytestring       >= 1.0     && < 1.1,
     base16-bytestring       >= 0.1     && < 0.2,
     deepseq                 >= 1.0     && < 1.5,
     half                    >= 0.2.2.3 && < 0.3,
-    QuickCheck              >= 2.9     && < 2.10,
+    QuickCheck              >= 2.9     && < 2.11,
     scientific              >= 0.3     && < 0.4,
-    tasty                   >= 0.11    && < 0.12,
+    tasty                   >= 0.11    && < 0.13,
     tasty-hunit             >= 0.9     && < 0.10,
-    tasty-quickcheck        >= 0.8     && < 0.9,
+    tasty-quickcheck        >= 0.8     && < 0.10,
     quickcheck-instances    >= 0.3.12  && < 0.4,
     vector                  >= 0.10    && < 0.13
 
@@ -167,14 +167,14 @@ benchmark instances
 
   build-depends:
     base                    >= 4.6     && < 5.0,
-    binary                  >= 0.7     && < 0.9,
+    binary                  >= 0.7     && < 0.10,
     bytestring              >= 0.10.4  && < 0.11,
     vector                  >= 0.10    && < 0.13,
     cborg,
     serialise,
 
     deepseq                 >= 1.0     && < 1.5,
-    criterion               >= 1.0     && < 1.2
+    criterion               >= 1.0     && < 1.3
 
   if flag(newtime15)
     build-depends:
@@ -211,16 +211,16 @@ benchmark micro
 
   build-depends:
     base                    >= 4.6     && < 5.0,
-    binary                  >= 0.7     && < 0.9,
+    binary                  >= 0.7     && < 0.10,
     bytestring              >= 0.10.4  && < 0.11,
     ghc-prim                >= 0.3     && < 0.6,
     vector                  >= 0.10    && < 0.13,
     cborg,
     serialise,
 
-    aeson                   >= 0.7     && < 1.2,
+    aeson                   >= 0.7     && < 1.3,
     deepseq                 >= 1.0     && < 1.5,
-    criterion               >= 1.0     && < 1.2,
+    criterion               >= 1.0     && < 1.3,
     cereal                  >= 0.5.2.0 && < 0.6,
     cereal-vector           >= 0.2     && < 0.3,
     store                   >= 0.4     && < 0.5
@@ -257,7 +257,7 @@ benchmark versus
   build-depends:
     array                   >= 0.4     && < 0.6,
     base                    >= 4.6     && < 5.0,
-    binary                  >= 0.7     && < 0.9,
+    binary                  >= 0.7     && < 0.10,
     bytestring              >= 0.10.4  && < 0.11,
     directory               >= 1.0     && < 1.4,
     ghc-prim                >= 0.3     && < 0.6,
@@ -269,13 +269,13 @@ benchmark versus
     filepath                >= 1.0     && < 1.5,
     containers              >= 0.5     && < 0.6,
     deepseq                 >= 1.0     && < 1.5,
-    aeson                   >= 0.7     && < 1.2,
+    aeson                   >= 0.7     && < 1.3,
     cereal                  >= 0.5.2.0 && < 0.6,
     half                    >= 0.2.2.3 && < 0.3,
     tar                     >= 0.4     && < 0.6,
     zlib                    >= 0.5     && < 0.7,
     pretty                  >= 1.0     && < 1.2,
-    criterion               >= 1.0     && < 1.2,
+    criterion               >= 1.0     && < 1.3,
     store                   >= 0.4     && < 0.5
 
   if flag(newtime15)
