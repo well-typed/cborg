@@ -4,23 +4,25 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Tests.Orphanage where
 
-#if !MIN_VERSION_base(4,8,0)
+#if !MIN_VERSION_base(4,8,0) && !MIN_VERSION_QuickCheck(2,10,0)
 import           Control.Applicative
 import           Data.Monoid as Monoid
 #endif
 
-#if MIN_VERSION_base(4,9,0)
+#if MIN_VERSION_base(4,9,0) && !MIN_VERSION_QuickCheck(2,10,0)
 import qualified Data.Semigroup as Semigroup
 #endif
 
-import           Data.Typeable
-
+import           GHC.Fingerprint.Type
 import           Data.Ord
+#if !MIN_VERSION_QuickCheck(2,10,0)
+import           Data.Typeable
 import           Foreign.C.Types
 import           System.Exit (ExitCode(..))
-import           GHC.Fingerprint.Type
 
 import           Test.QuickCheck.Gen
+#endif
+
 import           Test.QuickCheck.Arbitrary
 
 import qualified Data.Vector.Primitive      as Vector.Primitive
@@ -36,6 +38,7 @@ import qualified Data.ByteString.Short      as BSS
 
 -- Foreign C types
 
+#if !MIN_VERSION_QuickCheck(2,10,0)
 instance Arbitrary CChar where
   arbitrary = CChar <$> arbitrary
   shrink (CChar x) = CChar <$> shrink x
@@ -135,10 +138,11 @@ instance Arbitrary CFloat where
 instance Arbitrary CDouble where
   arbitrary = CDouble <$> arbitrary
   shrink (CDouble x) = CDouble <$> shrink x
+#endif
 
 -- Miscellaneous types from base
 
-#if MIN_VERSION_base(4,9,0)
+#if MIN_VERSION_base(4,9,0) && !MIN_VERSION_QuickCheck(2,10,0)
 instance Arbitrary a => Arbitrary (Semigroup.Min a) where
   arbitrary = fmap Semigroup.Min arbitrary
   shrink = map Semigroup.Min . shrink . Semigroup.getMin
@@ -168,11 +172,13 @@ instance Arbitrary a => Arbitrary (Down a) where
   arbitrary = fmap Down arbitrary
   shrink = map Down . shrink . (\(Down a) -> a)
 
+#if !MIN_VERSION_QuickCheck(2,10,0)
 instance Arbitrary ExitCode where
   arbitrary = frequency [(1, return ExitSuccess), (3, fmap ExitFailure arbitrary)]
 
   shrink (ExitFailure x) = ExitSuccess : [ ExitFailure x' | x' <- shrink x ]
   shrink _        = []
+#endif
 
 #if !MIN_VERSION_base(4,8,0)
 deriving instance Typeable Const
@@ -196,7 +202,7 @@ instance (Vector.Primitive.Prim a, Arbitrary a
          ) => Arbitrary (Vector.Primitive.Vector a) where
     arbitrary = Vector.Primitive.fromList <$> arbitrary
 
-#if MIN_VERSION_base(4,7,0)
+#if MIN_VERSION_base(4,7,0) && !MIN_VERSION_QuickCheck(2,10,0)
 instance Arbitrary (Proxy a) where
   arbitrary = return Proxy
 #endif
