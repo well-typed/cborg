@@ -270,24 +270,24 @@ a new tag,
 > -- HoppingAnimal, SwimmingAnimal cases are unchanged...
 > encodeAnimal (HoppingAnimal name height) =
 >     encodeListLen 3 <> encodeWord 0 <> encode name <> encode height
-> encodeAnimal (WalkingAnimal name speed) =
->     encodeListLen 3 <> encodeWord 1 <> encode name <> encode speed
+> encodeAnimal (SwimmingAnimal numberOfFins) =
+>     encodeListLen 2 <> encodeWord 2 <> encode numberOfFins
 > -- This is new...
 > encodeAnimal (WalkingAnimal animalName walkingSpeed numberOfFeet) =
->     encodeListLen 4 <> encodeWord 3 <> encode animalName <> encode walkingSpeed <> encode numberOfFins
+>     encodeListLen 4 <> encodeWord 3 <> encode animalName <> encode walkingSpeed <> encode numberOfFeet
 >
 > decodeAnimal :: Decoder s Animal
 > decodeAnimal = do
 >     len <- decodeListLen
 >     tag <- decodeWord
 >     case (len, tag) of
->       -- this cases are unchanged...
+>       -- these cases are unchanged...
 >       (3, 0) -> HoppingAnimal <$> decode <*> decode
 >       (2, 2) -> SwimmingAnimal <$> decode
 >       -- this is new...
 >       (3, 1) -> WalkingAnimal <$> decode <*> decode <*> pure 4
 >                                                      -- ^ note the default for backwards compat
->       (4, 3) -> WalkingAnimal <$> decode <*> decode
+>       (4, 3) -> WalkingAnimal <$> decode <*> decode <*> decode
 >       _      -> fail "invalid Animal encoding"
 
 We can use this same approach to handle field removal and type changes.
