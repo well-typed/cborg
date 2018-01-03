@@ -76,7 +76,7 @@ import           Codec.CBOR.Magic
 --
 -- @since 0.2.0.0
 data DeserialiseFailure = DeserialiseFailure ByteOffset String
-  deriving (Show, Typeable)
+  deriving (Eq, Show, Typeable)
 
 instance Exception DeserialiseFailure where
 #if MIN_VERSION_base(4,8,0)
