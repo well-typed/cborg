@@ -557,7 +557,7 @@ go_fast !bs da@(ConsumeString k) =
       DecodeFailure                 -> go_fast_end bs da
       DecodedToken sz (Fits str)    -> case T.decodeUtf8' str of
                                          Right t -> k t >>= go_fast (BS.unsafeDrop sz bs)
-                                         Left e  -> return $! SlowFail bs (show e)
+                                         Left _e -> return $! SlowFail bs "invalid UTF8"
       DecodedToken sz (TooLong len) -> return $! SlowConsumeTokenString (BS.unsafeDrop sz bs) k len
 
 go_fast !bs da@(ConsumeUtf8ByteArray k) =
@@ -1010,7 +1010,7 @@ go_fast_end !bs (ConsumeString k) =
       DecodeFailure                 -> return $! SlowFail bs "expected string"
       DecodedToken sz (Fits str)    -> case T.decodeUtf8' str of
                                          Right t -> k t >>= go_fast_end (BS.unsafeDrop sz bs)
-                                         Left e  -> return $! SlowFail bs (show e)
+                                         Left _e -> return $! SlowFail bs "invalid UTF8"
       DecodedToken sz (TooLong len) -> return $! SlowConsumeTokenString (BS.unsafeDrop sz bs) k len
 
 go_fast_end !bs (ConsumeUtf8ByteArray k) =
@@ -1135,8 +1135,10 @@ go_slow da bs !offset = do
 
     SlowConsumeTokenString bs' k len -> do
       (bstr, bs'') <- getTokenVarLen len bs' offset'
-      let !str = T.decodeUtf8 bstr  -- TODO FIXME: utf8 validation
-      lift (k str) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len)
+      case T.decodeUtf8' bstr of
+        Right str -> lift (k str) >>= \daz ->
+                     go_slow daz bs'' (offset' + intToInt64 len)
+        Left _e   -> decodeFail bs' offset' "invalid UTF8"
       where
         !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
 
@@ -1238,37 +1240,46 @@ go_slow_overlapped da sz bs_cur bs_next !offset =
         assert (BS.null bs_empty) $
         return (bs', offset', x)
 
-      SlowConsumeTokenBytes bs_empty k len         -> consume id                bs' offset' bs_empty k len
+      SlowConsumeTokenBytes bs_empty k len ->
+        assert (BS.null bs_empty) $ do
+        (bstr, bs'') <- getTokenShortOrVarLen bs' offset' len
+        lift (k bstr) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len)
 
-      SlowConsumeTokenByteArray bs_empty k len     -> consume BA.fromByteString bs' offset' bs_empty k len
+      SlowConsumeTokenByteArray bs_empty k len ->
+        assert (BS.null bs_empty) $ do
+        (bstr, bs'') <- getTokenShortOrVarLen bs' offset' len
+        let !ba = BA.fromByteString bstr
+        lift (k ba) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len)
 
-      SlowConsumeTokenString bs_empty k len        -> consume T.decodeUtf8      bs' offset' bs_empty k len
-        -- TODO FIXME: utf8 validation
+      SlowConsumeTokenString bs_empty k len ->
+        assert (BS.null bs_empty) $ do
+        (bstr, bs'') <- getTokenShortOrVarLen bs' offset' len
+        case T.decodeUtf8' bstr of
+          Right str -> lift (k str) >>= \daz ->
+                       go_slow daz bs'' (offset' + intToInt64 len)
+          Left _e   -> decodeFail bs' offset' "invalid UTF8"
 
-      SlowConsumeTokenUtf8ByteArray bs_empty k len -> consume BA.fromByteString bs' offset' bs_empty k len
+      SlowConsumeTokenUtf8ByteArray bs_empty k len ->
+        assert (BS.null bs_empty) $ do
+        (bstr, bs'') <- getTokenShortOrVarLen bs' offset' len
+        let !ba = BA.fromByteString bstr
+        lift (k ba) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len)
 
       SlowFail bs_unconsumed msg ->
         decodeFail (bs_unconsumed <> bs') offset'' msg
         where
           !offset'' = offset + intToInt64 (sz - BS.length bs_unconsumed)
   where
-    {-# INLINE consume #-}
-    consume :: (BS.ByteString -> a)
-            -> BS.ByteString                   -- bs'
-            -> Int64                           -- offset'
-            -> BS.ByteString                   -- bs_empty
-            -> (a -> ST s (DecodeAction s r))  -- continuation
-            -> Int                             -- length
-            -> IncrementalDecoder s (ByteString, ByteOffset, r)
-    consume pack bs' offset' bs_empty k len =
-        assert (BS.null bs_empty) $ do
-        (bstr, bs'') <- if BS.length bs' < len
-                          then getTokenVarLen len bs' offset'
-                          else let !bstr = BS.take len bs'
-                                   !bs'' = BS.drop len bs'
-                                in return (bstr, bs'')
-        let !str = pack bstr
-        lift (k str) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len)
+    {-# INLINE getTokenShortOrVarLen #-}
+    getTokenShortOrVarLen :: BS.ByteString
+                          -> ByteOffset
+                          -> Int
+                          -> IncrementalDecoder s (ByteString, ByteString)
+    getTokenShortOrVarLen bs' offset' len
+      | BS.length bs' < len = getTokenVarLen len bs' offset'
+      | otherwise           = let !bstr = BS.take len bs'
+                                  !bs'' = BS.drop len bs'
+                               in return (bstr, bs'')
 
 
 -- TODO FIXME: we can do slightly better here. If we're returning a
