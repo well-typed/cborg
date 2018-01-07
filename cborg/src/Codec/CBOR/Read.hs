@@ -63,6 +63,9 @@ import           GHC.Float (float2Double)
 import           Data.Typeable
 import           Control.Exception
 
+-- We do all numeric conversions explicitly to be careful about overflows.
+import           Prelude hiding (fromIntegral)
+
 import qualified Codec.CBOR.ByteArray as BA
 import           Codec.CBOR.Decoding hiding (DecodeAction(Done, Fail))
 import           Codec.CBOR.Decoding (DecodeAction)
@@ -649,7 +652,7 @@ go_fast !bs (ConsumeBreakOr k) =
 
 go_fast !bs (PeekTokenType k) =
     let !hdr  = BS.unsafeHead bs
-        !tkty = decodeTokenTypeTable `A.unsafeAt` fromIntegral hdr
+        !tkty = decodeTokenTypeTable `A.unsafeAt` word8ToInt hdr
     in k tkty >>= go_fast bs
 
 go_fast !bs (PeekAvailable k) = k (case BS.length bs of I# len# -> len#) >>= go_fast bs
@@ -683,7 +686,7 @@ go_fast_end !bs (ConsumeBreakOr k) =
 
 go_fast_end !bs (PeekTokenType k) =
     let !hdr  = BS.unsafeHead bs
-        !tkty = decodeTokenTypeTable `A.unsafeAt` fromIntegral hdr
+        !tkty = decodeTokenTypeTable `A.unsafeAt` word8ToInt hdr
     in k tkty >>= go_fast_end bs
 
 -- all the remaining cases have to decode the current token
@@ -1115,34 +1118,34 @@ go_slow da bs !offset = do
   case slowpath of
     FastDone bs' x -> return (bs', offset', x)
       where
-        !offset' = offset + fromIntegral (BS.length bs - BS.length bs')
+        !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
 
     SlowConsumeTokenBytes bs' k len -> do
       (bstr, bs'') <- getTokenVarLen len bs' offset'
-      lift (k bstr) >>= \daz -> go_slow daz bs'' (offset' + fromIntegral len)
+      lift (k bstr) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len)
       where
-        !offset' = offset + fromIntegral (BS.length bs - BS.length bs')
+        !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
 
     SlowConsumeTokenByteArray bs' k len -> do
       (bstr, bs'') <- getTokenVarLen len bs' offset'
       let !str = BA.fromByteString bstr
-      lift (k str) >>= \daz -> go_slow daz bs'' (offset' + fromIntegral len)
+      lift (k str) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len)
       where
-        !offset' = offset + fromIntegral (BS.length bs - BS.length bs')
+        !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
 
     SlowConsumeTokenString bs' k len -> do
       (bstr, bs'') <- getTokenVarLen len bs' offset'
       let !str = T.decodeUtf8 bstr  -- TODO FIXME: utf8 validation
-      lift (k str) >>= \daz -> go_slow daz bs'' (offset' + fromIntegral len)
+      lift (k str) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len)
       where
-        !offset' = offset + fromIntegral (BS.length bs - BS.length bs')
+        !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
 
     SlowConsumeTokenUtf8ByteArray bs' k len -> do
       (bstr, bs'') <- getTokenVarLen len bs' offset'
       let !str = BA.fromByteString bstr
-      lift (k str) >>= \daz -> go_slow daz bs'' (offset' + fromIntegral len)
+      lift (k str) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len)
       where
-        !offset' = offset + fromIntegral (BS.length bs - BS.length bs')
+        !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
 
     -- we didn't have enough input in the buffer
     SlowDecodeAction bs' da' | BS.null bs' -> do
@@ -1153,7 +1156,7 @@ go_slow da bs !offset = do
         Nothing   -> decodeFail bs' offset' "end of input"
         Just bs'' -> go_slow da' bs'' offset'
       where
-        !offset' = offset + fromIntegral (BS.length bs - BS.length bs')
+        !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
 
     SlowDecodeAction bs' da' ->
       -- of course we should only end up here when we really are out of
@@ -1161,11 +1164,11 @@ go_slow da bs !offset = do
       assert (BS.length bs' < tokenSize (BS.head bs')) $
       go_slow_fixup da' bs' offset'
       where
-        !offset' = offset + fromIntegral (BS.length bs - BS.length bs')
+        !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
 
     SlowFail bs' msg -> decodeFail bs' offset' msg
       where
-        !offset' = offset + fromIntegral (BS.length bs - BS.length bs')
+        !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
 
 -- The complicated case is when a token spans a chunk boundary.
 --
@@ -1213,7 +1216,7 @@ go_slow_overlapped da sz bs_cur bs_next !offset =
 
     let bs_tok   = bs_cur <> BS.unsafeTake (sz - BS.length bs_cur) bs_next
         bs'      =           BS.unsafeDrop (sz - BS.length bs_cur) bs_next
-        offset'  = offset + fromIntegral sz in
+        offset'  = offset + intToInt64 sz in
 
     -- so the token chunk should be exactly the right size
     assert (BS.length bs_tok == sz) $
@@ -1247,7 +1250,7 @@ go_slow_overlapped da sz bs_cur bs_next !offset =
       SlowFail bs_unconsumed msg ->
         decodeFail (bs_unconsumed <> bs') offset'' msg
         where
-          !offset'' = offset + fromIntegral (sz - BS.length bs_unconsumed)
+          !offset'' = offset + intToInt64 (sz - BS.length bs_unconsumed)
   where
     {-# INLINE consume #-}
     consume :: (BS.ByteString -> a)
@@ -1265,7 +1268,7 @@ go_slow_overlapped da sz bs_cur bs_next !offset =
                                    !bs'' = BS.drop len bs'
                                 in return (bstr, bs'')
         let !str = pack bstr
-        lift (k str) >>= \daz -> go_slow daz bs'' (offset' + fromIntegral len)
+        lift (k str) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len)
 
 
 -- TODO FIXME: we can do slightly better here. If we're returning a
@@ -1310,8 +1313,8 @@ getTokenVarLenSlow bss n offset = do
 
 tokenSize :: Word8 -> Int
 tokenSize hdr =
-    fromIntegral $
-      decodeTableSz `A.unsafeAt` (fromIntegral hdr .&. 0x1f)
+    word8ToInt $
+      decodeTableSz `A.unsafeAt` (word8ToInt hdr .&. 0x1f)
 
 decodeTableSz :: UArray Word8 Word8
 decodeTableSz =
@@ -1363,11 +1366,12 @@ decodeTokenTypeTable =
 
  ++ [ (encodeHeader mt n, TypeInvalid) | mt <- [0..7], n <- [28..30] ]
 
-encodeHeader :: Word -> Word -> Word8
-encodeHeader mt ai = fromIntegral (mt `shiftL` 5 .|. ai)
+encodeHeader :: Word8 -> Word8 -> Word8
+encodeHeader mt ai = mt `shiftL` 5 .|. ai
 
 data DecodedToken a = DecodedToken !Int !a | DecodeFailure
   deriving Show
+-- TODO add classification for DecodeFailure
 
 data LongToken a = Fits !a | TooLong !Int
   deriving Show
@@ -1433,7 +1437,7 @@ isInt64Canonical sz i#
 
 {-# INLINE tryConsumeWord #-}
 tryConsumeWord :: Word8 -> ByteString -> DecodedToken Word
-tryConsumeWord hdr !bs = case fromIntegral hdr :: Word of
+tryConsumeWord hdr !bs = case word8ToWord hdr of
   -- Positive integers (type 0)
   0x00 -> DecodedToken 1 0
   0x01 -> DecodedToken 1 1
@@ -1459,16 +1463,22 @@ tryConsumeWord hdr !bs = case fromIntegral hdr :: Word of
   0x15 -> DecodedToken 1 21
   0x16 -> DecodedToken 1 22
   0x17 -> DecodedToken 1 23
-  0x18 -> DecodedToken 2 (eatTailWord8 bs)
-  0x19 -> DecodedToken 3 (eatTailWord16 bs)
-  0x1a -> DecodedToken 5 (eatTailWord32 bs)
-  0x1b -> DecodedToken 9 (fromIntegral $ eatTailWord64 bs) -- TODO FIXME: overflow
+  0x18 -> DecodedToken 2 (word8ToWord  (eatTailWord8 bs))
+  0x19 -> DecodedToken 3 (word16ToWord (eatTailWord16 bs))
+  0x1a -> DecodedToken 5 (word32ToWord (eatTailWord32 bs))
+#if defined(ARCH_64bit)
+  0x1b -> DecodedToken 9 (word64ToWord (eatTailWord64 bs))
+#else
+  0x1b -> case word64ToWord (eatTailWord64 bs) of
+            Just n  -> DecodedToken 9 n
+            Nothing -> DecodeFailure
+#endif
   _    -> DecodeFailure
 
 
 {-# INLINE tryConsumeNegWord #-}
 tryConsumeNegWord :: Word8 -> ByteString -> DecodedToken Word
-tryConsumeNegWord hdr !bs = case fromIntegral hdr :: Word of
+tryConsumeNegWord hdr !bs = case word8ToWord hdr of
   -- Positive integers (type 0)
   0x20 -> DecodedToken 1 0
   0x21 -> DecodedToken 1 1
@@ -1494,16 +1504,22 @@ tryConsumeNegWord hdr !bs = case fromIntegral hdr :: Word of
   0x35 -> DecodedToken 1 21
   0x36 -> DecodedToken 1 22
   0x37 -> DecodedToken 1 23
-  0x38 -> DecodedToken 2 (eatTailWord8 bs)
-  0x39 -> DecodedToken 3 (eatTailWord16 bs)
-  0x3a -> DecodedToken 5 (eatTailWord32 bs)
-  0x3b -> DecodedToken 9 (fromIntegral $ eatTailWord64 bs) -- TODO FIXME: overflow
+  0x38 -> DecodedToken 2 (word8ToWord  (eatTailWord8 bs))
+  0x39 -> DecodedToken 3 (word16ToWord (eatTailWord16 bs))
+  0x3a -> DecodedToken 5 (word32ToWord (eatTailWord32 bs))
+#if defined(ARCH_64bit)
+  0x3b -> DecodedToken 9 (word64ToWord (eatTailWord64 bs))
+#else
+  0x3b -> case word64ToWord (eatTailWord64 bs) of
+            Just n  -> DecodedToken 9 n
+            Nothing -> DecodeFailure
+#endif
   _    -> DecodeFailure
 
 
 {-# INLINE tryConsumeInt #-}
 tryConsumeInt :: Word8 -> ByteString -> DecodedToken Int
-tryConsumeInt hdr !bs = case fromIntegral hdr :: Word of
+tryConsumeInt hdr !bs = case word8ToWord hdr of
   -- Positive integers (type 0)
   0x00 -> DecodedToken 1 0
   0x01 -> DecodedToken 1 1
@@ -1529,10 +1545,18 @@ tryConsumeInt hdr !bs = case fromIntegral hdr :: Word of
   0x15 -> DecodedToken 1 21
   0x16 -> DecodedToken 1 22
   0x17 -> DecodedToken 1 23
-  0x18 -> DecodedToken 2 (fromIntegral (eatTailWord8 bs))
-  0x19 -> DecodedToken 3 (fromIntegral (eatTailWord16 bs))
-  0x1a -> DecodedToken 5 (fromIntegral (eatTailWord32 bs)) -- TODO FIXME: overflow
-  0x1b -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
+  0x18 -> DecodedToken 2 (word8ToInt  (eatTailWord8 bs))
+  0x19 -> DecodedToken 3 (word16ToInt (eatTailWord16 bs))
+#if defined(ARCH_64bit)
+  0x1a -> DecodedToken 5 (word32ToInt (eatTailWord32 bs))
+#else
+  0x1a -> case word32ToInt (eatTailWord32 bs) of
+            Just n  -> DecodedToken 5 n
+            Nothing -> DecodeFailure
+#endif
+  0x1b -> case word64ToInt (eatTailWord64 bs) of
+            Just n  -> DecodedToken 9 n
+            Nothing -> DecodeFailure
 
   -- Negative integers (type 1)
   0x20 -> DecodedToken 1 (-1)
@@ -1559,16 +1583,24 @@ tryConsumeInt hdr !bs = case fromIntegral hdr :: Word of
   0x35 -> DecodedToken 1 (-22)
   0x36 -> DecodedToken 1 (-23)
   0x37 -> DecodedToken 1 (-24)
-  0x38 -> DecodedToken 2 (-1 - fromIntegral (eatTailWord8 bs))
-  0x39 -> DecodedToken 3 (-1 - fromIntegral (eatTailWord16 bs))
-  0x3a -> DecodedToken 5 (-1 - fromIntegral (eatTailWord32 bs)) -- TODO FIXME: overflow
-  0x3b -> DecodedToken 9 (-1 - fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
+  0x38 -> DecodedToken 2 (-1 - word8ToInt  (eatTailWord8 bs))
+  0x39 -> DecodedToken 3 (-1 - word16ToInt (eatTailWord16 bs))
+#if defined(ARCH_64bit)
+  0x3a -> DecodedToken 5 (-1 - word32ToInt (eatTailWord32 bs))
+#else
+  0x3a -> case word32ToInt (eatTailWord32 bs) of
+            Just n  -> DecodedToken 5 (-1 - n)
+            Nothing -> DecodeFailure
+#endif
+  0x3b -> case word64ToInt (eatTailWord64 bs) of
+            Just n  -> DecodedToken 9 (-1 - n)
+            Nothing -> DecodeFailure
   _    -> DecodeFailure
 
 
 {-# INLINE tryConsumeInteger #-}
 tryConsumeInteger :: Word8 -> ByteString -> DecodedToken (BigIntToken Integer)
-tryConsumeInteger hdr !bs = case fromIntegral hdr :: Word of
+tryConsumeInteger hdr !bs = case word8ToWord hdr of
 
   -- Positive integers (type 0)
   0x00 -> DecodedToken 1 (BigIntToken True 0)
@@ -1596,21 +1628,21 @@ tryConsumeInteger hdr !bs = case fromIntegral hdr :: Word of
   0x16 -> DecodedToken 1 (BigIntToken True 22)
   0x17 -> DecodedToken 1 (BigIntToken True 23)
 
-  0x18 -> let !w@(W# w#) = eatTailWord8 bs
+  0x18 -> let !w@(W8# w#) = eatTailWord8 bs
               sz = 2
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (fromIntegral w))
-  0x19 -> let !w@(W# w#) = eatTailWord16 bs
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (toInteger w))
+  0x19 -> let !w@(W16# w#) = eatTailWord16 bs
               sz = 3
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (fromIntegral w))
-  0x1a -> let !w@(W# w#) = eatTailWord32 bs
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (toInteger w))
+  0x1a -> let !w@(W32# w#) = eatTailWord32 bs
               sz = 5
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (fromIntegral w))
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (toInteger w))
   0x1b -> let !w@(W64# w#) = eatTailWord64 bs
               sz = 9
 #if defined(ARCH_32bit)
-          in DecodedToken sz (BigIntToken (isWord64Canonical sz w#) (fromIntegral w))
+          in DecodedToken sz (BigIntToken (isWord64Canonical sz w#) (toInteger w))
 #else
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (fromIntegral w))
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (toInteger w))
 #endif
 
   -- Negative integers (type 1)
@@ -1638,21 +1670,21 @@ tryConsumeInteger hdr !bs = case fromIntegral hdr :: Word of
   0x35 -> DecodedToken 1 (BigIntToken True (-22))
   0x36 -> DecodedToken 1 (BigIntToken True (-23))
   0x37 -> DecodedToken 1 (BigIntToken True (-24))
-  0x38 -> let !w@(W# w#) = eatTailWord8 bs
+  0x38 -> let !w@(W8# w#) = eatTailWord8 bs
               sz = 2
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (-1 - fromIntegral w))
-  0x39 -> let !w@(W# w#) = eatTailWord16 bs
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (-1 - toInteger w))
+  0x39 -> let !w@(W16# w#) = eatTailWord16 bs
               sz = 3
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (-1 - fromIntegral w))
-  0x3a -> let !w@(W# w#) = eatTailWord32 bs
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (-1 - toInteger w))
+  0x3a -> let !w@(W32# w#) = eatTailWord32 bs
               sz = 5
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (-1 - fromIntegral w))
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (-1 - toInteger w))
   0x3b -> let !w@(W64# w#) = eatTailWord64 bs
               sz = 9
 #if defined(ARCH_32bit)
-          in DecodedToken sz (BigIntToken (isWord64Canonical sz w#) (-1 - fromIntegral w))
+          in DecodedToken sz (BigIntToken (isWord64Canonical sz w#) (-1 - toInteger w))
 #else
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (-1 - fromIntegral w))
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (-1 - toInteger w))
 #endif
 
   0xc2 -> readBigUInt bs
@@ -1663,7 +1695,7 @@ tryConsumeInteger hdr !bs = case fromIntegral hdr :: Word of
 
 {-# INLINE tryConsumeBytes #-}
 tryConsumeBytes :: Word8 -> ByteString -> DecodedToken (LongToken ByteString)
-tryConsumeBytes hdr !bs = case fromIntegral hdr :: Word of
+tryConsumeBytes hdr !bs = case word8ToWord hdr of
 
   -- Bytes (type 2)
   0x40 -> readBytesSmall 0 bs
@@ -1699,7 +1731,7 @@ tryConsumeBytes hdr !bs = case fromIntegral hdr :: Word of
 
 {-# INLINE tryConsumeString #-}
 tryConsumeString :: Word8 -> ByteString -> DecodedToken (LongToken BS.ByteString)
-tryConsumeString hdr !bs = case fromIntegral hdr :: Word of
+tryConsumeString hdr !bs = case word8ToWord hdr of
 
   -- Strings (type 3)
   0x60 -> readBytesSmall 0 bs
@@ -1735,7 +1767,7 @@ tryConsumeString hdr !bs = case fromIntegral hdr :: Word of
 
 {-# INLINE tryConsumeListLen #-}
 tryConsumeListLen :: Word8 -> ByteString -> DecodedToken Int
-tryConsumeListLen hdr !bs = case fromIntegral hdr :: Word of
+tryConsumeListLen hdr !bs = case word8ToWord hdr of
   -- List structures (type 4)
   0x80 -> DecodedToken 1 0
   0x81 -> DecodedToken 1 1
@@ -1761,16 +1793,24 @@ tryConsumeListLen hdr !bs = case fromIntegral hdr :: Word of
   0x95 -> DecodedToken 1 21
   0x96 -> DecodedToken 1 22
   0x97 -> DecodedToken 1 23
-  0x98 -> DecodedToken 2 (fromIntegral (eatTailWord8 bs))
-  0x99 -> DecodedToken 3 (fromIntegral (eatTailWord16 bs))
-  0x9a -> DecodedToken 5 (fromIntegral (eatTailWord32 bs)) -- TODO FIXME: overflow
-  0x9b -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
+  0x98 -> DecodedToken 2 (word8ToInt  (eatTailWord8 bs))
+  0x99 -> DecodedToken 3 (word16ToInt (eatTailWord16 bs))
+#if defined(ARCH_64bit)
+  0x9a -> DecodedToken 5 (word32ToInt (eatTailWord32 bs))
+#else
+  0x9a -> case word32ToInt (eatTailWord32 bs) of
+            Just n  -> DecodedToken 5 n
+            Nothing -> DecodeFailure
+#endif
+  0x9b -> case word64ToInt (eatTailWord64 bs) of
+            Just n  -> DecodedToken 9 n
+            Nothing -> DecodeFailure
   _    -> DecodeFailure
 
 
 {-# INLINE tryConsumeMapLen #-}
 tryConsumeMapLen :: Word8 -> ByteString -> DecodedToken Int
-tryConsumeMapLen hdr !bs = case fromIntegral hdr :: Word of
+tryConsumeMapLen hdr !bs = case word8ToWord hdr of
   -- Map structures (type 5)
   0xa0 -> DecodedToken 1 0
   0xa1 -> DecodedToken 1 1
@@ -1796,30 +1836,38 @@ tryConsumeMapLen hdr !bs = case fromIntegral hdr :: Word of
   0xb5 -> DecodedToken 1 21
   0xb6 -> DecodedToken 1 22
   0xb7 -> DecodedToken 1 23
-  0xb8 -> DecodedToken 2 (fromIntegral (eatTailWord8 bs))
-  0xb9 -> DecodedToken 3 (fromIntegral (eatTailWord16 bs))
-  0xba -> DecodedToken 5 (fromIntegral (eatTailWord32 bs)) -- TODO FIXME: overflow
-  0xbb -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
+  0xb8 -> DecodedToken 2 (word8ToInt  (eatTailWord8 bs))
+  0xb9 -> DecodedToken 3 (word16ToInt (eatTailWord16 bs))
+#if defined(ARCH_64bit)
+  0xba -> DecodedToken 5 (word32ToInt (eatTailWord32 bs))
+#else
+  0xba -> case word32ToInt (eatTailWord32 bs) of
+            Just n  -> DecodedToken 5 n
+            Nothing -> DecodeFailure
+#endif
+  0xbb -> case word64ToInt (eatTailWord64 bs) of
+            Just n  -> DecodedToken 9 n
+            Nothing -> DecodeFailure
   _    -> DecodeFailure
 
 
 {-# INLINE tryConsumeListLenIndef #-}
 tryConsumeListLenIndef :: Word8 -> DecodedToken ()
-tryConsumeListLenIndef hdr = case fromIntegral hdr :: Word of
+tryConsumeListLenIndef hdr = case word8ToWord hdr of
   0x9f -> DecodedToken 1 ()
   _    -> DecodeFailure
 
 
 {-# INLINE tryConsumeMapLenIndef #-}
 tryConsumeMapLenIndef :: Word8 -> DecodedToken ()
-tryConsumeMapLenIndef hdr = case fromIntegral hdr :: Word of
+tryConsumeMapLenIndef hdr = case word8ToWord hdr of
   0xbf -> DecodedToken 1 ()
   _    -> DecodeFailure
 
 
 {-# INLINE tryConsumeListLenOrIndef #-}
 tryConsumeListLenOrIndef :: Word8 -> ByteString -> DecodedToken Int
-tryConsumeListLenOrIndef hdr !bs = case fromIntegral hdr :: Word of
+tryConsumeListLenOrIndef hdr !bs = case word8ToWord hdr of
 
   -- List structures (type 4)
   0x80 -> DecodedToken 1 0
@@ -1846,17 +1894,25 @@ tryConsumeListLenOrIndef hdr !bs = case fromIntegral hdr :: Word of
   0x95 -> DecodedToken 1 21
   0x96 -> DecodedToken 1 22
   0x97 -> DecodedToken 1 23
-  0x98 -> DecodedToken 2 (fromIntegral (eatTailWord8 bs))
-  0x99 -> DecodedToken 3 (fromIntegral (eatTailWord16 bs))
-  0x9a -> DecodedToken 5 (fromIntegral (eatTailWord32 bs)) -- TODO FIXME: overflow
-  0x9b -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
+  0x98 -> DecodedToken 2 (word8ToInt  (eatTailWord8 bs))
+  0x99 -> DecodedToken 3 (word16ToInt (eatTailWord16 bs))
+#if defined(ARCH_64bit)
+  0x9a -> DecodedToken 5 (word32ToInt (eatTailWord32 bs))
+#else
+  0x9a -> case word32ToInt (eatTailWord32 bs) of
+            Just n  -> DecodedToken 5 n
+            Nothing -> DecodeFailure
+#endif
+  0x9b -> case word64ToInt (eatTailWord64 bs) of
+            Just n  -> DecodedToken 9 n
+            Nothing -> DecodeFailure
   0x9f -> DecodedToken 1 (-1) -- indefinite length
   _    -> DecodeFailure
 
 
 {-# INLINE tryConsumeMapLenOrIndef #-}
 tryConsumeMapLenOrIndef :: Word8 -> ByteString -> DecodedToken Int
-tryConsumeMapLenOrIndef hdr !bs = case fromIntegral hdr :: Word of
+tryConsumeMapLenOrIndef hdr !bs = case word8ToWord hdr of
 
   -- Map structures (type 5)
   0xa0 -> DecodedToken 1 0
@@ -1883,17 +1939,25 @@ tryConsumeMapLenOrIndef hdr !bs = case fromIntegral hdr :: Word of
   0xb5 -> DecodedToken 1 21
   0xb6 -> DecodedToken 1 22
   0xb7 -> DecodedToken 1 23
-  0xb8 -> DecodedToken 2 (fromIntegral (eatTailWord8 bs))
-  0xb9 -> DecodedToken 3 (fromIntegral (eatTailWord16 bs))
-  0xba -> DecodedToken 5 (fromIntegral (eatTailWord32 bs)) -- TODO FIXME: overflow
-  0xbb -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
+  0xb8 -> DecodedToken 2 (word8ToInt  (eatTailWord8 bs))
+  0xb9 -> DecodedToken 3 (word16ToInt (eatTailWord16 bs))
+#if defined(ARCH_64bit)
+  0xba -> DecodedToken 5 (word32ToInt (eatTailWord32 bs))
+#else
+  0xba -> case word32ToInt (eatTailWord32 bs) of
+            Just n  -> DecodedToken 5 n
+            Nothing -> DecodeFailure
+#endif
+  0xbb -> case word64ToInt (eatTailWord64 bs) of
+            Just n  -> DecodedToken 9 n
+            Nothing -> DecodeFailure
   0xbf -> DecodedToken 1 (-1) -- indefinite length
   _    -> DecodeFailure
 
 
 {-# INLINE tryConsumeTag #-}
 tryConsumeTag :: Word8 -> ByteString -> DecodedToken Word
-tryConsumeTag hdr !bs = case fromIntegral hdr :: Word of
+tryConsumeTag hdr !bs = case word8ToWord hdr of
 
   -- Tagged values (type 6)
   0xc0 -> DecodedToken 1 0
@@ -1920,10 +1984,16 @@ tryConsumeTag hdr !bs = case fromIntegral hdr :: Word of
   0xd5 -> DecodedToken 1 21
   0xd6 -> DecodedToken 1 22
   0xd7 -> DecodedToken 1 23
-  0xd8 -> DecodedToken 2 (eatTailWord8 bs)
-  0xd9 -> DecodedToken 3 (eatTailWord16 bs)
-  0xda -> DecodedToken 5 (eatTailWord32 bs)
-  0xdb -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
+  0xd8 -> DecodedToken 2 (word8ToWord  (eatTailWord8 bs))
+  0xd9 -> DecodedToken 3 (word16ToWord (eatTailWord16 bs))
+  0xda -> DecodedToken 5 (word32ToWord (eatTailWord32 bs))
+#if defined(ARCH_64bit)
+  0xdb -> DecodedToken 9 (word64ToWord (eatTailWord64 bs))
+#else
+  0xdb -> case word64ToWord (eatTailWord64 bs) of
+            Just n  -> DecodedToken 9 n
+            Nothing -> DecodeFailure
+#endif
   _    -> DecodeFailure
 
 --
@@ -1932,7 +2002,7 @@ tryConsumeTag hdr !bs = case fromIntegral hdr :: Word of
 
 #if defined(ARCH_32bit)
 tryConsumeWord64 :: Word8 -> ByteString -> DecodedToken Word64
-tryConsumeWord64 hdr !bs = case fromIntegral hdr :: Word of
+tryConsumeWord64 hdr !bs = case word8ToWord hdr of
   -- Positive integers (type 0)
   0x00 -> DecodedToken 1 0
   0x01 -> DecodedToken 1 1
@@ -1958,15 +2028,15 @@ tryConsumeWord64 hdr !bs = case fromIntegral hdr :: Word of
   0x15 -> DecodedToken 1 21
   0x16 -> DecodedToken 1 22
   0x17 -> DecodedToken 1 23
-  0x18 -> DecodedToken 2 (fromIntegral (eatTailWord8 bs))
-  0x19 -> DecodedToken 3 (fromIntegral (eatTailWord16 bs))
-  0x1a -> DecodedToken 5 (fromIntegral (eatTailWord32 bs))
-  0x1b -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
+  0x18 -> DecodedToken 2 (word8ToWord64  (eatTailWord8  bs))
+  0x19 -> DecodedToken 3 (word16ToWord64 (eatTailWord16 bs))
+  0x1a -> DecodedToken 5 (word32ToWord64 (eatTailWord32 bs))
+  0x1b -> DecodedToken 9                 (eatTailWord64 bs)
   _    -> DecodeFailure
 {-# INLINE tryConsumeWord64 #-}
 
 tryConsumeNegWord64 :: Word8 -> ByteString -> DecodedToken Word64
-tryConsumeNegWord64 hdr !bs = case fromIntegral hdr :: Word of
+tryConsumeNegWord64 hdr !bs = case word8ToWord hdr of
   -- Positive integers (type 0)
   0x20 -> DecodedToken 1 0
   0x21 -> DecodedToken 1 1
@@ -1992,15 +2062,15 @@ tryConsumeNegWord64 hdr !bs = case fromIntegral hdr :: Word of
   0x35 -> DecodedToken 1 21
   0x36 -> DecodedToken 1 22
   0x37 -> DecodedToken 1 23
-  0x38 -> DecodedToken 2 (fromIntegral (eatTailWord8 bs))
-  0x39 -> DecodedToken 3 (fromIntegral (eatTailWord16 bs))
-  0x3a -> DecodedToken 5 (fromIntegral (eatTailWord32 bs))
-  0x3b -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
+  0x38 -> DecodedToken 2 (word8ToWord64  (eatTailWord8  bs))
+  0x39 -> DecodedToken 3 (word16ToWord64 (eatTailWord16 bs))
+  0x3a -> DecodedToken 5 (word32ToWord64 (eatTailWord32 bs))
+  0x3b -> DecodedToken 9                 (eatTailWord64 bs)
   _    -> DecodeFailure
 {-# INLINE tryConsumeNegWord64 #-}
 
 tryConsumeInt64 :: Word8 -> ByteString -> DecodedToken Int64
-tryConsumeInt64 hdr !bs = case fromIntegral hdr :: Word of
+tryConsumeInt64 hdr !bs = case word8ToWord hdr of
   -- Positive integers (type 0)
   0x00 -> DecodedToken 1 0
   0x01 -> DecodedToken 1 1
@@ -2026,10 +2096,12 @@ tryConsumeInt64 hdr !bs = case fromIntegral hdr :: Word of
   0x15 -> DecodedToken 1 21
   0x16 -> DecodedToken 1 22
   0x17 -> DecodedToken 1 23
-  0x18 -> DecodedToken 2 (fromIntegral (eatTailWord8 bs))
-  0x19 -> DecodedToken 3 (fromIntegral (eatTailWord16 bs))
-  0x1a -> DecodedToken 5 (fromIntegral (eatTailWord32 bs)) -- TODO FIXME: overflow
-  0x1b -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
+  0x18 -> DecodedToken 2 (word8ToInt64  (eatTailWord8  bs))
+  0x19 -> DecodedToken 3 (word16ToInt64 (eatTailWord16 bs))
+  0x1a -> DecodedToken 5 (word32ToInt64 (eatTailWord32 bs))
+  0x1b -> case word64ToInt64 (eatTailWord64 bs) of
+            Just n  -> DecodedToken 9 n
+            Nothing -> DecodeFailure
 
   -- Negative integers (type 1)
   0x20 -> DecodedToken 1 (-1)
@@ -2056,15 +2128,17 @@ tryConsumeInt64 hdr !bs = case fromIntegral hdr :: Word of
   0x35 -> DecodedToken 1 (-22)
   0x36 -> DecodedToken 1 (-23)
   0x37 -> DecodedToken 1 (-24)
-  0x38 -> DecodedToken 2 (-1 - fromIntegral (eatTailWord8 bs))
-  0x39 -> DecodedToken 3 (-1 - fromIntegral (eatTailWord16 bs))
-  0x3a -> DecodedToken 5 (-1 - fromIntegral (eatTailWord32 bs)) -- TODO FIXME: overflow
-  0x3b -> DecodedToken 9 (-1 - fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
+  0x38 -> DecodedToken 2 (-1 - word8ToInt64  (eatTailWord8  bs))
+  0x39 -> DecodedToken 3 (-1 - word16ToInt64 (eatTailWord16 bs))
+  0x3a -> DecodedToken 5 (-1 - word32ToInt64 (eatTailWord32 bs))
+  0x3b -> case word64ToInt64 (eatTailWord64 bs) of
+            Just n  -> DecodedToken 9 (-1 - n)
+            Nothing -> DecodeFailure
   _    -> DecodeFailure
 {-# INLINE tryConsumeInt64 #-}
 
 tryConsumeListLen64 :: Word8 -> ByteString -> DecodedToken Int64
-tryConsumeListLen64 hdr !bs = case fromIntegral hdr :: Word of
+tryConsumeListLen64 hdr !bs = case word8ToWord hdr of
   -- List structures (type 4)
   0x80 -> DecodedToken 1 0
   0x81 -> DecodedToken 1 1
@@ -2090,15 +2164,17 @@ tryConsumeListLen64 hdr !bs = case fromIntegral hdr :: Word of
   0x95 -> DecodedToken 1 21
   0x96 -> DecodedToken 1 22
   0x97 -> DecodedToken 1 23
-  0x98 -> DecodedToken 2 (fromIntegral (eatTailWord8 bs))
-  0x99 -> DecodedToken 3 (fromIntegral (eatTailWord16 bs))
-  0x9a -> DecodedToken 5 (fromIntegral (eatTailWord32 bs)) -- TODO FIXME: overflow
-  0x9b -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
+  0x98 -> DecodedToken 2 (word8ToInt64  (eatTailWord8  bs))
+  0x99 -> DecodedToken 3 (word16ToInt64 (eatTailWord16 bs))
+  0x9a -> DecodedToken 5 (word32ToInt64 (eatTailWord32 bs))
+  0x9b -> case word64ToInt64 (eatTailWord64 bs) of
+            Just n  -> DecodedToken 9 n
+            Nothing -> DecodeFailure
   _    -> DecodeFailure
 {-# INLINE tryConsumeListLen64 #-}
 
 tryConsumeMapLen64 :: Word8 -> ByteString -> DecodedToken Int64
-tryConsumeMapLen64 hdr !bs = case fromIntegral hdr :: Word of
+tryConsumeMapLen64 hdr !bs = case word8ToWord hdr of
   -- Map structures (type 5)
   0xa0 -> DecodedToken 1 0
   0xa1 -> DecodedToken 1 1
@@ -2124,15 +2200,17 @@ tryConsumeMapLen64 hdr !bs = case fromIntegral hdr :: Word of
   0xb5 -> DecodedToken 1 21
   0xb6 -> DecodedToken 1 22
   0xb7 -> DecodedToken 1 23
-  0xb8 -> DecodedToken 2 (fromIntegral (eatTailWord8 bs))
-  0xb9 -> DecodedToken 3 (fromIntegral (eatTailWord16 bs))
-  0xba -> DecodedToken 5 (fromIntegral (eatTailWord32 bs)) -- TODO FIXME: overflow
-  0xbb -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
+  0xb8 -> DecodedToken 2 (word8ToInt64  (eatTailWord8  bs))
+  0xb9 -> DecodedToken 3 (word16ToInt64 (eatTailWord16 bs))
+  0xba -> DecodedToken 5 (word32ToInt64 (eatTailWord32 bs))
+  0xbb -> case word64ToInt64 (eatTailWord64 bs) of
+            Just n  -> DecodedToken 9 n
+            Nothing -> DecodeFailure
   _    -> DecodeFailure
 {-# INLINE tryConsumeMapLen64 #-}
 
 tryConsumeTag64 :: Word8 -> ByteString -> DecodedToken Word64
-tryConsumeTag64 hdr !bs = case fromIntegral hdr :: Word of
+tryConsumeTag64 hdr !bs = case word8ToWord hdr of
   -- Tagged values (type 6)
   0xc0 -> DecodedToken 1 0
   0xc1 -> DecodedToken 1 1
@@ -2158,17 +2236,17 @@ tryConsumeTag64 hdr !bs = case fromIntegral hdr :: Word of
   0xd5 -> DecodedToken 1 21
   0xd6 -> DecodedToken 1 22
   0xd7 -> DecodedToken 1 23
-  0xd8 -> DecodedToken 2 (fromIntegral (eatTailWord8 bs))
-  0xd9 -> DecodedToken 3 (fromIntegral (eatTailWord16 bs))
-  0xda -> DecodedToken 5 (fromIntegral (eatTailWord32 bs))
-  0xdb -> DecodedToken 9 (fromIntegral (eatTailWord64 bs)) -- TODO FIXME: overflow
+  0xd8 -> DecodedToken 2 (word8ToWord64  (eatTailWord8  bs))
+  0xd9 -> DecodedToken 3 (word16ToWord64 (eatTailWord16 bs))
+  0xda -> DecodedToken 5 (word32ToWord64 (eatTailWord32 bs))
+  0xdb -> DecodedToken 9                 (eatTailWord64 bs)
   _    -> DecodeFailure
 {-# INLINE tryConsumeTag64 #-}
 #endif
 
 {-# INLINE tryConsumeFloat #-}
 tryConsumeFloat :: Word8 -> ByteString -> DecodedToken Float
-tryConsumeFloat hdr !bs = case fromIntegral hdr :: Word of
+tryConsumeFloat hdr !bs = case word8ToWord hdr of
   0xf9 -> DecodedToken 3 (wordToFloat16 (eatTailWord16 bs))
   0xfa -> DecodedToken 5 (wordToFloat32 (eatTailWord32 bs))
   _    -> DecodeFailure
@@ -2176,7 +2254,7 @@ tryConsumeFloat hdr !bs = case fromIntegral hdr :: Word of
 
 {-# INLINE tryConsumeDouble #-}
 tryConsumeDouble :: Word8 -> ByteString -> DecodedToken Double
-tryConsumeDouble hdr !bs = case fromIntegral hdr :: Word of
+tryConsumeDouble hdr !bs = case word8ToWord hdr of
   0xf9 -> DecodedToken 3 (float2Double $ wordToFloat16 (eatTailWord16 bs))
   0xfa -> DecodedToken 5 (float2Double $ wordToFloat32 (eatTailWord32 bs))
   0xfb -> DecodedToken 9                (wordToFloat64 (eatTailWord64 bs))
@@ -2185,7 +2263,7 @@ tryConsumeDouble hdr !bs = case fromIntegral hdr :: Word of
 
 {-# INLINE tryConsumeBool #-}
 tryConsumeBool :: Word8 -> DecodedToken Bool
-tryConsumeBool hdr = case fromIntegral hdr :: Word of
+tryConsumeBool hdr = case word8ToWord hdr of
   0xf4 -> DecodedToken 1 False
   0xf5 -> DecodedToken 1 True
   _    -> DecodeFailure
@@ -2193,7 +2271,7 @@ tryConsumeBool hdr = case fromIntegral hdr :: Word of
 
 {-# INLINE tryConsumeSimple #-}
 tryConsumeSimple :: Word8 -> ByteString -> DecodedToken Word
-tryConsumeSimple hdr !bs = case fromIntegral hdr :: Word of
+tryConsumeSimple hdr !bs = case word8ToWord hdr of
 
   -- Simple and floats (type 7)
   0xe0 -> DecodedToken 1 0
@@ -2220,34 +2298,34 @@ tryConsumeSimple hdr !bs = case fromIntegral hdr :: Word of
   0xf5 -> DecodedToken 1 21
   0xf6 -> DecodedToken 1 22
   0xf7 -> DecodedToken 1 23
-  0xf8 -> DecodedToken 2 (eatTailWord8 bs)
+  0xf8 -> DecodedToken 2 (word8ToWord (eatTailWord8 bs))
   _    -> DecodeFailure
 
 
 {-# INLINE tryConsumeBytesIndef #-}
 tryConsumeBytesIndef :: Word8 -> DecodedToken ()
-tryConsumeBytesIndef hdr = case fromIntegral hdr :: Word of
+tryConsumeBytesIndef hdr = case word8ToWord hdr of
   0x5f -> DecodedToken 1 ()
   _    -> DecodeFailure
 
 
 {-# INLINE tryConsumeStringIndef #-}
 tryConsumeStringIndef :: Word8 -> DecodedToken ()
-tryConsumeStringIndef hdr = case fromIntegral hdr :: Word of
+tryConsumeStringIndef hdr = case word8ToWord hdr of
   0x7f -> DecodedToken 1 ()
   _    -> DecodeFailure
 
 
 {-# INLINE tryConsumeNull #-}
 tryConsumeNull :: Word8 -> DecodedToken ()
-tryConsumeNull hdr = case fromIntegral hdr :: Word of
+tryConsumeNull hdr = case word8ToWord hdr of
   0xf6 -> DecodedToken 1 ()
   _    -> DecodeFailure
 
 
 {-# INLINE tryConsumeBreakOr #-}
 tryConsumeBreakOr :: Word8 -> DecodedToken ()
-tryConsumeBreakOr hdr = case fromIntegral hdr :: Word of
+tryConsumeBreakOr hdr = case word8ToWord hdr of
   0xff -> DecodedToken 1 ()
   _    -> DecodeFailure
 
@@ -2278,7 +2356,7 @@ readBytes8 bs
   = DecodedToken hdrsz $ TooLong n
   where
     hdrsz = 2
-    n = fromIntegral (eatTailWord8 bs)
+    n = word8ToInt (eatTailWord8 bs)
 
 readBytes16 bs
   | n <= BS.length bs - hdrsz
@@ -2290,33 +2368,39 @@ readBytes16 bs
   = DecodedToken hdrsz $ TooLong n
   where
     hdrsz = 3
-    n = fromIntegral (eatTailWord16 bs)
+    n = word16ToInt (eatTailWord16 bs)
 
-readBytes32 bs
-  | n <= BS.length bs - hdrsz
-  = DecodedToken (n+hdrsz) $ Fits $
-      BS.unsafeTake n (BS.unsafeDrop hdrsz bs)
+readBytes32 bs = case word32ToInt (eatTailWord32 bs) of
+#if defined(ARCH_32bit)
+    Just n
+#else
+    n
+#endif
+      | n <= BS.length bs - hdrsz
+                  -> DecodedToken (n+hdrsz) $ Fits $
+                       BS.unsafeTake n (BS.unsafeDrop hdrsz bs)
 
-  -- if n > bound then slow path, multi-chunk
-  | otherwise
-  = DecodedToken hdrsz $ TooLong n
+      -- if n > bound then slow path, multi-chunk
+      | otherwise -> DecodedToken hdrsz $ TooLong n
+
+#if defined(ARCH_32bit)
+    Nothing       -> DecodeFailure
+#endif
   where
     hdrsz = 5
-    -- TODO FIXME: int overflow
-    n = fromIntegral (eatTailWord32 bs)
 
-readBytes64 bs
-  | n <= BS.length bs - hdrsz
-  = DecodedToken (n+hdrsz) $ Fits $
-      BS.unsafeTake n (BS.unsafeDrop hdrsz bs)
+readBytes64 bs = case word64ToInt (eatTailWord64 bs) of
+    Just n
+      | n <= BS.length bs - hdrsz
+                  -> DecodedToken (n+hdrsz) $ Fits $
+                            BS.unsafeTake n (BS.unsafeDrop hdrsz bs)
 
-  -- if n > bound then slow path, multi-chunk
-  | otherwise
-  = DecodedToken hdrsz $ TooLong n
+      -- if n > bound then slow path, multi-chunk
+      | otherwise -> DecodedToken hdrsz $ TooLong n
+
+    Nothing       -> DecodeFailure
   where
     hdrsz = 5
-    -- TODO FIXME: int overflow
-    n = fromIntegral (eatTailWord64 bs)
 
 ------------------------------------------------------------------------------
 -- Reading big integers
