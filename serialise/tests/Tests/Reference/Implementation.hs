@@ -58,8 +58,6 @@ module Tests.Reference.Implementation (
     prop_word32ToFromNet,
     prop_word64ToFromNet,
     prop_halfToFromFloat,
-
-    arbitraryFullRangeIntegral,
     ) where
 
 
@@ -202,10 +200,16 @@ instance Arbitrary UInt where
     sized $ \n ->
       oneof $ take (1 + n `div` 2)
         [ UIntSmall <$> choose (0, 23)
+
         , UInt8     <$> arbitraryBoundedIntegral
         , UInt16    <$> arbitraryBoundedIntegral
         , UInt32    <$> arbitraryBoundedIntegral
         , UInt64    <$> arbitraryBoundedIntegral
+
+        , UInt8     <$> arbitraryIntegralBoundaries
+        , UInt16    <$> arbitraryIntegralBoundaries
+        , UInt32    <$> arbitraryIntegralBoundaries
+        , UInt64    <$> arbitraryIntegralBoundaries
         ]
 
 instance Arbitrary AdditionalInformation where
@@ -1038,33 +1042,14 @@ instance Arbitrary LargeInteger where
       bigger n = n * abs n
 
 
-arbitraryFullRangeIntegral :: forall a. (Bounded a,
-#if MIN_VERSION_base(4,7,0)
-                                         FiniteBits a,
-#else
-                                         Bits a,
-#endif
-                                         Integral a) => Gen a
-arbitraryFullRangeIntegral
-  | isSigned (undefined :: a)
-  = let maxBits = bitSize' (undefined :: a) - 1
-     in sized $ \s ->
-          let bound = fromIntegral (maxBound :: a)
-                      `shiftR` ((maxBits - s) `max` 0)
-           in fmap fromInteger $ choose (-bound, bound)
-
-  | otherwise
-  = let maxBits = bitSize' (undefined :: a)
-     in sized $ \s ->
-          let bound = fromIntegral (maxBound :: a)
-                      `shiftR` ((maxBits - s) `max` 0)
-           in fmap fromInteger $ choose (0, bound)
-
-  where
-    bitSize' =
-#if MIN_VERSION_base(4,7,0)
-      finiteBitSize
-#else
-      bitSize
-#endif
+-- | To help generate test cases for the edge and overflow cases.
+--
+arbitraryIntegralBoundaries :: (Bounded a, Integral a) => Gen a
+arbitraryIntegralBoundaries =
+    elements 
+      [ minBound
+      , minBound + 1
+      , maxBound
+      , maxBound - 1
+      ]
 

@@ -1,6 +1,8 @@
 {-# LANGUAGE CPP               #-}
 {-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes          #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Tests.CBOR
   ( testTree -- :: TestTree
@@ -14,6 +16,8 @@ import           Data.Word
 import qualified Numeric.Half as Half
 
 import           Codec.CBOR.Term
+import           Codec.CBOR.Encoding
+import           Codec.CBOR.Decoding
 import           Codec.CBOR.Read
 import           Codec.CBOR.Write
 
@@ -73,6 +77,10 @@ prop_encodeDecodeTermRoundtrip :: Term -> Bool
 prop_encodeDecodeTermRoundtrip term =
     (deserialise . serialise) term `eqTerm` term
 
+prop_encodeDecodeTermRoundtrip2 :: RefImpl.Term -> Bool
+prop_encodeDecodeTermRoundtrip2 term =
+    (deserialise . RefImpl.serialise) term `eqTerm` fromRefTerm term
+
 prop_encodeDecodeTermRoundtrip_splits2 :: Term -> Bool
 prop_encodeDecodeTermRoundtrip_splits2 term =
     and [ deserialise thedata' `eqTerm` term
@@ -103,6 +111,77 @@ prop_decodeTermMatchesRefImpl term0 =
         term    = RefImpl.deserialise encoded
         term'   = deserialise encoded
      in term' `eqTerm` fromRefTerm term
+
+prop_decodeBoundaries_w8 =
+    and [ prop_decodeBoundaries id           encodeWord8 decodeWord8
+        , prop_decodeBoundaries fromIntegral encodeWord8 decodeWord16
+        , prop_decodeBoundaries fromIntegral encodeWord8 decodeWord32
+        , prop_decodeBoundaries fromIntegral encodeWord8 decodeWord64
+
+        , prop_decodeBoundaries id           encodeWord8 decodeWord8Canonical
+        , prop_decodeBoundaries fromIntegral encodeWord8 decodeWord16Canonical
+        , prop_decodeBoundaries fromIntegral encodeWord8 decodeWord32Canonical
+        , prop_decodeBoundaries fromIntegral encodeWord8 decodeWord64Canonical
+        ]
+
+prop_decodeBoundaries_w16 =
+    and [ prop_decodeBoundaries id           encodeWord16 decodeWord16
+        , prop_decodeBoundaries fromIntegral encodeWord16 decodeWord32
+        , prop_decodeBoundaries fromIntegral encodeWord16 decodeWord64
+
+        , prop_decodeBoundaries id           encodeWord16 decodeWord16Canonical
+        , prop_decodeBoundaries fromIntegral encodeWord16 decodeWord32Canonical
+        , prop_decodeBoundaries fromIntegral encodeWord16 decodeWord64Canonical
+        ]
+
+prop_decodeBoundaries_w32 =
+    and [ prop_decodeBoundaries id           encodeWord32 decodeWord32
+        , prop_decodeBoundaries fromIntegral encodeWord32 decodeWord64
+
+        , prop_decodeBoundaries id           encodeWord32 decodeWord32Canonical
+        , prop_decodeBoundaries fromIntegral encodeWord32 decodeWord64Canonical
+        ]
+
+prop_decodeBoundaries_w64 =
+    and [ prop_decodeBoundaries id encodeWord64 decodeWord64
+        , prop_decodeBoundaries id encodeWord64 decodeWord64Canonical
+        ]
+
+prop_decodeBoundaries :: forall a b. (Bounded a, Integral a, Show a, Eq b)
+                       => (a -> b)
+                       -> (a -> Encoding)
+                       -> (forall s. Decoder s b)
+                       -> Bool
+prop_decodeBoundaries upcast enc dec =
+    and [ (deserialise' . serialise') n == Right (upcast n)
+        | n <- integralBoundaries ]
+  where
+    serialise' :: a -> LBS.ByteString
+    serialise'   = toLazyByteString . enc
+
+    deserialise' :: LBS.ByteString -> Either DeserialiseFailure b
+    deserialise' = fmap snd . deserialiseFromBytes dec
+
+{-
+prop_decodeOutofRange :: (a -> Encoding) -> Decoder s b -> Property
+prop_decodeOutofRange enc dec =
+    
+    case (deserialise' . serialise') n of
+      Left _ -> True
+      _      -> False
+  where
+    serialise'   = toLazyByteString enc
+    deserialise' = fmap snd . deserialiseFromBytes dec
+-}
+
+integralBoundaries :: (Bounded a, Integral a) => [a]
+integralBoundaries =
+    [ minBound
+    , minBound + 1
+    , maxBound
+    , maxBound - 1
+    ]
+
 
 ------------------------------------------------------------------------------
 
@@ -283,6 +362,7 @@ testTree testCases =
         [ testProperty "from/to reference terms"        prop_fromToRefTerm
         , testProperty "to/from reference terms"        prop_toFromRefTerm
         , testProperty "rountrip de/encoding terms"     prop_encodeDecodeTermRoundtrip
+        , testProperty "rountrip de/encoding terms 2"   prop_encodeDecodeTermRoundtrip2
           -- TODO FIXME: need to fix the generation of terms to give
           -- better size distribution some get far too big for the
           -- splits properties.
