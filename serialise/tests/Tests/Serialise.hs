@@ -218,7 +218,7 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T CUIntMax)
       , mkTest (T :: T CClock)
       , mkTest (T :: T CTime)
-      , mkTest (T :: T CUSeconds)
+      , mkTest (T :: T CUSeconds_)
       , mkTest (T :: T CSUSeconds)
       , mkTest (T :: T CFloat)
       , mkTest (T :: T CDouble)
@@ -334,6 +334,19 @@ mkTest t = testGroup ("type: " ++ show (typeOf (undefined :: a)))
   , testProperty "flat term is valid"  (prop_validFlatTerm t)
   ]
 
+--------------------------------------------------------------------------------
+-- Various data types
+
+-- Wrapper for CUSeconds with Arbitrary instance that works on x86_32.
+newtype CUSeconds_ = CUSeconds_ CUSeconds
+  deriving (Eq, Show, Typeable)
+
+instance Arbitrary CUSeconds_ where
+  arbitrary = CUSeconds_ . CUSeconds <$> arbitraryBoundedIntegral
+
+instance Serialise CUSeconds_ where
+  encode (CUSeconds_ s) = encode s
+  decode = CUSeconds_ <$> decode
 
 --------------------------------------------------------------------------------
 -- Generic data types

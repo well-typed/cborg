@@ -72,9 +72,9 @@ mkByteArray n xs = runST $ do
 
 -- | A conservative estimate of pinned-ness.
 isByteArrayPinned :: Prim.ByteArray -> Bool
-isByteArrayPinned (Prim.ByteArray ba) =
+isByteArrayPinned (Prim.ByteArray _ba) =
 #if __GLASGOW_HASKELL__ > 800
-    case isByteArrayPinned# ba of
+    case isByteArrayPinned# _ba of
       0# -> False
       _  -> True
 #else
