@@ -46,10 +46,7 @@ module Codec.CBOR.Magic
   , word32ToWord      -- :: Word32 -> Word
   , word64ToWord      -- :: Word64 -> Word
 
-  , int8ToInt         -- :: Int8  -> Int
-  , int16ToInt        -- :: Int16 -> Int
-  , int32ToInt        -- :: Int32 -> Int
-  , int64ToInt        -- :: Int64 -> Int
+  -- int*ToInt conversions are missing because they are not needed.
 
   , word8ToInt        -- :: Int8  -> Int
   , word16ToInt       -- :: Int16 -> Int
@@ -109,11 +106,13 @@ import qualified Numeric.Half as Half
 
 #if !defined(HAVE_BYTESWAP_PRIMOPS) || !defined(MEM_UNALIGNED_OPS)
 import           Data.Bits ((.|.), unsafeShiftL)
+#endif
 
 #if defined(ARCH_32bit)
 import           GHC.IntWord64 (wordToWord64#, word64ToWord#,
-                                intToInt64#, int64ToInt#)
-#endif
+                                intToInt64#, int64ToInt#,
+                                leWord64#, ltWord64#, word64ToInt64#)
+
 #endif
 
 --------------------------------------------------------------------------------
@@ -354,15 +353,6 @@ word64ToWord :: Word64 -> Word
 word64ToWord :: Word64 -> Maybe Word
 #endif
 
-int8ToInt  :: Int8  -> Int
-int16ToInt :: Int16 -> Int
-int32ToInt :: Int32 -> Int
-#if defined(ARCH_64bit)
-int64ToInt :: Int64 -> Int
-#else
-int64ToInt :: Int64 -> Maybe Int
-#endif
-
 word8ToInt  :: Word8  -> Int
 word16ToInt :: Word16 -> Int
 #if defined(ARCH_64bit)
@@ -394,7 +384,7 @@ word32ToWord (W32# w#) = W# w#
 word64ToWord (W64# w#) = W# w#
 #else
 word64ToWord (W64# w64#) =
-  case isTrue# (w64# `leWord64#` wordToWord64 0xffffffff##) of
+  case isTrue# (w64# `leWord64#` wordToWord64# 0xffffffff##) of
     True  -> Just (W# (word64ToWord# w64#))
     False -> Nothing
 #endif
@@ -404,28 +394,13 @@ word64ToWord (W64# w64#) =
 {-# INLINE word32ToWord #-}
 {-# INLINE word64ToWord #-}
 
-int8ToInt  (I8#  i#) = I# i#
-int16ToInt (I16# i#) = I# i#
-int32ToInt (I32# i#) = I# i#
-#if defined(ARCH_64bit)
-int64ToInt (I64# i#) = I# i#
-#else
-int64ToInt (I64# i64#) = I# i
-  case isTrue# (i64# int64ToInt#
-#endif
-
-{-# INLINE int8ToInt #-}
-{-# INLINE int16ToInt #-}
-{-# INLINE int32ToInt #-}
-{-# INLINE int64ToInt #-}
-
-word8ToInt  (W8#  w) = I# (word2Int# w)
-word16ToInt (W16# w) = I# (word2Int# w)
+word8ToInt  (W8#  w#) = I# (word2Int# w#)
+word16ToInt (W16# w#) = I# (word2Int# w#)
 
 #if defined(ARCH_64bit)
-word32ToInt (W32# w) = I# (word2Int# w)
+word32ToInt (W32# w#) = I# (word2Int# w#)
 #else
-word32ToInt (W32# w) = I# (word2Int# w)
+word32ToInt (W32# w#) =
   case isTrue# (w# `ltWord#` 0x80000000##) of
     True  -> Just (I# (word2Int# w#))
     False -> Nothing
@@ -453,7 +428,7 @@ word8ToInt64  (W8#  w#) = I64# (intToInt64# (word2Int# w#))
 word16ToInt64 (W16# w#) = I64# (intToInt64# (word2Int# w#))
 word32ToInt64 (W32# w#) = I64# (word64ToInt64# (wordToWord64# w#))
 word64ToInt64 (W64# w#) =
-  case isTrue# (w# `ltWord#` uncheckedShiftL64# (wordToWord64# 1##) 63#) of
+  case isTrue# (w# `ltWord64#` uncheckedShiftL64# (wordToWord64# 1##) 63#) of
     True  -> Just (I64# (word64ToInt64# w#))
     False -> Nothing
 
