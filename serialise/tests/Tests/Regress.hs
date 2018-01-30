@@ -9,6 +9,7 @@ import qualified Tests.Regress.Issue67  as Issue67
 import qualified Tests.Regress.Issue80  as Issue80
 import qualified Tests.Regress.Issue106 as Issue106
 import qualified Tests.Regress.Issue135 as Issue135
+import qualified Tests.Regress.Issue162 as Issue162
 import qualified Tests.Regress.FlatTerm as FlatTerm
 
 --------------------------------------------------------------------------------
@@ -22,4 +23,5 @@ testTree = testGroup "Regression tests"
   , Issue80.testTree
   , Issue106.testTree
   , Issue135.testTree
+  , Issue162.testTree
   ]
