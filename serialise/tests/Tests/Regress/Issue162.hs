@@ -14,31 +14,30 @@ import           Test.Tasty.HUnit
 
 -- Decodes bigBytes x assuming x is a canonical integer encoding.
 bigBytesDecoder :: Decoder s ()
-bigBytesDecoder = do
-  decodeListLenCanonical
-  decodeMapLenCanonical
-  decodeListLenCanonical
-  decodeListLenCanonical
-  decodeWord16Canonical
-  decodeWord16Canonical
-  decodeWord8Canonical
-  decodeMapLenCanonical
-  decodeMapLenCanonical
-  decodeMapLenCanonical
-  decodeListLenCanonical
-  decodeWord8Canonical
-  decodeListLenCanonical
-  decodeListLenCanonical
-  decodeMapLenCanonical
-  decodeWord8Canonical
-  decodeListLenCanonical
-  decodeIntegerCanonical
-  decodeWord32Canonical
-  decodeWord8Canonical
-  decodeListLenCanonical
-  decodeIntegerCanonical
-  decodeWord32Canonical
-  return ()
+bigBytesDecoder = ()
+  <$ decodeListLenCanonical
+  <* decodeMapLenCanonical
+  <* decodeListLenCanonical
+  <* decodeListLenCanonical
+  <* decodeWord16Canonical
+  <* decodeWord16Canonical
+  <* decodeWord8Canonical
+  <* decodeMapLenCanonical
+  <* decodeMapLenCanonical
+  <* decodeMapLenCanonical
+  <* decodeListLenCanonical
+  <* decodeWord8Canonical
+  <* decodeListLenCanonical
+  <* decodeListLenCanonical
+  <* decodeMapLenCanonical
+  <* decodeWord8Canonical
+  <* decodeListLenCanonical
+  <* decodeIntegerCanonical
+  <* decodeWord32Canonical
+  <* decodeWord8Canonical
+  <* decodeListLenCanonical
+  <* decodeIntegerCanonical
+  <* decodeWord32Canonical
 
 -- Encoding of 592033 :: BigInteger
 -- 0xc2 means bignum, 0x43 means a 3-byte sequence
