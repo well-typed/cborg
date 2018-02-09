@@ -1032,10 +1032,10 @@ go_fast_end !bs (ConsumeIntegerCanonical k) =
       DecodedToken sz (BigIntToken canonical n)
         | canonical -> k n >>= go_fast_end (BS.unsafeDrop sz bs)
         | otherwise -> return $! SlowFail bs "non-canonical integer"
-      DecodedToken sz (BigUIntNeedBody len) -> return $! SlowConsumeTokenBytes (BS.unsafeDrop sz bs) (adjustContBigUIntNeedBody k) len
-      DecodedToken sz (BigNIntNeedBody len) -> return $! SlowConsumeTokenBytes (BS.unsafeDrop sz bs) (adjustContBigNIntNeedBody k) len
-      DecodedToken sz  BigUIntNeedHeader    -> return $! SlowDecodeAction      (BS.unsafeDrop sz bs) (adjustContBigUIntNeedHeader k)
-      DecodedToken sz  BigNIntNeedHeader    -> return $! SlowDecodeAction      (BS.unsafeDrop sz bs) (adjustContBigNIntNeedHeader k)
+      DecodedToken sz (BigUIntNeedBody len) -> return $! SlowConsumeTokenBytes (BS.unsafeDrop sz bs) (adjustContCanonicalBigUIntNeedBody k) len
+      DecodedToken sz (BigNIntNeedBody len) -> return $! SlowConsumeTokenBytes (BS.unsafeDrop sz bs) (adjustContCanonicalBigNIntNeedBody k) len
+      DecodedToken sz  BigUIntNeedHeader    -> return $! SlowDecodeAction      (BS.unsafeDrop sz bs) (adjustContCanonicalBigUIntNeedHeader k)
+      DecodedToken sz  BigNIntNeedHeader    -> return $! SlowDecodeAction      (BS.unsafeDrop sz bs) (adjustContCanonicalBigNIntNeedHeader k)
 
 go_fast_end !bs (ConsumeFloat16Canonical k) =
     case tryConsumeFloat (BS.unsafeHead bs) bs of
@@ -2365,6 +2365,20 @@ adjustContBigUIntNeedBody, adjustContBigNIntNeedBody
 adjustContBigUIntNeedBody k = \bs -> k $! uintegerFromBytes bs
 adjustContBigNIntNeedBody k = \bs -> k $! nintegerFromBytes bs
 
+adjustContCanonicalBigUIntNeedBody, adjustContCanonicalBigNIntNeedBody
+  :: (Integer -> ST s (DecodeAction s a))
+  -> (ByteString -> ST s (DecodeAction s a))
+
+adjustContCanonicalBigUIntNeedBody k bs =
+  if isBigIntRepCanonical bs
+  then k $! uintegerFromBytes bs
+  else pure $! D.Fail ("non-canonical integer")
+
+adjustContCanonicalBigNIntNeedBody k bs =
+  if isBigIntRepCanonical bs
+  then k $! nintegerFromBytes bs
+  else pure $! D.Fail ("non-canonical integer")
+
 -- And when we have to break out because we can't read the bytes token header
 -- in one go then we need to use SlowDecodeAction but we have to make two
 -- adjustments. When we resume we need to read a bytes token, not a big int.
@@ -2380,6 +2394,20 @@ adjustContBigUIntNeedHeader, adjustContBigNIntNeedHeader
 
 adjustContBigUIntNeedHeader k = ConsumeBytes (\bs -> k $! uintegerFromBytes bs)
 adjustContBigNIntNeedHeader k = ConsumeBytes (\bs -> k $! nintegerFromBytes bs)
+
+adjustContCanonicalBigUIntNeedHeader, adjustContCanonicalBigNIntNeedHeader
+  :: (Integer -> ST s (DecodeAction s a))
+  -> DecodeAction s a
+
+adjustContCanonicalBigUIntNeedHeader k = ConsumeBytes $ \bs ->
+  if isBigIntRepCanonical bs
+  then k $! uintegerFromBytes bs
+  else pure $! D.Fail ("non-canonical integer")
+
+adjustContCanonicalBigNIntNeedHeader k = ConsumeBytes $ \bs ->
+  if isBigIntRepCanonical bs
+  then k $! nintegerFromBytes bs
+  else pure $! D.Fail ("non-canonical integer")
 
 -- So finally when reading the input buffer we check if we have enough space
 -- to read the header of the bytes token and then try to read the bytes body,
