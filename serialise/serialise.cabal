@@ -101,6 +101,7 @@ test-suite tests
 
   other-modules:
     Tests.CBOR
+    Tests.Boundary
     Tests.IO
     Tests.Negative
     Tests.Orphanage
