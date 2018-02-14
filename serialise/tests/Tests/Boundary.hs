@@ -1,17 +1,21 @@
 {-# LANGUAGE CPP                        #-}
 {-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE MultiWayIf                 #-}
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UndecidableInstances       #-}
-{-# OPTIONS_GHC -Werror #-}
 module Tests.Boundary
   ( testTree -- :: TestTree
   ) where
 
+import           Data.Bits
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BSL
 import           Data.Either
 import           Data.Int
 import           Data.Word
+import qualified Data.Text as T
 
 import           Codec.CBOR.Decoding
 import           Codec.CBOR.Encoding
@@ -76,11 +80,10 @@ boundaryTest
                     Ord rep, Num rep, Serialise rep)
   => (forall s. Decoder s a)
   -> B a
-  -> Property
-boundaryTest dec a =
-  counterexample (show a') $ if outsideRange
-                             then isLeft  a'
-                             else isRight a'
+  -> Bool
+boundaryTest dec a = if outsideRange
+                     then isLeft  a'
+                     else isRight a'
   where
     a' = deserialiseFromBytes dec . toLazyByteString . encode $ unB a
 
@@ -102,29 +105,28 @@ mkBoundaryTest aName dec decCan =
 ----------------------------------------
 
 -- | Wrapper for list/map length.
-newtype Len = Len { unLen :: Word }
+newtype Length = Length { unLength :: Word }
 
-instance Show Len where
-  showsPrec p = showsPrec p . unLen
+instance Show Length where
+  showsPrec p = showsPrec p . unLength
 
-instance Arbitrary Len where
-  arbitrary = Len <$> arbitraryWithBounds (undefined::Int)
+instance Arbitrary Length where
+  arbitrary = Length <$> arbitraryWithBounds (undefined::Int)
 
 -- | Check if deserialisation of map/list length deals properly with the ones
 -- out of range, i.e. fails to decode them.
 lenBoundaryTest
   :: (Word -> Encoding)
   -> (forall s. Decoder s Int)
-  -> Len
-  -> Property
-lenBoundaryTest enc dec a =
-  counterexample (show a') $ if outsideRange
-                             then isLeft  a'
-                             else isRight a'
+  -> Length
+  -> Bool
+lenBoundaryTest enc dec a = if outsideRange
+                            then isLeft  a'
+                            else isRight a'
   where
-    a' = deserialiseFromBytes dec . toLazyByteString . enc $ unLen a
+    a' = deserialiseFromBytes dec . toLazyByteString . enc $ unLength a
 
-    outsideRange = fromIntegral (unLen a) < (0::Int)
+    outsideRange = fromIntegral (unLength a) < (0::Int)
 
 mkLenBoundaryTest
   :: String
@@ -137,9 +139,56 @@ mkLenBoundaryTest aName enc dec decCan =
   , testProperty (aName ++ " (canonical)") $ lenBoundaryTest enc decCan
   ]
 
+----------------------------------------
+
+-- | Generate random CBOR prefix of non-empty string/bytes containing its
+-- length.
+arbitraryLengthPrefix :: Bool -> Gen (Word, BSL.ByteString)
+arbitraryLengthPrefix string = do
+  Length w <- arbitrary
+  if | w <= 23         -> pure (w, BSL.pack $ [64 + stringBit + fromIntegral w])
+     | w <= 0xff       -> pure (w, BSL.pack $ [88 + stringBit] ++ f 1 w [])
+     | w <= 0xffff     -> pure (w, BSL.pack $ [89 + stringBit] ++ f 2 w [])
+     | w <= 0xffffffff -> pure (w, BSL.pack $ [90 + stringBit] ++ f 4 w [])
+     | otherwise       -> pure (w, BSL.pack $ [91 + stringBit] ++ f 8 w [])
+  where
+    stringBit :: Word8
+    stringBit = if string then 32 else 0
+
+    f :: Int -> Word -> [Word8] -> [Word8]
+    f 0 _ acc = acc
+    f k w acc = f (k - 1) (w `shiftR` 8) (fromIntegral w : acc)
+
+data StringLengthPrefix = StringLP Word BSL.ByteString
+  deriving Show
+instance Arbitrary StringLengthPrefix where
+  arbitrary = uncurry StringLP <$> arbitraryLengthPrefix True
+
+data BytesLengthPrefix = BytesLP Word BSL.ByteString
+  deriving Show
+instance Arbitrary BytesLengthPrefix where
+  arbitrary = uncurry BytesLP <$> arbitraryLengthPrefix False
+
+-- | Test that positive length prefixes of string/bytes are parsed successfully,
+-- whereas negative are not.
+stringBytesBoundaryTest :: [TestTree]
+stringBytesBoundaryTest =
+  [ testProperty "String" $ \(StringLP w bs) ->
+      case deserialiseFromBytes decodeString bs of
+        Right (_rest, string)           -> w == 0 && T.length string == 0
+        Left (DeserialiseFailure _ msg) -> if fromIntegral w < (0::Int)
+                                           then msg == "expected string"
+                                           else msg == "end of input"
+  , testProperty "Bytes" $ \(BytesLP w bs) ->
+      case deserialiseFromBytes decodeBytes bs of
+        Right (_rest, bytes)            -> w == 0 && BS.length bytes == 0
+        Left (DeserialiseFailure _ msg) -> if fromIntegral w < (0::Int)
+                                           then msg == "expected bytes"
+                                           else msg == "end of input"
+  ]
 
 testTree :: TestTree
-testTree = testGroup "Boundary checks" $ concat
+testTree = localOption (QuickCheckTests 1000) . testGroup "Boundary checks" $ concat
   [ mkBoundaryTest "Word"      decodeWord      decodeWordCanonical
   , mkBoundaryTest "Word8"     decodeWord8     decodeWord8Canonical
   , mkBoundaryTest "Word16"    decodeWord16    decodeWord16Canonical
@@ -154,9 +203,5 @@ testTree = testGroup "Boundary checks" $ concat
   , mkLenBoundaryTest "ListLen" encodeListLen decodeListLen decodeListLenCanonical
   , mkLenBoundaryTest "MapLen"  encodeMapLen  decodeMapLen  decodeMapLenCanonical
 
-  {-, mkBoundaryTest "NegWord"   decodeNegWord   decodeNegWordCanonical
-  , mkBoundaryTest "NegWord64" decodeNegWord64 decodeNegWord64Canonical
-  , mkBoundaryTest "Tag"       decodeTag       decodeTagCanonical
-  , mkBoundaryTest "Tag64"     decodeTag64     decodeTag64Canonical
-  , mkBoundaryTest "Simple"    decodeSimple    decodeSimpleCanonical-}
+  , stringBytesBoundaryTest
   ]
