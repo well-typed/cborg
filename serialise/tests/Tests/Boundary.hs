@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP                        #-}
 {-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiWayIf                 #-}
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
@@ -50,6 +51,18 @@ arbitraryWithBounds _ = frequency
 
 ----------------------------------------
 
+-- | CBOR can represent 64 bit negative and positive integers, hence we need
+-- wrapper for Integer to represent the whole range.
+newtype Int65 = Int65 Integer
+  deriving (Eq, Ord, Enum, Num, Integral, Real, Serialise, Show)
+
+instance Bounded Int65 where
+  maxBound = Int65 (2^(64 :: Int) - 1)
+  minBound = Int65 (-2^(64 :: Int))
+
+instance Arbitrary Int65 where
+  arbitrary = arbitraryBoundedIntegral
+
 -- | Wrapper for bounded, integral type 'a' that potentially contains values
 -- outside of range of 'a'.
 newtype B a = B { unB :: BRep a }
@@ -60,11 +73,11 @@ type family BRep a where
   BRep Word16 = Word64
   BRep Word32 = Word64
   BRep Word64 = Word64
-  BRep Int    = Int64
+  BRep Int    = Int65
   BRep Int8   = Int64
   BRep Int16  = Int64
   BRep Int32  = Int64
-  BRep Int64  = Int64
+  BRep Int64  = Int65
 
 instance Show (BRep a) => Show (B a) where
   showsPrec p = showsPrec p . unB
