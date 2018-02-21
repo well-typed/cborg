@@ -39,6 +39,7 @@ import           Control.Applicative
 #endif
 import           GHC.Int
 
+import           Control.DeepSeq
 import           Control.Monad (ap)
 import           Control.Monad.ST
 import           Data.Array.IArray
@@ -80,6 +81,9 @@ import           Codec.CBOR.Magic
 -- @since 0.2.0.0
 data DeserialiseFailure = DeserialiseFailure ByteOffset String
   deriving (Eq, Show, Typeable)
+
+instance NFData DeserialiseFailure where
+  rnf (DeserialiseFailure offset msg) = rnf offset `seq` rnf msg `seq` ()
 
 instance Exception DeserialiseFailure where
 #if MIN_VERSION_base(4,8,0)

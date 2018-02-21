@@ -113,6 +113,7 @@ test-suite tests
     Tests.Regress.Issue80
     Tests.Regress.Issue106
     Tests.Regress.Issue135
+    Tests.Regress.Issue160
     Tests.Regress.Issue162
     Tests.Regress.FlatTerm
     Tests.Reference
