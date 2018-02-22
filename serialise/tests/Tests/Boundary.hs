@@ -10,13 +10,16 @@ module Tests.Boundary
   ( testTree -- :: TestTree
   ) where
 
+import           Control.DeepSeq
 import           Data.Bits
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import           Data.Either
 import           Data.Int
+import           Data.Monoid
 import           Data.Word
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 
 import           Codec.CBOR.Decoding
 import           Codec.CBOR.Encoding
@@ -154,33 +157,31 @@ mkLenBoundaryTest aName enc dec decCan =
 
 ----------------------------------------
 
--- | Generate random CBOR prefix of non-empty string/bytes containing its
--- length.
-arbitraryLengthPrefix :: Bool -> Gen (Word, BSL.ByteString)
-arbitraryLengthPrefix string = do
-  Length w <- arbitrary
-  if | w <= 23         -> pure (w, BSL.pack $ [64 + stringBit + fromIntegral w])
-     | w <= 0xff       -> pure (w, BSL.pack $ [88 + stringBit] ++ f 1 w [])
-     | w <= 0xffff     -> pure (w, BSL.pack $ [89 + stringBit] ++ f 2 w [])
-     | w <= 0xffffffff -> pure (w, BSL.pack $ [90 + stringBit] ++ f 4 w [])
-     | otherwise       -> pure (w, BSL.pack $ [91 + stringBit] ++ f 8 w [])
+-- | Generate CBOR prefix of non-empty string/bytes containing its length.
+mkLengthPrefix :: Bool -> Length -> BSL.ByteString
+mkLengthPrefix string (Length w)
+  | w <= 23         = BSL.pack $ [64 + stringBit + fromIntegral w]
+  | w <= 0xff       = BSL.pack $ [88 + stringBit] ++ f 1 w []
+  | w <= 0xffff     = BSL.pack $ [89 + stringBit] ++ f 2 w []
+  | w <= 0xffffffff = BSL.pack $ [90 + stringBit] ++ f 4 w []
+  | otherwise       = BSL.pack $ [91 + stringBit] ++ f 8 w []
   where
     stringBit :: Word8
     stringBit = if string then 32 else 0
 
     f :: Int -> Word -> [Word8] -> [Word8]
     f 0 _ acc = acc
-    f k w acc = f (k - 1) (w `shiftR` 8) (fromIntegral w : acc)
+    f k n acc = f (k - 1) (n `shiftR` 8) (fromIntegral n : acc)
 
 data StringLengthPrefix = StringLP Word BSL.ByteString
   deriving Show
 instance Arbitrary StringLengthPrefix where
-  arbitrary = uncurry StringLP <$> arbitraryLengthPrefix True
+  arbitrary = (\l -> StringLP (unLength l) (mkLengthPrefix True l)) <$> arbitrary
 
 data BytesLengthPrefix = BytesLP Word BSL.ByteString
   deriving Show
 instance Arbitrary BytesLengthPrefix where
-  arbitrary = uncurry BytesLP <$> arbitraryLengthPrefix False
+  arbitrary = (\l -> BytesLP (unLength l) (mkLengthPrefix False l)) <$> arbitrary
 
 -- | Test that positive length prefixes of string/bytes are parsed successfully,
 -- whereas negative are not.
@@ -200,6 +201,27 @@ stringBytesBoundaryTest =
                                            else msg == "end of input"
   ]
 
+----------------------------------------
+
+-- | Wrapper for ByteString with Arbitrary instance that might produce a valid
+-- UTF-8 encoding of a string.
+newtype MaybeText = MaybeText BS.ByteString
+  deriving Show
+instance Arbitrary MaybeText where
+  arbitrary = MaybeText . BS.pack <$> arbitrary
+
+-- | Test that decoding of both valid and invalid CBOR strings produces output
+-- without exceptions hidden within.
+utf8DecodingTest :: MaybeText -> Bool
+utf8DecodingTest (MaybeText bs) =
+  case (T.decodeUtf8' bs, deserialiseFromBytes decodeString s) of
+    v@(Right _, Right _) -> deepseq v True
+    v@(Left _,  Left _)  -> deepseq v True
+    _                    -> False
+  where
+    s = mkLengthPrefix True (Length . fromIntegral $ BS.length bs)
+     <> BSL.fromStrict bs
+
 testTree :: TestTree
 testTree = localOption (QuickCheckTests 1000) . testGroup "Boundary checks" $ concat
   [ mkBoundaryTest "Word"      decodeWord      decodeWordCanonical
@@ -217,4 +239,9 @@ testTree = localOption (QuickCheckTests 1000) . testGroup "Boundary checks" $ co
   , mkLenBoundaryTest "MapLen"  encodeMapLen  decodeMapLen  decodeMapLenCanonical
 
   , stringBytesBoundaryTest
+
+  -- TODO: move it somewhere else
+  , [testProperty "result of Text decoding doesn't contain unevaluated exceptions"
+                  utf8DecodingTest
+    ]
   ]
