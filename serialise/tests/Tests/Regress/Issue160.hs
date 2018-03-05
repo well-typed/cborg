@@ -11,11 +11,8 @@ import           Test.Tasty.HUnit
 
 testTree :: TestTree
 testTree = testGroup "Issue 160 - decoder checks"
-  [ testCase "decodeString fails on non-utf8 bytes instead of crashing" $ do
-      let bs = BSL.fromStrict $ BS.pack [0x61, 128]
-      case deserialiseFromBytes decodeString bs of
-        Left err        -> deepseq err               $ pure ()
-        Right (rest, t) -> deepseq (rest, t :: Text) $ pure ()
+  [ nonUtf8FailureTest "fast path" (BSL.fromStrict $ BS.pack [0x61, 128])
+  , nonUtf8FailureTest "slow path" (BSL.fromChunks $ map BS.singleton [0x61, 128])
   , testCase "decodeListLen doesn't produce negative lengths using a Word64" $ do
       let bs = BSL.fromStrict $
                BS.pack [0x9b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]
@@ -37,3 +34,14 @@ testTree = testGroup "Issue 160 - decoder checks"
           Right (rest, t) -> deepseq rest $
             assertBool "Length is not negative" (BS.length t >= 0)
   ]
+  where
+    nonUtf8FailureTest pathType bs =
+      let title = mconcat
+            ["decodeString fails on non-utf8 bytes instead of crashing ("
+            , pathType
+            , ")"
+            ]
+      in testCase title $ do
+        case deserialiseFromBytes decodeString bs of
+          Left err        -> deepseq err               $ pure ()
+          Right (rest, t) -> deepseq (rest, t :: Text) $ pure ()
