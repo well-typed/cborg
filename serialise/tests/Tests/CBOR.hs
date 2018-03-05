@@ -24,6 +24,7 @@ import           Test.Tasty.QuickCheck
 import qualified Tests.Reference.Implementation  as RefImpl
 import qualified Tests.Reference as TestVector
 import           Tests.Reference (TestCase(..))
+import           Tests.Util
 
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
@@ -105,20 +106,6 @@ prop_decodeTermMatchesRefImpl term0 =
      in term' `eqTerm` fromRefTerm term
 
 ------------------------------------------------------------------------------
-
-splits2 :: LBS.ByteString -> [LBS.ByteString]
-splits2 bs = zipWith (\a b -> LBS.fromChunks [a,b]) (BS.inits sbs) (BS.tails sbs)
-  where
-    sbs = LBS.toStrict bs
-
-splits3 :: LBS.ByteString -> [LBS.ByteString]
-splits3 bs =
-    [ LBS.fromChunks [a,b,c]
-    | (a,x) <- zip (BS.inits sbs) (BS.tails sbs)
-    , (b,c) <- zip (BS.inits x)   (BS.tails x) ]
-  where
-    sbs = LBS.toStrict bs
-
 
 serialise :: Term -> LBS.ByteString
 serialise = toLazyByteString . encodeTerm

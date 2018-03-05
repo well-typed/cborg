@@ -101,6 +101,7 @@ test-suite tests
 
   other-modules:
     Tests.CBOR
+    Tests.Boundary
     Tests.IO
     Tests.Negative
     Tests.Orphanage
@@ -112,12 +113,15 @@ test-suite tests
     Tests.Regress.Issue80
     Tests.Regress.Issue106
     Tests.Regress.Issue135
+    Tests.Regress.Issue160
     Tests.Regress.Issue162
     Tests.Regress.FlatTerm
     Tests.Reference
     Tests.Reference.Implementation
     Tests.Deriving
     Tests.GeneralisedUTF8
+    Tests.UTF8
+    Tests.Util
 
   build-depends:
     array                   >= 0.4     && < 0.6,

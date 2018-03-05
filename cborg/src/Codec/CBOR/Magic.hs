@@ -5,6 +5,8 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE ScopedTypeVariables      #-}
 
+#include "cbor.h"
+
 -- |
 -- Module      : Codec.CBOR.Magic
 -- Copyright   : (c) Duncan Coutts 2015-2017
@@ -38,6 +40,31 @@ module Codec.CBOR.Magic
   , wordToFloat32     -- :: Word   -> Float
   , wordToFloat64     -- :: Word64 -> Double
 
+    -- * Int and Word explicit conversions
+  , word8ToWord       -- :: Word8  -> Word
+  , word16ToWord      -- :: Word16 -> Word
+  , word32ToWord      -- :: Word32 -> Word
+  , word64ToWord      -- :: Word64 -> Word
+
+  -- int*ToInt conversions are missing because they are not needed.
+
+  , word8ToInt        -- :: Int8  -> Int
+  , word16ToInt       -- :: Int16 -> Int
+  , word32ToInt       -- :: Int32 -> Int
+  , word64ToInt       -- :: Int64 -> Int
+
+  , intToInt64        -- :: Int   -> Int64
+#if defined(ARCH_32bit)
+  , word8ToInt64      -- :: Word8  -> Int64
+  , word16ToInt64     -- :: Word16 -> Int64
+  , word32ToInt64     -- :: Word32 -> Int64
+  , word64ToInt64     -- :: Word64 -> Maybe Int64
+
+  , word8ToWord64     -- :: Word8  -> Word64
+  , word16ToWord64    -- :: Word16 -> Word64
+  , word32ToWord64    -- :: Word32 -> Word64
+#endif
+
     -- * @'Integer'@ utilities
   , nintegerFromBytes -- :: ByteString -> Integer
   , uintegerFromBytes -- :: ByteString -> Integer
@@ -55,12 +82,11 @@ module Codec.CBOR.Magic
   , copyByteArrayToByteString
   ) where
 
-#include "cbor.h"
-
 import           GHC.Exts
 import           GHC.ST (ST(ST))
 import           GHC.IO (IO(IO), unsafeDupablePerformIO)
 import           GHC.Word
+import           GHC.Int
 import           Foreign.Ptr
 
 #if defined(OPTIMIZE_GMP)
@@ -74,29 +100,33 @@ import qualified Data.ByteString.Unsafe   as BS
 import           Data.Primitive.ByteArray as Prim
 
 import           Foreign.ForeignPtr (withForeignPtr)
+import           Foreign.C (CUShort)
 
 import qualified Numeric.Half as Half
 
 #if !defined(HAVE_BYTESWAP_PRIMOPS) || !defined(MEM_UNALIGNED_OPS)
 import           Data.Bits ((.|.), unsafeShiftL)
+#endif
 
 #if defined(ARCH_32bit)
-import           GHC.IntWord64 (wordToWord64#)
-#endif
+import           GHC.IntWord64 (wordToWord64#, word64ToWord#,
+                                intToInt64#, int64ToInt#,
+                                leWord64#, ltWord64#, word64ToInt64#)
+
 #endif
 
 --------------------------------------------------------------------------------
 
 -- | Grab a 8-bit @'Word'@ given a @'Ptr'@ to some address.
-grabWord8 :: Ptr () -> Word
+grabWord8 :: Ptr () -> Word8
 {-# INLINE grabWord8 #-}
 
 -- | Grab a 16-bit @'Word'@ given a @'Ptr'@ to some address.
-grabWord16 :: Ptr () -> Word
+grabWord16 :: Ptr () -> Word16
 {-# INLINE grabWord16 #-}
 
 -- | Grab a 32-bit @'Word'@ given a @'Ptr'@ to some address.
-grabWord32 :: Ptr () -> Word
+grabWord32 :: Ptr () -> Word32
 {-# INLINE grabWord32 #-}
 
 -- | Grab a 64-bit @'Word64'@ given a @'Ptr'@ to some address.
@@ -108,7 +138,7 @@ grabWord64 :: Ptr () -> Word64
 --
 
 -- 8-bit word case is always the same...
-grabWord8 (Ptr ip#) = W# (indexWord8OffAddr# ip# 0#)
+grabWord8 (Ptr ip#) = W8# (indexWord8OffAddr# ip# 0#)
 
 -- ... but the remaining cases arent
 #if defined(HAVE_BYTESWAP_PRIMOPS) && \
@@ -117,8 +147,8 @@ grabWord8 (Ptr ip#) = W# (indexWord8OffAddr# ip# 0#)
 -- On x86 machines with GHC 7.10, we have byteswap primitives
 -- available to make this conversion very fast.
 
-grabWord16 (Ptr ip#) = W#   (narrow16Word# (byteSwap16# (indexWord16OffAddr# ip# 0#)))
-grabWord32 (Ptr ip#) = W#   (narrow32Word# (byteSwap32# (indexWord32OffAddr# ip# 0#)))
+grabWord16 (Ptr ip#) = W16# (narrow16Word# (byteSwap16# (indexWord16OffAddr# ip# 0#)))
+grabWord32 (Ptr ip#) = W32# (narrow32Word# (byteSwap32# (indexWord32OffAddr# ip# 0#)))
 #if defined(ARCH_64bit)
 grabWord64 (Ptr ip#) = W64# (byteSwap# (indexWord64OffAddr# ip# 0#))
 #else
@@ -131,8 +161,8 @@ grabWord64 (Ptr ip#) = W64# (byteSwap64# (indexWord64OffAddr# ip# 0#))
 -- accesses on the machine, but it is also big-endian, we need to be
 -- able to decode these numbers efficiently, still.
 
-grabWord16 (Ptr ip#) = W#   (indexWord16OffAddr# ip# 0#)
-grabWord32 (Ptr ip#) = W#   (indexWord32OffAddr# ip# 0#)
+grabWord16 (Ptr ip#) = W16# (indexWord16OffAddr# ip# 0#)
+grabWord32 (Ptr ip#) = W32# (indexWord32OffAddr# ip# 0#)
 grabWord64 (Ptr ip#) = W64# (indexWord64OffAddr# ip# 0#)
 
 #else
@@ -144,8 +174,8 @@ grabWord16 (Ptr ip#) =
     case indexWord8OffAddr# ip# 0# of
      w0# ->
       case indexWord8OffAddr# ip# 1# of
-       w1# -> W# w0# `unsafeShiftL` 8 .|.
-              W# w1#
+       w1# -> W16# w0# `unsafeShiftL` 8 .|.
+              W16# w1#
 
 grabWord32 (Ptr ip#) =
     case indexWord8OffAddr# ip# 0# of
@@ -155,10 +185,10 @@ grabWord32 (Ptr ip#) =
         case indexWord8OffAddr# ip# 2# of
          w2# ->
           case indexWord8OffAddr# ip# 3# of
-           w3# -> W# w0# `unsafeShiftL` 24 .|.
-                  W# w1# `unsafeShiftL` 16 .|.
-                  W# w2# `unsafeShiftL`  8 .|.
-                  W# w3#
+           w3# -> W32# w0# `unsafeShiftL` 24 .|.
+                  W32# w1# `unsafeShiftL` 16 .|.
+                  W32# w2# `unsafeShiftL`  8 .|.
+                  W32# w3#
 
 grabWord64 (Ptr ip#) =
     case indexWord8OffAddr# ip# 0# of
@@ -201,7 +231,7 @@ grabWord64 (Ptr ip#) =
 -- least 2 bytes long: one byte to drop from the front, and one to read as a
 -- @'Word'@ value. This is not checked, and failure to ensure this will result
 -- in undefined behavior.
-eatTailWord8 :: ByteString -> Word
+eatTailWord8 :: ByteString -> Word8
 eatTailWord8 xs = withBsPtr grabWord8 (BS.unsafeTail xs)
 {-# INLINE eatTailWord8 #-}
 
@@ -210,7 +240,7 @@ eatTailWord8 xs = withBsPtr grabWord8 (BS.unsafeTail xs)
 -- least 3 bytes long: one byte to drop from the front, and two to read as a
 -- 16-bit @'Word'@ value. This is not checked, and failure to ensure this will
 -- result in undefined behavior.
-eatTailWord16 :: ByteString -> Word
+eatTailWord16 :: ByteString -> Word16
 eatTailWord16 xs = withBsPtr grabWord16 (BS.unsafeTail xs)
 {-# INLINE eatTailWord16 #-}
 
@@ -219,7 +249,7 @@ eatTailWord16 xs = withBsPtr grabWord16 (BS.unsafeTail xs)
 -- least 5 bytes long: one byte to drop from the front, and four to read as a
 -- 32-bit @'Word'@ value. This is not checked, and failure to ensure this will
 -- result in undefined behavior.
-eatTailWord32 :: ByteString -> Word
+eatTailWord32 :: ByteString -> Word32
 eatTailWord32 xs = withBsPtr grabWord32 (BS.unsafeTail xs)
 {-# INLINE eatTailWord32 #-}
 
@@ -243,14 +273,20 @@ withBsPtr f (BS.PS x off _) =
 --------------------------------------------------------------------------------
 -- Half floats
 
--- | Convert a @'Word'@ to a half-sized @'Float'@.
-wordToFloat16 :: Word -> Float
-wordToFloat16 = \x -> Half.fromHalf (Half.Half (fromIntegral x))
+-- | Convert a @'Word16'@ to a half-sized @'Float'@.
+wordToFloat16 :: Word16 -> Float
+wordToFloat16 = \x -> Half.fromHalf (Half.Half (cast x))
+  where
+    cast :: Word16 -> CUShort
+    cast = fromIntegral
 {-# INLINE wordToFloat16 #-}
 
 -- | Convert a half-sized @'Float'@ to a @'Word'@.
 floatToWord16 :: Float -> Word16
-floatToWord16 = \x -> fromIntegral (Half.getHalf (Half.toHalf x))
+floatToWord16 = \x -> cast (Half.getHalf (Half.toHalf x))
+  where
+    cast :: CUShort -> Word16
+    cast = fromIntegral
 {-# INLINE floatToWord16 #-}
 
 --------------------------------------------------------------------------------
@@ -269,9 +305,9 @@ floatToWord16 = \x -> fromIntegral (Half.getHalf (Half.toHalf x))
 -- floated out and shared and aliased across multiple concurrent calls. So we
 -- do manual worker/wrapper with the worker not being inlined.
 
--- | Cast a @'Word'@ to a @'Float'@.
-wordToFloat32 :: Word -> Float
-wordToFloat32 (W# w#) = F# (wordToFloat32# w#)
+-- | Cast a @'Word32'@ to a @'Float'@.
+wordToFloat32 :: Word32 -> Float
+wordToFloat32 (W32# w#) = F# (wordToFloat32# w#)
 {-# INLINE wordToFloat32 #-}
 
 -- | Cast a @'Word64'@ to a @'Float'@.
@@ -304,6 +340,111 @@ wordToFloat64# w# =
             case readDoubleArray# mba# 0# s'' of
               (# _, f# #) -> f#
 {-# NOINLINE wordToFloat64# #-}
+
+--------------------------------------------------------------------------------
+-- Casting words and ints
+
+word8ToWord  :: Word8  -> Word
+word16ToWord :: Word16 -> Word
+word32ToWord :: Word32 -> Word
+#if defined(ARCH_64bit)
+word64ToWord :: Word64 -> Word
+#else
+word64ToWord :: Word64 -> Maybe Word
+#endif
+
+word8ToInt  :: Word8  -> Int
+word16ToInt :: Word16 -> Int
+#if defined(ARCH_64bit)
+word32ToInt :: Word32 -> Int
+#else
+word32ToInt :: Word32 -> Maybe Int
+#endif
+word64ToInt :: Word64 -> Maybe Int
+
+#if defined(ARCH_32bit)
+word8ToInt64  :: Word8  -> Int64
+word16ToInt64 :: Word16 -> Int64
+word32ToInt64 :: Word32 -> Int64
+word64ToInt64 :: Word64 -> Maybe Int64
+
+word8ToWord64  :: Word8  -> Word64
+word16ToWord64 :: Word16 -> Word64
+word32ToWord64 :: Word32 -> Word64
+#endif
+
+intToInt64 :: Int -> Int64
+intToInt64 = fromIntegral
+{-# INLINE intToInt64 #-}
+
+word8ToWord  (W8#  w#) = W# w#
+word16ToWord (W16# w#) = W# w#
+word32ToWord (W32# w#) = W# w#
+#if defined(ARCH_64bit)
+word64ToWord (W64# w#) = W# w#
+#else
+word64ToWord (W64# w64#) =
+  case isTrue# (w64# `leWord64#` wordToWord64# 0xffffffff##) of
+    True  -> Just (W# (word64ToWord# w64#))
+    False -> Nothing
+#endif
+
+{-# INLINE word8ToWord #-}
+{-# INLINE word16ToWord #-}
+{-# INLINE word32ToWord #-}
+{-# INLINE word64ToWord #-}
+
+word8ToInt  (W8#  w#) = I# (word2Int# w#)
+word16ToInt (W16# w#) = I# (word2Int# w#)
+
+#if defined(ARCH_64bit)
+word32ToInt (W32# w#) = I# (word2Int# w#)
+#else
+word32ToInt (W32# w#) =
+  case isTrue# (w# `ltWord#` 0x80000000##) of
+    True  -> Just (I# (word2Int# w#))
+    False -> Nothing
+#endif
+
+#if defined(ARCH_64bit)
+word64ToInt (W64# w#) =
+  case isTrue# (w# `ltWord#` 0x8000000000000000##) of
+    True  -> Just (I# (word2Int# w#))
+    False -> Nothing
+#else
+word64ToInt (W64# w#) =
+  case isTrue# (w# `ltWord64#` wordToWord64# 0x80000000##) of
+    True  -> Just (I# (int64ToInt# (word64ToInt64# w#)))
+    False -> Nothing
+#endif
+
+{-# INLINE word8ToInt #-}
+{-# INLINE word16ToInt #-}
+{-# INLINE word32ToInt #-}
+{-# INLINE word64ToInt #-}
+
+#if defined(ARCH_32bit)
+word8ToInt64  (W8#  w#) = I64# (intToInt64# (word2Int# w#))
+word16ToInt64 (W16# w#) = I64# (intToInt64# (word2Int# w#))
+word32ToInt64 (W32# w#) = I64# (word64ToInt64# (wordToWord64# w#))
+word64ToInt64 (W64# w#) =
+  case isTrue# (w# `ltWord64#` uncheckedShiftL64# (wordToWord64# 1##) 63#) of
+    True  -> Just (I64# (word64ToInt64# w#))
+    False -> Nothing
+
+word8ToWord64  (W8#  w#) = W64# (wordToWord64# w#)
+word16ToWord64 (W16# w#) = W64# (wordToWord64# w#)
+word32ToWord64 (W32# w#) = W64# (wordToWord64# w#)
+
+{-# INLINE word8ToInt64  #-}
+{-# INLINE word16ToInt64 #-}
+{-# INLINE word32ToInt64 #-}
+{-# INLINE word64ToInt64 #-}
+
+{-# INLINE word8ToWord64  #-}
+{-# INLINE word16ToWord64 #-}
+{-# INLINE word32ToWord64 #-}
+#endif
 
 --------------------------------------------------------------------------------
 -- Integer utilities
