@@ -1,9 +1,13 @@
-{-# LANGUAGE CPP                #-}
-{-# LANGUAGE MagicHash          #-}
-{-# LANGUAGE BangPatterns       #-}
-{-# LANGUAGE RankNTypes         #-}
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE BangPatterns           #-}
+{-# LANGUAGE CPP                    #-}
+{-# LANGUAGE DeriveDataTypeable     #-}
+{-# LANGUAGE FlexibleContexts       #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MagicHash              #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE RankNTypes             #-}
 
 #if __GLASGOW_HASKELL__ > 706
 -- Bump up from the default 1.5, otherwise our decoder fast path is no good.
@@ -607,6 +611,36 @@ go_fast !bs da@(ConsumeDoubleCanonical k) =
         | isDoubleCanonical sz bs f -> k f# >>= go_fast (BS.unsafeDrop sz bs)
         | otherwise                 -> go_fast_end bs da
 
+go_fast !bs da@(ConsumeBytesCanonical k) =
+    case tryConsumeBytes (BS.unsafeHead bs) bs of
+      DecodedToken sz (Canonical True token) -> case token of
+        Fits bstr   -> k bstr >>= go_fast (BS.unsafeDrop sz bs)
+        TooLong len -> return $! SlowConsumeTokenBytes (BS.unsafeDrop sz bs) k len
+      _                                      -> go_fast_end bs da
+
+go_fast !bs da@(ConsumeByteArrayCanonical k) =
+    case tryConsumeBytes (BS.unsafeHead bs) bs of
+      DecodedToken sz (Canonical True token) -> case token of
+        Fits str    -> k (BA.fromByteString str) >>= go_fast (BS.unsafeDrop sz bs)
+        TooLong len -> return $! SlowConsumeTokenByteArray (BS.unsafeDrop sz bs) k len
+      _                                      -> go_fast_end bs da
+
+go_fast !bs da@(ConsumeStringCanonical k) =
+    case tryConsumeString (BS.unsafeHead bs) bs of
+      DecodedToken sz (Canonical True token) -> case token of
+        Fits str    -> case T.decodeUtf8' str of
+          Right t -> k t >>= go_fast (BS.unsafeDrop sz bs)
+          Left _e -> return $! SlowFail bs "invalid UTF8"
+        TooLong len -> return $! SlowConsumeTokenString (BS.unsafeDrop sz bs) k len
+      _                                      -> go_fast_end bs da
+
+go_fast !bs da@(ConsumeUtf8ByteArrayCanonical k) =
+    case tryConsumeString (BS.unsafeHead bs) bs of
+      DecodedToken sz (Canonical True token) -> case token of
+        Fits str    -> k (BA.fromByteString str) >>= go_fast (BS.unsafeDrop sz bs)
+        TooLong len -> return $! SlowConsumeTokenUtf8ByteArray (BS.unsafeDrop sz bs) k len
+      _                                      -> go_fast_end bs da
+
 go_fast !bs da@(ConsumeSimpleCanonical k) =
     case tryConsumeSimple (BS.unsafeHead bs) bs of
       DecodeFailure           -> go_fast_end bs da
@@ -1065,6 +1099,48 @@ go_fast_end !bs (ConsumeDoubleCanonical k) =
         | isDoubleCanonical sz bs f -> k f# >>= go_fast_end (BS.unsafeDrop sz bs)
         | otherwise                 -> return $! SlowFail bs "non-canonical double"
 
+go_fast_end !bs (ConsumeBytesCanonical k) =
+    case tryConsumeBytes (BS.unsafeHead bs) bs of
+      DecodeFailure                 -> return $! SlowFail bs "expected bytes"
+      DecodedToken sz (Canonical canonical token)
+        | canonical -> case token of
+            Fits bstr   -> k bstr >>= go_fast_end (BS.unsafeDrop sz bs)
+            TooLong len -> return $! SlowConsumeTokenBytes (BS.unsafeDrop sz bs) k len
+        | otherwise -> return $! SlowFail bs "non-canonical length prefix"
+
+go_fast_end !bs (ConsumeByteArrayCanonical k) =
+    case tryConsumeBytes (BS.unsafeHead bs) bs of
+      DecodeFailure                 -> return $! SlowFail bs "expected string"
+      DecodedToken sz (Canonical canonical token)
+        | canonical -> case token of
+            Fits str    ->
+              (k $! BA.fromByteString str) >>= go_fast_end (BS.unsafeDrop sz bs)
+            TooLong len ->
+              return $! SlowConsumeTokenByteArray (BS.unsafeDrop sz bs) k len
+        | otherwise -> return $! SlowFail bs "non-canonical length prefix"
+
+go_fast_end !bs (ConsumeStringCanonical k) =
+    case tryConsumeString (BS.unsafeHead bs) bs of
+      DecodeFailure                 -> return $! SlowFail bs "expected string"
+      DecodedToken sz (Canonical canonical token)
+        | canonical -> case token of
+            Fits str    -> case T.decodeUtf8' str of
+              Right t -> k t >>= go_fast_end (BS.unsafeDrop sz bs)
+              Left _e -> return $! SlowFail bs "invalid UTF8"
+            TooLong len -> return $! SlowConsumeTokenString (BS.unsafeDrop sz bs) k len
+        | otherwise -> return $! SlowFail bs "non-canonical length prefix"
+
+go_fast_end !bs (ConsumeUtf8ByteArrayCanonical k) =
+    case tryConsumeString (BS.unsafeHead bs) bs of
+      DecodeFailure                 -> return $! SlowFail bs "expected string"
+      DecodedToken sz (Canonical canonical token)
+        | canonical -> case token of
+            Fits str    ->
+              (k $! BA.fromByteString str) >>= go_fast_end (BS.unsafeDrop sz bs)
+            TooLong len ->
+              return $! SlowConsumeTokenUtf8ByteArray (BS.unsafeDrop sz bs) k len
+        | otherwise -> return $! SlowFail bs "non-canonical length prefix"
+
 go_fast_end !bs (ConsumeSimpleCanonical k) =
     case tryConsumeSimple (BS.unsafeHead bs) bs of
       DecodeFailure           -> return $! SlowFail bs "expected simple"
@@ -1391,6 +1467,24 @@ data DecodedToken a = DecodedToken !Int !a | DecodeFailure
 data LongToken a = Fits !a | TooLong !Int
   deriving Show
 
+-- | Wrapper for LongToken containing additional info about canonicity of length
+-- prefix.
+data Canonical a = Canonical !Bool !a
+  deriving Show
+
+-- | Helper type class for passing canonicity information only when needed.
+class IsLongToken t a | t -> a where
+  fits    :: Bool -> a   -> t
+  tooLong :: Bool -> Int -> t
+
+instance IsLongToken (LongToken a) a where
+  fits    = \_ -> Fits
+  tooLong = \_ -> TooLong
+
+instance IsLongToken (Canonical (LongToken a)) a where
+  fits    = \c -> Canonical c . Fits
+  tooLong = \c -> Canonical c . TooLong
+
 {-# INLINE isFloat16Canonical #-}
 isFloat16Canonical :: Int -> Bool
 isFloat16Canonical sz
@@ -1709,7 +1803,7 @@ tryConsumeInteger hdr !bs = case word8ToWord hdr of
 
 
 {-# INLINE tryConsumeBytes #-}
-tryConsumeBytes :: Word8 -> ByteString -> DecodedToken (LongToken ByteString)
+tryConsumeBytes :: IsLongToken t ByteString => Word8 -> ByteString -> DecodedToken t
 tryConsumeBytes hdr !bs = case word8ToWord hdr of
 
   -- Bytes (type 2)
@@ -1745,7 +1839,7 @@ tryConsumeBytes hdr !bs = case word8ToWord hdr of
 
 
 {-# INLINE tryConsumeString #-}
-tryConsumeString :: Word8 -> ByteString -> DecodedToken (LongToken BS.ByteString)
+tryConsumeString :: IsLongToken t ByteString => Word8 -> ByteString -> DecodedToken t
 tryConsumeString hdr !bs = case word8ToWord hdr of
 
   -- Strings (type 3)
@@ -2345,58 +2439,60 @@ tryConsumeBreakOr hdr = case word8ToWord hdr of
   _    -> DecodeFailure
 
 
-readBytesSmall :: Int -> ByteString -> DecodedToken (LongToken ByteString)
+readBytesSmall :: IsLongToken t ByteString => Int -> ByteString -> DecodedToken t
 readBytesSmall n bs
   -- if n <= bound then ok return it all
   | n + hdrsz <= BS.length bs
-  = DecodedToken (n+hdrsz) $ Fits $
+  = DecodedToken (n+hdrsz) $ fits True $
       BS.unsafeTake n (BS.unsafeDrop hdrsz bs)
 
   -- if n > bound then slow path, multi-chunk
   | otherwise
-  = DecodedToken hdrsz $ TooLong n
+  = DecodedToken hdrsz $ tooLong True n
   where
     hdrsz = 1
 
 readBytes8, readBytes16, readBytes32, readBytes64
-  :: ByteString -> DecodedToken (LongToken ByteString)
+  :: IsLongToken t ByteString => ByteString -> DecodedToken t
 
 readBytes8 bs
   | n <= BS.length bs - hdrsz
-  = DecodedToken (n+hdrsz) $ Fits $
+  = DecodedToken (n+hdrsz) $ fits lengthCanonical $
       BS.unsafeTake n (BS.unsafeDrop hdrsz bs)
 
   -- if n > bound then slow path, multi-chunk
   | otherwise
-  = DecodedToken hdrsz $ TooLong n
+  = DecodedToken hdrsz $ tooLong lengthCanonical n
   where
-    hdrsz = 2
-    n = word8ToInt (eatTailWord8 bs)
+    hdrsz           = 2
+    !n@(I# n#)      = word8ToInt (eatTailWord8 bs)
+    lengthCanonical = isIntCanonical hdrsz n#
 
 readBytes16 bs
   | n <= BS.length bs - hdrsz
-  = DecodedToken (n+hdrsz) $ Fits $
+  = DecodedToken (n+hdrsz) $ fits lengthCanonical $
       BS.unsafeTake n (BS.unsafeDrop hdrsz bs)
 
   -- if n > bound then slow path, multi-chunk
   | otherwise
-  = DecodedToken hdrsz $ TooLong n
+  = DecodedToken hdrsz $ tooLong lengthCanonical n
   where
-    hdrsz = 3
-    n = word16ToInt (eatTailWord16 bs)
+    hdrsz           = 3
+    !n@(I# n#)      = word16ToInt (eatTailWord16 bs)
+    lengthCanonical = isIntCanonical hdrsz n#
 
 readBytes32 bs = case word32ToInt (eatTailWord32 bs) of
 #if defined(ARCH_32bit)
-    Just n
+    Just n@(I# n#)
 #else
-    n
+    n@(I# n#)
 #endif
       | n <= BS.length bs - hdrsz
-                  -> DecodedToken (n+hdrsz) $ Fits $
+                  -> DecodedToken (n+hdrsz) $ fits (isIntCanonical hdrsz n#) $
                        BS.unsafeTake n (BS.unsafeDrop hdrsz bs)
 
       -- if n > bound then slow path, multi-chunk
-      | otherwise -> DecodedToken hdrsz $ TooLong n
+      | otherwise -> DecodedToken hdrsz $ tooLong (isIntCanonical hdrsz n#) n
 
 #if defined(ARCH_32bit)
     Nothing       -> DecodeFailure
@@ -2405,17 +2501,17 @@ readBytes32 bs = case word32ToInt (eatTailWord32 bs) of
     hdrsz = 5
 
 readBytes64 bs = case word64ToInt (eatTailWord64 bs) of
-    Just n
+    Just n@(I# n#)
       | n <= BS.length bs - hdrsz
-                  -> DecodedToken (n+hdrsz) $ Fits $
+                  -> DecodedToken (n+hdrsz) $ fits (isIntCanonical hdrsz n#) $
                             BS.unsafeTake n (BS.unsafeDrop hdrsz bs)
 
       -- if n > bound then slow path, multi-chunk
-      | otherwise -> DecodedToken hdrsz $ TooLong n
+      | otherwise -> DecodedToken hdrsz $ tooLong (isIntCanonical hdrsz n#) n
 
     Nothing       -> DecodeFailure
   where
-    hdrsz = 5
+    hdrsz = 9
 
 ------------------------------------------------------------------------------
 -- Reading big integers

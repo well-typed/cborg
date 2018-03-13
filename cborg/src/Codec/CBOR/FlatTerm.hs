@@ -371,10 +371,14 @@ fromFlatTerm decoder ft =
     go ts (ConsumeBool   _) = unexpected "decodeBool"   ts
     go ts (ConsumeSimple _) = unexpected "decodeSimple" ts
 
-    go ts (ConsumeFloat16Canonical _) = unexpected "decodeFloat16Canonical" ts
-    go ts (ConsumeFloatCanonical   _) = unexpected "decodeFloatCanonical"   ts
-    go ts (ConsumeDoubleCanonical  _) = unexpected "decodeDoubleCanonical"  ts
-    go ts (ConsumeSimpleCanonical  _) = unexpected "decodeSimpleCanonical"  ts
+    go ts (ConsumeFloat16Canonical _)       = unexpected "decodeFloat16Canonical"       ts
+    go ts (ConsumeFloatCanonical   _)       = unexpected "decodeFloatCanonical"         ts
+    go ts (ConsumeDoubleCanonical  _)       = unexpected "decodeDoubleCanonical"        ts
+    go ts (ConsumeBytesCanonical  _)        = unexpected "decodeBytesCanonical"         ts
+    go ts (ConsumeByteArrayCanonical _)     = unexpected "decodeByteArrayCanonical"     ts
+    go ts (ConsumeStringCanonical _)        = unexpected "decodeStringCanonical"        ts
+    go ts (ConsumeUtf8ByteArrayCanonical _) = unexpected "decodeUtf8ByteArrayCanonical" ts
+    go ts (ConsumeSimpleCanonical  _)       = unexpected "decodeSimpleCanonical"        ts
 
 #if defined(ARCH_32bit)
     -- 64bit variants for 32bit machines

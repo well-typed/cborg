@@ -52,11 +52,15 @@ module Codec.CBOR.Decoding
   , decodeFloat         -- :: Decoder s Float
   , decodeDouble        -- :: Decoder s Double
   , decodeBytes         -- :: Decoder s ByteString
+  , decodeBytesCanonical -- :: Decoder s ByteString
   , decodeBytesIndef    -- :: Decoder s ()
   , decodeByteArray     -- :: Decoder s ByteArray
+  , decodeByteArrayCanonical -- :: Decoder s ByteArray
   , decodeString        -- :: Decoder s Text
+  , decodeStringCanonical -- :: Decoder s Text
   , decodeStringIndef   -- :: Decoder s ()
   , decodeUtf8ByteArray -- :: Decoder s ByteArray
+  , decodeUtf8ByteArrayCanonical -- :: Decoder s ByteArray
   , decodeListLen       -- :: Decoder s Int
   , decodeListLenCanonical -- :: Decoder s Int
   , decodeListLenIndef  -- :: Decoder s ()
@@ -188,11 +192,15 @@ data DecodeAction s a
     | ConsumeBool          (Bool      -> ST s (DecodeAction s a))
     | ConsumeSimple        (Word#     -> ST s (DecodeAction s a))
 
-    | ConsumeIntegerCanonical (Integer -> ST s (DecodeAction s a))
-    | ConsumeFloat16Canonical (Float#  -> ST s (DecodeAction s a))
-    | ConsumeFloatCanonical   (Float#  -> ST s (DecodeAction s a))
-    | ConsumeDoubleCanonical  (Double# -> ST s (DecodeAction s a))
-    | ConsumeSimpleCanonical  (Word#   -> ST s (DecodeAction s a))
+    | ConsumeIntegerCanonical       (Integer -> ST s (DecodeAction s a))
+    | ConsumeFloat16Canonical       (Float#  -> ST s (DecodeAction s a))
+    | ConsumeFloatCanonical         (Float#  -> ST s (DecodeAction s a))
+    | ConsumeDoubleCanonical        (Double# -> ST s (DecodeAction s a))
+    | ConsumeBytesCanonical         (ByteString-> ST s (DecodeAction s a))
+    | ConsumeByteArrayCanonical     (ByteArray -> ST s (DecodeAction s a))
+    | ConsumeStringCanonical        (Text      -> ST s (DecodeAction s a))
+    | ConsumeUtf8ByteArrayCanonical (ByteArray -> ST s (DecodeAction s a))
+    | ConsumeSimpleCanonical        (Word#   -> ST s (DecodeAction s a))
 
     | ConsumeBytesIndef   (ST s (DecodeAction s a))
     | ConsumeStringIndef  (ST s (DecodeAction s a))
@@ -519,6 +527,13 @@ decodeBytes :: Decoder s ByteString
 decodeBytes = Decoder (\k -> return (ConsumeBytes (\bs -> k bs)))
 {-# INLINE decodeBytes #-}
 
+-- | Decode canonical representation of a string of bytes as a @'ByteString'@.
+--
+-- @since 0.2.1.0
+decodeBytesCanonical :: Decoder s ByteString
+decodeBytesCanonical = Decoder (\k -> return (ConsumeBytesCanonical (\bs -> k bs)))
+{-# INLINE decodeBytesCanonical #-}
+
 -- | Decode a token marking the beginning of an indefinite length
 -- set of bytes.
 --
@@ -538,12 +553,30 @@ decodeByteArray :: Decoder s ByteArray
 decodeByteArray = Decoder (\k -> return (ConsumeByteArray k))
 {-# INLINE decodeByteArray #-}
 
+-- | Decode canonical representation of a string of bytes as a 'ByteArray'.
+--
+-- Also note that this will eagerly copy the content out of the input
+-- to ensure that the input does not leak in the event that the 'ByteArray' is
+-- live but not forced.
+--
+-- @since 0.2.1.0
+decodeByteArrayCanonical :: Decoder s ByteArray
+decodeByteArrayCanonical = Decoder (\k -> return (ConsumeByteArrayCanonical k))
+{-# INLINE decodeByteArrayCanonical #-}
+
 -- | Decode a textual string as a piece of @'Text'@.
 --
 -- @since 0.2.0.0
 decodeString :: Decoder s Text
 decodeString = Decoder (\k -> return (ConsumeString (\str -> k str)))
 {-# INLINE decodeString #-}
+
+-- | Decode canonical representation of a textual string as a piece of @'Text'@.
+--
+-- @since 0.2.1.0
+decodeStringCanonical :: Decoder s Text
+decodeStringCanonical = Decoder (\k -> return (ConsumeStringCanonical (\str -> k str)))
+{-# INLINE decodeStringCanonical #-}
 
 -- | Decode a token marking the beginning of an indefinite length
 -- string.
@@ -564,6 +597,18 @@ decodeStringIndef = Decoder (\k -> return (ConsumeStringIndef (k ())))
 decodeUtf8ByteArray :: Decoder s ByteArray
 decodeUtf8ByteArray = Decoder (\k -> return (ConsumeUtf8ByteArray k))
 {-# INLINE decodeUtf8ByteArray #-}
+
+-- | Decode canonical representation of a textual string as UTF-8 encoded
+-- 'ByteArray'. Note that the result is not validated to be well-formed UTF-8.
+--
+-- Also note that this will eagerly copy the content out of the input
+-- to ensure that the input does not leak in the event that the 'ByteArray' is
+-- live but not forced.
+--
+-- @since 0.2.1.0
+decodeUtf8ByteArrayCanonical :: Decoder s ByteArray
+decodeUtf8ByteArrayCanonical = Decoder (\k -> return (ConsumeUtf8ByteArrayCanonical k))
+{-# INLINE decodeUtf8ByteArrayCanonical #-}
 
 -- | Decode the length of a list.
 --
