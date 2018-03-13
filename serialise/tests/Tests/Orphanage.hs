@@ -195,8 +195,10 @@ deriving instance Show a => Show (Const a b)
 deriving instance Eq a   => Eq   (Const a b)
 #endif
 
+#if !MIN_VERSION_quickcheck_instances(0,3,17)
 instance Arbitrary BSS.ShortByteString where
   arbitrary = BSS.pack <$> arbitrary
+#endif
 
 instance (Vector.Primitive.Prim a, Arbitrary a
          ) => Arbitrary (Vector.Primitive.Vector a) where
