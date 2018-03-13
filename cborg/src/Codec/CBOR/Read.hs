@@ -2438,7 +2438,7 @@ tryConsumeBreakOr hdr = case word8ToWord hdr of
   0xff -> DecodedToken 1 ()
   _    -> DecodeFailure
 
-
+{-# INLINE readBytesSmall #-}
 readBytesSmall :: IsLongToken t ByteString => Int -> ByteString -> DecodedToken t
 readBytesSmall n bs
   -- if n <= bound then ok return it all
@@ -2452,6 +2452,10 @@ readBytesSmall n bs
   where
     hdrsz = 1
 
+{-# INLINE readBytes8 #-}
+{-# INLINE readBytes16 #-}
+{-# INLINE readBytes32 #-}
+{-# INLINE readBytes64 #-}
 readBytes8, readBytes16, readBytes32, readBytes64
   :: IsLongToken t ByteString => ByteString -> DecodedToken t
 
