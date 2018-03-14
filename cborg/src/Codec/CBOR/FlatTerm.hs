@@ -301,10 +301,15 @@ fromFlatTerm decoder ft =
     go (TkBool    b : ts) (ConsumeBool   k)        = k b >>= go ts
     go (TkSimple  n : ts) (ConsumeSimple k)        = k (unW8# n) >>= go ts
 
-    go (TkFloat16 f : ts) (ConsumeFloat16Canonical k) = k (unF# f) >>= go ts
-    go (TkFloat32 f : ts) (ConsumeFloatCanonical   k) = k (unF# f) >>= go ts
-    go (TkFloat64 f : ts) (ConsumeDoubleCanonical  k) = k (unD# f) >>= go ts
-    go (TkSimple  n : ts) (ConsumeSimpleCanonical  k) = k (unW8# n) >>= go ts
+    go (TkFloat16 f : ts) (ConsumeFloat16Canonical k)       = k (unF# f) >>= go ts
+    go (TkFloat32 f : ts) (ConsumeFloatCanonical   k)       = k (unF# f) >>= go ts
+    go (TkFloat64 f : ts) (ConsumeDoubleCanonical  k)       = k (unD# f) >>= go ts
+    go (TkBytes  bs : ts) (ConsumeBytesCanonical  k)        = k bs >>= go ts
+    go (TkBytes  bs : ts) (ConsumeByteArrayCanonical k)     = k (BA.fromByteString bs) >>= go ts
+    go (TkString st : ts) (ConsumeStringCanonical k)        = k st >>= go ts
+    go (TkString st : ts) (ConsumeUtf8ByteArrayCanonical k) = k (BA.fromByteString $ TE.encodeUtf8 st)
+                                                              >>= go ts
+    go (TkSimple  n : ts) (ConsumeSimpleCanonical  k)       = k (unW8# n) >>= go ts
 
     go (TkBytesBegin  : ts) (ConsumeBytesIndef   da) = da >>= go ts
     go (TkStringBegin : ts) (ConsumeStringIndef  da) = da >>= go ts
