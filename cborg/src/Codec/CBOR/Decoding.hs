@@ -36,55 +36,28 @@ module Codec.CBOR.Decoding
   , decodeInt16         -- :: Decoder s Int16
   , decodeInt32         -- :: Decoder s Int32
   , decodeInt64         -- :: Decoder s Int64
-  , decodeWordCanonical      -- :: Decoder s Word
-  , decodeWord8Canonical     -- :: Decoder s Word8
-  , decodeWord16Canonical    -- :: Decoder s Word16
-  , decodeWord32Canonical    -- :: Decoder s Word32
-  , decodeWord64Canonical    -- :: Decoder s Word64
-  , decodeNegWordCanonical   -- :: Decoder s Word
-  , decodeNegWord64Canonical -- :: Decoder s Word64
-  , decodeIntCanonical       -- :: Decoder s Int
-  , decodeInt8Canonical      -- :: Decoder s Int8
-  , decodeInt16Canonical     -- :: Decoder s Int16
-  , decodeInt32Canonical     -- :: Decoder s Int32
-  , decodeInt64Canonical     -- :: Decoder s Int64
   , decodeInteger       -- :: Decoder s Integer
   , decodeFloat         -- :: Decoder s Float
   , decodeDouble        -- :: Decoder s Double
   , decodeBytes         -- :: Decoder s ByteString
-  , decodeBytesCanonical -- :: Decoder s ByteString
   , decodeBytesIndef    -- :: Decoder s ()
   , decodeByteArray     -- :: Decoder s ByteArray
-  , decodeByteArrayCanonical -- :: Decoder s ByteArray
   , decodeString        -- :: Decoder s Text
-  , decodeStringCanonical -- :: Decoder s Text
   , decodeStringIndef   -- :: Decoder s ()
   , decodeUtf8ByteArray -- :: Decoder s ByteArray
-  , decodeUtf8ByteArrayCanonical -- :: Decoder s ByteArray
   , decodeListLen       -- :: Decoder s Int
-  , decodeListLenCanonical -- :: Decoder s Int
   , decodeListLenIndef  -- :: Decoder s ()
   , decodeMapLen        -- :: Decoder s Int
-  , decodeMapLenCanonical -- :: Decoder s Int
   , decodeMapLenIndef   -- :: Decoder s ()
   , decodeTag           -- :: Decoder s Word
   , decodeTag64         -- :: Decoder s Word64
-  , decodeTagCanonical   -- :: Decoder s Word
-  , decodeTag64Canonical -- :: Decoder s Word64
   , decodeBool          -- :: Decoder s Bool
   , decodeNull          -- :: Decoder s ()
   , decodeSimple        -- :: Decoder s Word8
-  , decodeIntegerCanonical -- :: Decoder s Integer
-  , decodeFloat16Canonical -- :: Decoder s Float
-  , decodeFloatCanonical   -- :: Decoder s Float
-  , decodeDoubleCanonical  -- :: Decoder s Double
-  , decodeSimpleCanonical  -- :: Decoder s Word8
 
   -- ** Specialised Read input token operations
   , decodeWordOf        -- :: Word -> Decoder s ()
   , decodeListLenOf     -- :: Int  -> Decoder s ()
-  , decodeWordCanonicalOf    -- :: Word -> Decoder s ()
-  , decodeListLenCanonicalOf -- :: Int  -> Decoder s ()
 
   -- ** Branching operations
 --, decodeBytesOrIndef
@@ -98,9 +71,41 @@ module Codec.CBOR.Decoding
   , peekAvailable        -- :: Decoder s Int
   , TokenType(..)
 
+  -- ** Canonical CBOR
+  -- $canonical
+  , decodeWordCanonical      -- :: Decoder s Word
+  , decodeWord8Canonical     -- :: Decoder s Word8
+  , decodeWord16Canonical    -- :: Decoder s Word16
+  , decodeWord32Canonical    -- :: Decoder s Word32
+  , decodeWord64Canonical    -- :: Decoder s Word64
+  , decodeNegWordCanonical   -- :: Decoder s Word
+  , decodeNegWord64Canonical -- :: Decoder s Word64
+  , decodeIntCanonical       -- :: Decoder s Int
+  , decodeInt8Canonical      -- :: Decoder s Int8
+  , decodeInt16Canonical     -- :: Decoder s Int16
+  , decodeInt32Canonical     -- :: Decoder s Int32
+  , decodeInt64Canonical     -- :: Decoder s Int64
+  , decodeBytesCanonical -- :: Decoder s ByteString
+  , decodeByteArrayCanonical -- :: Decoder s ByteArray
+  , decodeStringCanonical -- :: Decoder s Text
+  , decodeUtf8ByteArrayCanonical -- :: Decoder s ByteArray
+  , decodeListLenCanonical -- :: Decoder s Int
+  , decodeMapLenCanonical -- :: Decoder s Int
+  , decodeTagCanonical   -- :: Decoder s Word
+  , decodeTag64Canonical -- :: Decoder s Word64
+  , decodeIntegerCanonical -- :: Decoder s Integer
+  , decodeFloat16Canonical -- :: Decoder s Float
+  , decodeFloatCanonical   -- :: Decoder s Float
+  , decodeDoubleCanonical  -- :: Decoder s Double
+  , decodeSimpleCanonical  -- :: Decoder s Word8
+  , decodeWordCanonicalOf    -- :: Word -> Decoder s ()
+  , decodeListLenCanonicalOf -- :: Int  -> Decoder s ()
+
+{-
   -- ** Special operations
---, ignoreTerms
---, decodeTrace
+  , ignoreTerms
+  , decodeTrace
+-}
 
   -- * Sequence operations
   , decodeSequenceLenIndef -- :: ...
@@ -296,6 +301,38 @@ liftST m = Decoder $ \k -> m >>= k
 getDecodeAction :: Decoder s a -> ST s (DecodeAction s a)
 getDecodeAction (Decoder k) = k (\x -> return (Done x))
 
+
+-- $canonical
+--
+-- <https://tools.ietf.org/html/rfc7049#section-3.9>
+--
+-- In general in CBOR there can be multiple representations for the same value,
+-- for example the integer @0@ represented in 8, 16, 32 or 64 bits. This
+-- library always encodeds values in the shortest representation but on
+-- decoding allows any valid encoding. For some applications it is useful or
+-- important to only decode the canonical encoding. The decoder primitves here
+-- are to allow applications to implement canonical decoding.
+--
+-- It is important to note that achieving a canonical representation is /not/
+-- simply about using these primitives. For example consider a typical CBOR
+-- encoding of a Haskell @Set@ data type. This will be encoded as a CBOR list
+-- of the set elements. A typical implementation might be:
+--
+-- > encodeSet = encodeList . Set.toList
+-- > decodeSet = fmap Set.fromList . decodeList
+--
+-- This /does not/ enforce a canonical encoding. The decoder above will allow
+-- set elements in any order. The use of @Set.fromList@ forgets the order.
+-- To enforce that the decoder only accepts the canonical encoding it will
+-- have to check that the elemets in the list are /strictly/ increasing.
+-- Similar issues arise in many other data types, wherever there is redundancy
+-- in the external representation.
+--
+-- The decoder primitives in this section are not much more expensive than
+-- their normal counterparts. If checking the canonical encoding property is
+-- critical then a technique that is more expensive but easier to implement and
+-- test is to decode normally, re-encode and check the serialised bytes are the
+-- same.
 
 ---------------------------------------
 -- Read input tokens of various types
