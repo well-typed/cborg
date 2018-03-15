@@ -1083,21 +1083,16 @@ go_fast_end !bs (ConsumeSimple k) =
 go_fast_end !bs (ConsumeIntegerCanonical k) =
     case tryConsumeInteger (BS.unsafeHead bs) bs of
       DecodeFailure                         -> return $! SlowFail bs "expected integer"
-      DecodedToken sz (BigIntToken canonical n)
-        | canonical -> k n >>= go_fast_end (BS.unsafeDrop sz bs)
-        | otherwise -> failNonCanonicalInteger
-      DecodedToken sz (BigUIntNeedBody canonical len)
-        | canonical -> return $! SlowConsumeTokenBytes (BS.unsafeDrop sz bs)
-                                 (adjustContCanonicalBigUIntNeedBody k) len
-        | otherwise -> failNonCanonicalInteger
-      DecodedToken sz (BigNIntNeedBody canonical len)
-        | canonical -> return $! SlowConsumeTokenBytes (BS.unsafeDrop sz bs)
-                                 (adjustContCanonicalBigNIntNeedBody k) len
-        | otherwise -> failNonCanonicalInteger
-      DecodedToken sz  BigUIntNeedHeader    -> return $! SlowDecodeAction      (BS.unsafeDrop sz bs) (adjustContCanonicalBigUIntNeedHeader k)
-      DecodedToken sz  BigNIntNeedHeader    -> return $! SlowDecodeAction      (BS.unsafeDrop sz bs) (adjustContCanonicalBigNIntNeedHeader k)
-  where
-    failNonCanonicalInteger = return $! SlowFail bs "non-canonical integer"
+      DecodedToken sz (BigIntToken True n)  -> k n >>= go_fast_end (BS.unsafeDrop sz bs)
+      DecodedToken sz (BigUIntNeedBody True len) -> return $! SlowConsumeTokenBytes
+        (BS.unsafeDrop sz bs) (adjustContCanonicalBigUIntNeedBody k) len
+      DecodedToken sz (BigNIntNeedBody True len) -> return $! SlowConsumeTokenBytes
+        (BS.unsafeDrop sz bs) (adjustContCanonicalBigNIntNeedBody k) len
+      DecodedToken sz  BigUIntNeedHeader -> return $! SlowDecodeAction
+        (BS.unsafeDrop sz bs) (adjustContCanonicalBigUIntNeedHeader k)
+      DecodedToken sz  BigNIntNeedHeader -> return $! SlowDecodeAction
+        (BS.unsafeDrop sz bs) (adjustContCanonicalBigNIntNeedHeader k)
+      _ -> return $! SlowFail bs "non-canonical integer"
 
 go_fast_end !bs (ConsumeFloat16Canonical k) =
     case tryConsumeFloat (BS.unsafeHead bs) bs of
