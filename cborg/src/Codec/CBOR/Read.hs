@@ -1510,11 +1510,11 @@ isDoubleCanonical sz bs f
 {-# INLINE isWordCanonical #-}
 isWordCanonical :: Int -> Word# -> Bool
 isWordCanonical sz w#
-  | sz == 2 && isTrue# (w# `leWord#` 0x17##)       = False
-  | sz == 3 && isTrue# (w# `leWord#` 0xff##)       = False
-  | sz == 5 && isTrue# (w# `leWord#` 0xffff##)     = False
-  | sz == 9 && isTrue# (w# `leWord#` 0xffffffff##) = False
-  | otherwise                                      = True
+  | sz == 2   = isTrue# (w# `gtWord#` 0x17##)
+  | sz == 3   = isTrue# (w# `gtWord#` 0xff##)
+  | sz == 5   = isTrue# (w# `gtWord#` 0xffff##)
+  | sz == 9   = isTrue# (w# `gtWord#` 0xffffffff##)
+  | otherwise = True
 
 {-# INLINE isIntCanonical #-}
 isIntCanonical :: Int -> Int# -> Bool
@@ -1528,11 +1528,11 @@ isIntCanonical sz i#
 {-# INLINE isWord64Canonical #-}
 isWord64Canonical :: Int -> Word64# -> Bool
 isWord64Canonical sz w#
-  | sz == 2 && isTrue# (w# `leWord64#` wordToWord64# 0x17##)       = False
-  | sz == 3 && isTrue# (w# `leWord64#` wordToWord64# 0xff##)       = False
-  | sz == 5 && isTrue# (w# `leWord64#` wordToWord64# 0xffff##)     = False
-  | sz == 9 && isTrue# (w# `leWord64#` wordToWord64# 0xffffffff##) = False
-  | otherwise                                                      = True
+  | sz == 2   = isTrue# (w# `gtWord64#` wordToWord64# 0x17##)
+  | sz == 3   = isTrue# (w# `gtWord64#` wordToWord64# 0xff##)
+  | sz == 5   = isTrue# (w# `gtWord64#` wordToWord64# 0xffff##)
+  | sz == 9   = isTrue# (w# `gtWord64#` wordToWord64# 0xffffffff##)
+  | otherwise = True
 
 {-# INLINE isInt64Canonical #-}
 isInt64Canonical :: Int -> Int64# -> Bool
