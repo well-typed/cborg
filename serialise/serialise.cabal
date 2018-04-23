@@ -11,7 +11,7 @@ description:
   Representation', or CBOR, specified in RFC 7049. As a result,
   serialised Haskell values have implicit structure outside of the
   Haskell program itself, meaning they can be inspected or analyzed
-  with custom tools.
+  without custom tools.
   .
   An implementation of the standard bijection between CBOR and JSON is provided
   by the [cborg-json](/package/cborg-json) package. Also see
