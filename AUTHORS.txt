@@ -11,7 +11,7 @@ particular order:
   Adam Gundry            <adam [@at] well-typed [.dot] com>
   Alexander Vershilov    <alexander [.dot] vershilov [@at] gmail [.dot] com>
   Alexey Khudyakov       <alexey [.dot] skladnoy [@at] gmail [.dot] com>
-  Alex Mason             <alex [.dot] mason [@at] nicta [.dot] com [.dot] au>
+  Alex Mason             <alex [.dot] mason [@at] data61 [.dot] csiro [.dot] au>
   Arian van Putten       <aeroboy94 [@at] gmail [.dot] com>
   Austin Seipp           <austin [@at] well-typed [.dot] com>
   Ben Gamari             <ben [@at] well-typed [.dot] com>
