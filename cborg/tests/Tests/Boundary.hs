@@ -21,7 +21,6 @@ import           Codec.CBOR.Decoding
 import           Codec.CBOR.Encoding
 import           Codec.CBOR.Read
 import           Codec.CBOR.Write
-import           Codec.Serialise.Class
 import           Tests.Util
 
 import           Test.Tasty
@@ -34,7 +33,7 @@ import           Control.Applicative
 -- | CBOR can represent 64 bit negative and positive integers, hence we need
 -- wrapper for Integer to represent the whole range.
 newtype Int65 = Int65 Integer
-  deriving (Eq, Ord, Enum, Num, Integral, Real, Serialise, Show)
+  deriving (Eq, Ord, Enum, Num, Integral, Real, Show)
 
 instance Bounded Int65 where
   maxBound = Int65 (2^(64 :: Int) - 1)
@@ -42,6 +41,10 @@ instance Bounded Int65 where
 
 instance Arbitrary Int65 where
   arbitrary = arbitraryBoundedIntegral
+
+encodeInt65 :: Int65 -> Encoding
+encodeInt65 (Int65 n) = encodeInteger n
+
 
 -- | Wrapper for bounded, integral type 'a' that potentially contains values
 -- outside of range of 'a'.
@@ -70,15 +73,16 @@ instance (Arbitrary (BRep a), Num (BRep a), Bounded a, Integral a
 -- out of range, i.e. fails to decode them.
 boundaryTest
   :: forall a rep. (Bounded a, Integral a, Show a, rep ~ BRep a,
-                    Ord rep, Num rep, Serialise rep)
-  => (forall s. Decoder s a)
+                    Ord rep, Num rep)
+  => (rep -> Encoding)          -- ^ encode
+  -> (forall s. Decoder s a)  -- ^ decode
   -> B a
   -> Property
-boundaryTest dec a = if outsideRange
-                     then collect "outside" $ isLeft  a'
-                     else collect "inside"  $ isRight a'
+boundaryTest enc dec a = if outsideRange
+                           then collect "outside" $ isLeft  a'
+                           else collect "inside"  $ isRight a'
   where
-    a' = deserialiseFromBytes dec . toLazyByteString . encode $ unB a
+    a' = deserialiseFromBytes dec . toLazyByteString . enc $ unB a
 
     -- Note that this is always true for a ~ rep.
     outsideRange = unB a < fromIntegral (minBound :: a)
@@ -86,14 +90,15 @@ boundaryTest dec a = if outsideRange
 
 mkBoundaryTest
   :: forall a rep. (Bounded a, Integral a, Show a, rep ~ BRep a,
-                    Arbitrary rep, Ord rep, Show rep, Num rep, Serialise rep)
+                    Arbitrary rep, Ord rep, Show rep, Num rep)
   => String
+  -> (rep -> Encoding)
   -> (forall s. Decoder s a)
   -> (forall s. Decoder s a)
   -> [TestTree]
-mkBoundaryTest aName dec decCan =
-  [ testProperty aName                     $ boundaryTest dec
-  , testProperty (aName ++ " (canonical)") $ boundaryTest decCan
+mkBoundaryTest aName enc dec decCan =
+  [ testProperty aName                     $ boundaryTest enc dec
+  , testProperty (aName ++ " (canonical)") $ boundaryTest enc decCan
   ]
 
 ----------------------------------------
@@ -158,16 +163,16 @@ stringBytesBoundaryTest =
 
 testTree :: TestTree
 testTree = localOption (QuickCheckTests 1000) . testGroup "Boundary checks" $ concat
-  [ mkBoundaryTest "Word"      decodeWord      decodeWordCanonical
-  , mkBoundaryTest "Word8"     decodeWord8     decodeWord8Canonical
-  , mkBoundaryTest "Word16"    decodeWord16    decodeWord16Canonical
-  , mkBoundaryTest "Word32"    decodeWord32    decodeWord32Canonical
-  , mkBoundaryTest "Word64"    decodeWord64    decodeWord64Canonical
-  , mkBoundaryTest "Int"       decodeInt       decodeIntCanonical
-  , mkBoundaryTest "Int8"      decodeInt8      decodeInt8Canonical
-  , mkBoundaryTest "Int16"     decodeInt16     decodeInt16Canonical
-  , mkBoundaryTest "Int32"     decodeInt32     decodeInt32Canonical
-  , mkBoundaryTest "Int64"     decodeInt64     decodeInt64Canonical
+  [ mkBoundaryTest "Word"    encodeWord64  decodeWord    decodeWordCanonical
+  , mkBoundaryTest "Word8"   encodeWord64  decodeWord8   decodeWord8Canonical
+  , mkBoundaryTest "Word16"  encodeWord64  decodeWord16  decodeWord16Canonical
+  , mkBoundaryTest "Word32"  encodeWord64  decodeWord32  decodeWord32Canonical
+  , mkBoundaryTest "Word64"  encodeWord64  decodeWord64  decodeWord64Canonical
+  , mkBoundaryTest "Int"     encodeInt65   decodeInt     decodeIntCanonical
+  , mkBoundaryTest "Int8"    encodeInt64   decodeInt8    decodeInt8Canonical
+  , mkBoundaryTest "Int16"   encodeInt64   decodeInt16   decodeInt16Canonical
+  , mkBoundaryTest "Int32"   encodeInt64   decodeInt32   decodeInt32Canonical
+  , mkBoundaryTest "Int64"   encodeInt65   decodeInt64   decodeInt64Canonical
 
   , mkLenBoundaryTest "ListLen" encodeListLen decodeListLen decodeListLenCanonical
   , mkLenBoundaryTest "MapLen"  encodeMapLen  decodeMapLen  decodeMapLenCanonical
