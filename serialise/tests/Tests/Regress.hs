@@ -9,21 +9,15 @@ import qualified Tests.Regress.Issue67  as Issue67
 import qualified Tests.Regress.Issue80  as Issue80
 import qualified Tests.Regress.Issue106 as Issue106
 import qualified Tests.Regress.Issue135 as Issue135
-import qualified Tests.Regress.Issue160 as Issue160
-import qualified Tests.Regress.Issue162 as Issue162
-import qualified Tests.Regress.FlatTerm as FlatTerm
 
 --------------------------------------------------------------------------------
 -- Tests and properties
 
 testTree :: TestTree
 testTree = testGroup "Regression tests"
-  [ FlatTerm.testTree
-  , Issue13.testTree
+  [ Issue13.testTree
   , Issue67.testTree
   , Issue80.testTree
   , Issue106.testTree
   , Issue135.testTree
-  , Issue160.testTree
-  , Issue162.testTree
   ]
