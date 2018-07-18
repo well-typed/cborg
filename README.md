@@ -1,11 +1,8 @@
 # Fast binary serialisation and CBOR implementation for Haskell
 
 [![Linux Build Status](https://img.shields.io/travis/well-typed/cborg/master.svg?label=Linux%20build)](https://travis-ci.org/well-typed/cborg)
-[![Windows Build Status](https://img.shields.io/appveyor/ci/thoughtpolice/cborg/master.svg?label=Windows%20build)](https://ci.appveyor.com/project/thoughtpolice/cborg/branch/master)
 [![Hackage cborg version](https://img.shields.io/hackage/v/cborg.svg?label=Hackage)](https://hackage.haskell.org/package/cborg)
 [![Hackage serialise version](https://img.shields.io/hackage/v/serialise.svg?label=Hackage)](https://hackage.haskell.org/package/serialise)
-[![Stackage cborg version](https://www.stackage.org/package/cborg/badge/lts?label=Stackage)](https://www.stackage.org/package/cborg)
-[![Stackage serialise  version](https://www.stackage.org/package/serialise/badge/lts?label=Stackage)](https://www.stackage.org/package/serialise)
 [![BSD3](https://img.shields.io/badge/License-BSD-blue.svg)](https://en.wikipedia.org/wiki/BSD_License)
 [![Haskell](https://img.shields.io/badge/Language-Haskell-yellowgreen.svg)](https://www.haskell.org)
 
@@ -32,14 +29,12 @@ gives it the following benefits:
  * suitable to use with untrusted input (resistance to asymmetric resource
    consumption attacks)
 
-
 # Installation
 
-They are just a `cabal install` away on [Hackage][], or through [Stackage][]:
+They are just a `cabal install` away on [Hackage][]:
 
 ```bash
 $ cabal install cborg serialise
-$ stack install cborg serialise
 ```
 
 There are also a few related packages that you may be interested in:
@@ -47,8 +42,7 @@ There are also a few related packages that you may be interested in:
  * `cborg-json` implements the bijection between JSON and CBOR specified in the RFC.
  * `cbor-tool` is a handy command-line utility for working with CBOR data.
 
-[Hackage]:  https://hackage.haskell.org/package/cborg
-[Stackage]: https://www.stackage.org
+[Hackage]:  https://hackage.haskell.org/package/serialise
 
 # Join in
 
@@ -64,13 +58,7 @@ package.
 
 ```bash
 $ cabal test serialise
-$ stack test serialise
 ```
-
-Note: the `stack.yaml` file is currently synchronized to **LTS-8.13**. Further
-compilers and other LTS releases are currently not supported with Stack at the
-moment, but the build *is* tested with older compilers and Cabal libraries
-(through Travis CI).
 
 [contribute]: https://github.com/well-typed/cborg/blob/master/.github/CONTRIBUTING.md
 [issue tracker]: http://github.com/well-typed/cborg/issues
