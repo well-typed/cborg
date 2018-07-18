@@ -1,1 +1,6 @@
-packages: cborg/, cbor-tool/, serialise/, binary-serialise-cbor/, cborg-json/
+packages:
+  cborg/
+  cbor-tool/
+  serialise/
+  binary-serialise-cbor/
+  cborg-json/
