@@ -80,7 +80,7 @@ library
     containers              >= 0.5     && < 0.6,
     deepseq                 >= 1.0     && < 1.5,
     ghc-prim                >= 0.3     && < 0.6,
-    half                    >= 0.2.2.3 && < 0.3,
+    half                    >= 0.2.2.3 && < 0.4,
     primitive               >= 0.5     && < 0.7,
     text                    >= 1.1     && < 1.3
 
