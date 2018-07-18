@@ -126,7 +126,7 @@ test-suite tests
     base64-bytestring       >= 1.0     && < 1.1,
     base16-bytestring       >= 0.1     && < 0.2,
     deepseq                 >= 1.0     && < 1.5,
-    half                    >= 0.2.2.3 && < 0.3,
+    half                    >= 0.2.2.3 && < 0.4,
     QuickCheck              >= 2.9     && < 2.11,
     scientific              >= 0.3     && < 0.4,
     tasty                   >= 0.11    && < 0.13,
