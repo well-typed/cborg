@@ -129,8 +129,8 @@ test-suite tests
     half                    >= 0.2.2.3 && < 0.4,
     QuickCheck              >= 2.9     && < 2.11,
     scientific              >= 0.3     && < 0.4,
-    tasty                   >= 0.11    && < 0.13,
-    tasty-hunit             >= 0.9     && < 0.10,
-    tasty-quickcheck        >= 0.8     && < 0.10,
+    tasty                   >= 0.11    && < 1.2,
+    tasty-hunit             >= 0.9     && < 0.11,
+    tasty-quickcheck        >= 0.8     && < 0.11,
     vector                  >= 0.10    && < 0.13
 
