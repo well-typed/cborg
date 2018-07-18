@@ -52,11 +52,6 @@ copyToAddr (Prim.ByteArray ba) (I# off) (Ptr addr) (I# len) =
     IO (\s -> case copyByteArrayToAddr# ba off addr len s of
                 s' -> (# s', () #))
 
-#if __GLASGOW_HASKELL__ < 706
-isTrue# :: Bool -> Bool
-isTrue# = id
-#endif
-
 sameByteArray :: Prim.ByteArray -> Prim.ByteArray -> Bool
 sameByteArray (Prim.ByteArray ba1#) (Prim.ByteArray ba2#) =
     case reallyUnsafePtrEquality# (unsafeCoerce# ba1# :: ()) (unsafeCoerce# ba2# :: ()) of

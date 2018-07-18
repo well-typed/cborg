@@ -9,11 +9,9 @@
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE RankNTypes             #-}
 
-#if __GLASGOW_HASKELL__ > 706
 -- Bump up from the default 1.5, otherwise our decoder fast path is no good.
 -- We went over the threshold when we switched to using ST.
 {-# OPTIONS_GHC -funfolding-keeness-factor=2.0 #-}
-#endif
 
 -- |
 -- Module      : Codec.CBOR.Read
