@@ -31,8 +31,6 @@ category:            Codec
 build-type:          Simple
 
 extra-source-files:
-  tests/test-vectors/appendix_a.json
-  tests/test-vectors/README.md
   ChangeLog.md
 
 source-repository head
