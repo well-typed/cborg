@@ -13,7 +13,10 @@ import Codec.Serialise.Encoding hiding (Tokens(..))
 import Codec.Serialise.Decoding hiding (DecodeAction(Done, Fail))
 import Codec.CBOR.Read
 import Codec.CBOR.Write
-import Data.Monoid
+
+#if ! MIN_VERSION_base(4,11,0)
+import           Data.Monoid
+#endif
 
 import qualified Data.ByteString.Lazy as BS
 import qualified Data.ByteString.Builder as BS

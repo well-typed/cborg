@@ -26,7 +26,7 @@ import           Test.QuickCheck.Gen
 import           Test.QuickCheck.Arbitrary
 
 import qualified Data.Vector.Primitive      as Vector.Primitive
-import qualified Data.ByteString.Short      as BSS
+-- import qualified Data.ByteString.Short      as BSS
 
 --------------------------------------------------------------------------------
 -- QuickCheck Orphans
