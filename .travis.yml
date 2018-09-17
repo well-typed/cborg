@@ -16,7 +16,7 @@ before_cache:
   - rm -fv $HOME/.cabal/packages/hackage.haskell.org/01-index.cache
   - rm -fv $HOME/.cabal/packages/hackage.haskell.org/01-index.tar
   - rm -fv $HOME/.cabal/packages/hackage.haskell.org/01-index.tar.idx
-  
+
 matrix:
   include:
     - compiler: "ghc-7.8.4"
@@ -27,8 +27,11 @@ matrix:
       compiler: "ghc-8.0.2"
       addons: {apt: {packages: [cabal-install-head,ghc-8.0.2], sources: [hvr-ghc]}}
     - env: BENCH=--disable-benchmarks EXTRAFLAGS="--allow-newer=time"
-      compiler: "ghc-8.2.1"
-      addons: {apt: {packages: [cabal-install-head,ghc-8.2.1], sources: [hvr-ghc]}}
+      compiler: "ghc-8.2.2"
+      addons: {apt: {packages: [cabal-install-head,ghc-8.2.2], sources: [hvr-ghc]}}
+    - env: BENCH=--disable-benchmarks EXTRAFLAGS="--allow-newer=time"
+      compiler: "ghc-8.4.3"
+      addons: {apt: {packages: [cabal-install-head,ghc-8.4.3], sources: [hvr-ghc]}}
     - compiler: "ghc-head"
       addons: {apt: {packages: [cabal-install-head,ghc-head], sources: [hvr-ghc]}}
 
@@ -49,7 +52,7 @@ before_install:
  - unset CC
  - PATH=/opt/ghc/bin:/opt/ghc-ppa-tools/bin:$PATH
  - PKGNAME='cborg'
- 
+
 install:
  - cabal --version
  - echo "$(${HC} --version) [$(${HC} --print-project-git-commit-id 2> /dev/null || echo '?')]"
@@ -57,7 +60,7 @@ install:
  - TEST=${TEST---enable-tests}
  - EXAMPLES=${EXAMPLES--fexamples}
  - EXTRAFLAGS=${EXTRAFLAGS}
- 
+
  - travis_retry cabal update -v
  - sed -i 's/^jobs:/-- jobs:/' ${HOME}/.cabal/config
  - ./.travis/prep-llvm.sh ${LLVMVER} # prep llvm if needed
@@ -79,4 +82,4 @@ script:
  # build & run tests
  - cabal new-build -w ${HC} ${TEST} ${EXTRAFLAGS} ${BENCH} all
  - if [ "x$TEST" = "x--enable-tests" ]; then travis_wait 20 cabal new-test -w ${HC} ${TEST} ${EXTRAFLAGS} all; fi
- 
+
