@@ -29,6 +29,12 @@ matrix:
     - env: BENCH=--disable-benchmarks EXTRAFLAGS="--allow-newer=time"
       compiler: "ghc-8.2.1"
       addons: {apt: {packages: [cabal-install-head,ghc-8.2.1], sources: [hvr-ghc]}}
+    - env: BENCH=--disable-benchmarks
+      compiler: "ghc-8.4.3"
+      addons: {apt: {packages: [cabal-install-head,ghc-8.4.3], sources: [hvr-ghc]}}
+    - env: BENCH=--disable-benchmarks
+      compiler: "ghc-8.6.1"
+      addons: {apt: {packages: [cabal-install-head,ghc-8.6.1], sources: [hvr-ghc]}}
     - compiler: "ghc-head"
       addons: {apt: {packages: [cabal-install-head,ghc-head], sources: [hvr-ghc]}}
 
