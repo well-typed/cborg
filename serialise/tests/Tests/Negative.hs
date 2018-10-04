@@ -1,7 +1,12 @@
+{-# LANGUAGE CPP #-}
 module Tests.Negative
   ( testTree -- :: TestTree
   ) where
+
+#if ! MIN_VERSION_base(4,11,0)
 import           Data.Monoid
+#endif
+
 import           Data.Version
 
 import           Test.Tasty

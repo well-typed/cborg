@@ -6,7 +6,11 @@ module Tests.UTF8
 import           Control.DeepSeq
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
+
+#if ! MIN_VERSION_base(4,11,0)
 import           Data.Monoid
+#endif
+
 import qualified Data.Text.Encoding as T
 
 import           Codec.CBOR.Decoding

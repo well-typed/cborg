@@ -1,9 +1,13 @@
+{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Macro.DeepSeq where
 
 import Macro.Types
 
 import Control.DeepSeq
+#if MIN_VERSION_base(4,9,0)
+     hiding (rnf1, rnf2)
+#endif
 
 rnf0 :: ()
 rnf1 :: NFData a => a -> ()

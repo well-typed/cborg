@@ -27,7 +27,11 @@ module Codec.CBOR.Write
 
 import           Data.Bits
 import           Data.Int
+
+#if ! MIN_VERSION_base(4,11,0)
 import           Data.Monoid
+#endif
+
 import           Data.Word
 import           Foreign.Ptr
 

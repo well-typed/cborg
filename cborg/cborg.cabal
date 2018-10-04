@@ -115,6 +115,7 @@ test-suite tests
     Tests.Reference
     Tests.Reference.Implementation
     Tests.UTF8
+    Tests.Util
 
   build-depends:
     array                   >= 0.4     && < 0.6,

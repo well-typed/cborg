@@ -8,7 +8,10 @@ import Codec.Serialise.Class
 import Codec.Serialise.Encoding
 import Codec.Serialise.Decoding hiding (DecodeAction(Done, Fail))
 import qualified Codec.Serialise as Serialise
-import Data.Monoid
+
+#if ! MIN_VERSION_base(4,11,0)
+import           Data.Monoid
+#endif
 
 import qualified Data.ByteString.Lazy as BS
 
