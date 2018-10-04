@@ -5,7 +5,7 @@ module Macro.DeepSeq where
 import Macro.Types
 
 import Control.DeepSeq
-#if MIN_VERSION_base(4,9,0)
+#if MIN_VERSION_deepseq(1,4,3)
      hiding (rnf1, rnf2)
 #endif
 

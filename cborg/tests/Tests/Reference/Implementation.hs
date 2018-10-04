@@ -63,6 +63,7 @@ module Tests.Reference.Implementation (
     ) where
 
 
+import qualified Control.Monad.Fail as Fail
 import           Data.Bits
 import           Data.Word
 import           Data.Int
@@ -116,6 +117,9 @@ instance Monad Decoder where
   d >>= f  = Decoder (\ws -> case runDecoder d ws of
                                Nothing       -> Nothing
                                Just (x, ws') -> runDecoder (f x) ws')
+  fail = Fail.fail
+
+instance Fail.MonadFail Decoder where
   fail _   = Decoder (\_ -> Nothing)
 
 getByte :: Decoder Word8
