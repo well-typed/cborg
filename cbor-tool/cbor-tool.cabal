@@ -1,5 +1,5 @@
 name:                cbor-tool
-version:             0.2.0.0
+version:             0.2.1.0
 synopsis:            A tool for manipulating CBOR.
 description:         A tool for dumping and converting CBOR-encoded data.
 homepage:            https://github.com/well-typed/cborg
