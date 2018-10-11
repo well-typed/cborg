@@ -11,7 +11,7 @@ copyright:           2015-2017 Duncan Coutts,
                      2015 IRIS Connect Ltd
 category:            Codec
 build-type:          Simple
-cabal-version:       >= 1.21
+cabal-version:       1.21
 tested-with:         GHC == 7.10.3, GHC == 8.0.1
 
 description:
