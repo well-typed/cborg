@@ -125,7 +125,7 @@ test-suite tests
     primitive               >= 0.5     && < 0.7,
     cborg,
     serialise,
-    QuickCheck              >= 2.9     && < 2.12,
+    QuickCheck              >= 2.9     && < 2.13,
     tasty                   >= 0.11    && < 1.2,
     tasty-hunit             >= 0.9     && < 0.11,
     tasty-quickcheck        >= 0.8     && < 0.11,
