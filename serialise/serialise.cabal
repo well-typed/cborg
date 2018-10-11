@@ -152,7 +152,7 @@ benchmark instances
 
   build-depends:
     base                    >= 4.6     && < 5.0,
-    binary                  >= 0.7     && < 0.10,
+    binary                  >= 0.7     && < 0.11,
     bytestring              >= 0.10.4  && < 0.11,
     vector                  >= 0.10    && < 0.13,
     cborg,
@@ -196,7 +196,7 @@ benchmark micro
 
   build-depends:
     base                    >= 4.6     && < 5.0,
-    binary                  >= 0.7     && < 0.10,
+    binary                  >= 0.7     && < 0.11,
     bytestring              >= 0.10.4  && < 0.11,
     ghc-prim                >= 0.3.1.0 && < 0.6,
     vector                  >= 0.10    && < 0.13,
@@ -243,7 +243,7 @@ benchmark versus
   build-depends:
     array                   >= 0.4     && < 0.6,
     base                    >= 4.6     && < 5.0,
-    binary                  >= 0.7     && < 0.10,
+    binary                  >= 0.7     && < 0.11,
     bytestring              >= 0.10.4  && < 0.11,
     directory               >= 1.0     && < 1.4,
     ghc-prim                >= 0.3.1.0 && < 0.6,
