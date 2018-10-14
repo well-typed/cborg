@@ -598,9 +598,9 @@ go_fast !bs da@(ConsumeIntegerCanonical k) =
 go_fast !bs da@(ConsumeFloat16Canonical k) =
     case tryConsumeFloat (BS.unsafeHead bs) bs of
       DecodeFailure     -> go_fast_end bs da
-      DecodedToken sz (F# f#)
-        | isFloat16Canonical sz -> k f# >>= go_fast (BS.unsafeDrop sz bs)
-        | otherwise             -> go_fast_end bs da
+      DecodedToken sz f@(F# f#)
+        | isFloat16Canonical sz bs f -> k f# >>= go_fast (BS.unsafeDrop sz bs)
+        | otherwise                  -> go_fast_end bs da
 
 go_fast !bs da@(ConsumeFloatCanonical k) =
     case tryConsumeFloat (BS.unsafeHead bs) bs of
@@ -1100,9 +1100,9 @@ go_fast_end !bs (ConsumeIntegerCanonical k) =
 go_fast_end !bs (ConsumeFloat16Canonical k) =
     case tryConsumeFloat (BS.unsafeHead bs) bs of
       DecodeFailure     -> return $! SlowFail bs "expected float"
-      DecodedToken sz (F# f#)
-        | isFloat16Canonical sz -> k f# >>= go_fast_end (BS.unsafeDrop sz bs)
-        | otherwise             -> return $! SlowFail bs "non-canonical float16"
+      DecodedToken sz f@(F# f#)
+        | isFloat16Canonical sz bs f -> k f# >>= go_fast_end (BS.unsafeDrop sz bs)
+        | otherwise                  -> return $! SlowFail bs "non-canonical float16"
 
 go_fast_end !bs (ConsumeFloatCanonical k) =
     case tryConsumeFloat (BS.unsafeHead bs) bs of
@@ -1498,22 +1498,32 @@ data LongToken a = Fits Bool {- canonical? -} !a
                  | TooLong Bool {- canonical? -} !Int
   deriving Show
 
+-- Canoncal NaN floats:
+--
+-- In these float/double canonical tests we check NaNs are canonical too.
+-- There are lots of bit values representing NaN, for each of the flat types.
+-- The rule from CBOR RFC 7049, section 3.9 is that the canonical NaN is the
+-- CBOR term f97e00 which is the canonical half-float representation. We do
+-- this by testing for the size being 3 (since tryConsumeFloat/Double only
+-- return 3 when the header byte is 0xf9) and the 16 bytes being 0x7e00.
+
 {-# INLINE isFloat16Canonical #-}
-isFloat16Canonical :: Int -> Bool
-isFloat16Canonical sz
-  | sz == 3   = True
-  | otherwise = False
+isFloat16Canonical :: Int -> BS.ByteString -> Float -> Bool
+isFloat16Canonical sz bs f
+  | sz /= 3   = False
+  | isNaN f   = eatTailWord16 bs == 0x7e00
+  | otherwise = True
 
 {-# INLINE isFloatCanonical #-}
 isFloatCanonical :: Int -> BS.ByteString -> Float -> Bool
 isFloatCanonical sz bs f
-  | isNaN f   = sz == 3 && "\xf9\x7e\x00" `BS.isPrefixOf` bs
+  | isNaN f   = sz == 3 && eatTailWord16 bs == 0x7e00
   | otherwise = sz == 5
 
 {-# INLINE isDoubleCanonical #-}
 isDoubleCanonical :: Int -> BS.ByteString -> Double -> Bool
 isDoubleCanonical sz bs f
-  | isNaN f   = sz == 3 && "\xf9\x7e\x00" `BS.isPrefixOf` bs
+  | isNaN f   = sz == 3 && eatTailWord16 bs == 0x7e00
   | otherwise = sz == 9
 
 {-# INLINE isWordCanonical #-}
