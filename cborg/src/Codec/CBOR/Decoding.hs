@@ -71,6 +71,9 @@ module Codec.CBOR.Decoding
   , peekAvailable        -- :: Decoder s Int
   , TokenType(..)
 
+  -- ** Special operations
+  , ByteOffset
+
   -- ** Canonical CBOR
   -- $canonical
   , decodeWordCanonical      -- :: Decoder s Word
@@ -901,6 +904,15 @@ peekAvailable :: Decoder s Int
 peekAvailable = Decoder (\k -> return (PeekAvailable (\len# -> k (I# len#))))
 {-# INLINE peekAvailable #-}
 
+
+-- | A 0-based offset within the overall byte sequence that makes up the
+-- input to the 'Decoder'.
+--
+-- This is an 'Int64' since 'Decoder' is incremental and can decode more data
+-- than fits in memory at once. This is also compatible with the result type
+-- of 'Data.ByteString.Lazy.length'.
+--
+type ByteOffset = Int64
 {-
 expectExactly :: Word -> Decoder (Word :#: s) s
 expectExactly n = expectExactly_ n done

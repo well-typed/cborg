@@ -170,9 +170,6 @@ deserialiseIncremental decoder = do
 -- A monad for building incremental decoders
 --
 
--- | Simple alias for @'Int64'@, used to make types more descriptive.
-type ByteOffset = Int64
-
 newtype IncrementalDecoder s a = IncrementalDecoder {
        unIncrementalDecoder ::
          forall r. (a -> ST s (IDecode s r)) -> ST s (IDecode s r)
