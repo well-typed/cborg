@@ -108,6 +108,7 @@ test-suite tests
   other-modules:
     Tests.CBOR
     Tests.Boundary
+    Tests.ByteOffset
     Tests.Regress
     Tests.Regress.Issue160
     Tests.Regress.Issue162
