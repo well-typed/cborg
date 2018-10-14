@@ -5,11 +5,13 @@ module Tests.Reference
   , termToJson     -- ::
   , equalJson      -- ::
   , loadTestCases  -- ::
+  , withTestCases
   , specTestVector -- ::
   , testTree       -- :: TestTree
   ) where
 
-import           Test.Tasty
+import           Test.Tasty as Tasty
+import           Test.Tasty.HUnit
 import           Test.Tasty.QuickCheck
 
 import qualified Data.ByteString            as BS
@@ -26,8 +28,6 @@ import           Control.Applicative
 import           Control.Monad
 import           Data.Word
 import qualified Numeric.Half as Half
-
-import           Test.Tasty.HUnit
 
 import           Tests.Reference.Implementation as CBOR
 
@@ -62,6 +62,10 @@ loadTestCases :: IO [TestCase]
 loadTestCases = do
     content <- LBS.readFile "tests/test-vectors/appendix_a.json"
     either fail return (Aeson.eitherDecode' content)
+
+withTestCases :: (IO [TestCase] -> TestTree) -> TestTree
+withTestCases =
+  Tasty.withResource loadTestCases (\_ -> return ())
 
 externalTestCase :: TestCase -> Assertion
 externalTestCase TestCase { encoded, decoded = Left expectedJson } = do
@@ -261,10 +265,12 @@ specTestVector =
 --------------------------------------------------------------------------------
 -- TestTree API
 
-testTree :: [TestCase] -> TestTree
-testTree testCases =
+testTree :: TestTree
+testTree =
   testGroup "Reference implementation"
-    [ testCase "external test vector" $
+    [ withTestCases $ \getTestCases ->
+      testCase "external test vector" $ do
+        testCases <- getTestCases
         mapM_ externalTestCase testCases
 
     , testCase "internal test vector" $ do

@@ -255,10 +255,12 @@ instance Arbitrary Term where
 --------------------------------------------------------------------------------
 -- TestTree API
 
-testTree :: [TestCase] -> TestTree
-testTree testCases =
+testTree :: TestTree
+testTree =
   testGroup "Main implementation"
-    [ testCase "external test vector" $
+    [ TestVector.withTestCases $ \getTestCases ->
+      testCase "external test vector" $ do
+        testCases <- getTestCases
         mapM_ externalTestCase testCases
 
     , testCase "internal test vector" $ do
