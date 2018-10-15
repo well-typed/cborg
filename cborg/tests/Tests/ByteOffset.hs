@@ -8,6 +8,7 @@ import qualified Data.Text.Lazy as LT
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import           Control.Exception (throw)
+import           Control.Applicative
 
 import           Codec.CBOR.Decoding
 import           Codec.CBOR.Read (deserialiseFromBytes)
