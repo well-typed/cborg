@@ -128,10 +128,23 @@ prop_encodeTermMatchesRefImpl2 term =
 
 prop_decodeTermMatchesRefImpl :: RefImpl.Term -> Bool
 prop_decodeTermMatchesRefImpl term0 =
-    let encoded = RefImpl.serialise (RefImpl.canonicaliseTerm term0)
+    let encoded = RefImpl.serialise term0
         term    = RefImpl.deserialise encoded
         term'   = deserialise encoded
      in term' `eqTerm` fromRefTerm term
+
+prop_decodeTermNonCanonical :: RefImpl.Term -> Property
+prop_decodeTermNonCanonical term0 =
+    let encoded = RefImpl.serialise term0
+        term    = RefImpl.deserialise encoded
+        term'   = deserialise encoded
+        encoded'= serialise term'
+        isCanonical = encoded == encoded'
+     in not isCanonical ==>
+        -- This property holds without this pre-condition, as demonstrated by
+        -- prop_decodeTermMatchesRefImpl, but using it ensures we get good
+        -- coverage of the non-canonical cases
+        term' `eqTerm` fromRefTerm term
 
 ------------------------------------------------------------------------------
 
@@ -311,5 +324,6 @@ testTree =
         , testProperty "encode term matches ref impl 1" prop_encodeTermMatchesRefImpl
         , testProperty "encode term matches ref impl 2" prop_encodeTermMatchesRefImpl2
         , testProperty "decoding term matches ref impl" prop_decodeTermMatchesRefImpl
+        , testProperty "non-canonical encoding"         prop_decodeTermNonCanonical
         ]
     ]
