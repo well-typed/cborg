@@ -170,9 +170,6 @@ deserialiseIncremental decoder = do
 -- A monad for building incremental decoders
 --
 
--- | Simple alias for @'Int64'@, used to make types more descriptive.
-type ByteOffset = Int64
-
 newtype IncrementalDecoder s a = IncrementalDecoder {
        unIncrementalDecoder ::
          forall r. (a -> ST s (IDecode s r)) -> ST s (IDecode s r)
@@ -245,6 +242,11 @@ data SlowPath s a
    | SlowConsumeTokenByteArray     {-# UNPACK #-} !ByteString (BA.ByteArray -> ST s (DecodeAction s a)) {-# UNPACK #-} !Int
    | SlowConsumeTokenString        {-# UNPACK #-} !ByteString (T.Text       -> ST s (DecodeAction s a)) {-# UNPACK #-} !Int
    | SlowConsumeTokenUtf8ByteArray {-# UNPACK #-} !ByteString (BA.ByteArray -> ST s (DecodeAction s a)) {-# UNPACK #-} !Int
+#if defined(ARCH_32bit)
+   | SlowPeekByteOffset            {-# UNPACK #-} !ByteString (Int64#       -> ST s (DecodeAction s a))
+#else
+   | SlowPeekByteOffset            {-# UNPACK #-} !ByteString (Int#         -> ST s (DecodeAction s a))
+#endif
    | SlowDecodeAction              {-# UNPACK #-} !ByteString (DecodeAction s a)
    | SlowFail                      {-# UNPACK #-} !ByteString String
 
@@ -700,6 +702,7 @@ go_fast !bs (PeekTokenType k) =
 
 go_fast !bs (PeekAvailable k) = k (case BS.length bs of I# len# -> len#) >>= go_fast bs
 
+go_fast !bs da@PeekByteOffset{} = go_fast_end bs da
 go_fast !bs da@D.Fail{} = go_fast_end bs da
 go_fast !bs da@D.Done{} = go_fast_end bs da
 
@@ -718,6 +721,8 @@ go_fast_end :: ByteString -> DecodeAction s a -> ST s (SlowPath s a)
 go_fast_end !bs (D.Fail msg)      = return $! SlowFail bs msg
 go_fast_end !bs (D.Done x)        = return $! FastDone bs x
 go_fast_end !bs (PeekAvailable k) = k (case BS.length bs of I# len# -> len#) >>= go_fast_end bs
+
+go_fast_end !bs (PeekByteOffset k) = return $! SlowPeekByteOffset bs k
 
 -- the next two cases only need the 1 byte token header
 go_fast_end !bs da | BS.null bs = return $! SlowDecodeAction bs da
@@ -1259,6 +1264,11 @@ go_slow da bs !offset = do
       where
         !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
 
+    SlowPeekByteOffset bs' k ->
+      lift (k off#) >>= \daz -> go_slow daz bs' offset'
+      where
+        !offset'@(I64# off#) = offset + intToInt64 (BS.length bs - BS.length bs')
+
     SlowFail bs' msg -> decodeFail bs' offset' msg
       where
         !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
@@ -1355,6 +1365,12 @@ go_slow_overlapped da sz bs_cur bs_next !offset =
         (bstr, bs'') <- getTokenShortOrVarLen bs' offset' len
         let !ba = BA.fromByteString bstr
         lift (k ba) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len)
+
+      SlowPeekByteOffset bs_empty k ->
+        assert (BS.null bs_empty) $ do
+        lift (k off#) >>= \daz -> go_slow daz bs' offset'
+        where
+          !(I64# off#) = offset'
 
       SlowFail bs_unconsumed msg ->
         decodeFail (bs_unconsumed <> bs') offset'' msg

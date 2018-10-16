@@ -4,6 +4,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Tests.CBOR
   ( testTree -- :: TestTree
+  , eqTerm
   ) where
 
 import qualified Data.ByteString      as BS
@@ -193,7 +194,8 @@ fromRefTerm (RefImpl.TFloat64 f) = if isNaN f
 
 -- NaNs are so annoying...
 eqTerm :: Term -> Term -> Bool
-eqTerm (TInt    n)   (TInteger n')   = fromIntegral n == n'
+eqTerm (TInt     n)  (TInteger n')   = fromIntegral n == n'
+eqTerm (TInteger n)  (TInt     n')   = n == fromIntegral n'
 eqTerm (TList   ts)  (TList   ts')   = and (zipWith eqTerm ts ts')
 eqTerm (TListI  ts)  (TListI  ts')   = and (zipWith eqTerm ts ts')
 eqTerm (TMap    ts)  (TMap    ts')   = and (zipWith eqTermPair ts ts')

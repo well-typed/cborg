@@ -68,8 +68,13 @@ module Codec.CBOR.Decoding
 
   -- ** Inspecting the token type
   , peekTokenType        -- :: Decoder s TokenType
-  , peekAvailable        -- :: Decoder s Int
   , TokenType(..)
+
+  -- ** Special operations
+  , peekAvailable        -- :: Decoder s Int
+  , ByteOffset
+  , peekByteOffset       -- :: Decoder s ByteOffset
+  , decodeWithByteSpan
 
   -- ** Canonical CBOR
   -- $canonical
@@ -100,12 +105,6 @@ module Codec.CBOR.Decoding
   , decodeSimpleCanonical  -- :: Decoder s Word8
   , decodeWordCanonicalOf    -- :: Word -> Decoder s ()
   , decodeListLenCanonicalOf -- :: Int  -> Decoder s ()
-
-{-
-  -- ** Special operations
-  , ignoreTerms
-  , decodeTrace
--}
 
   -- * Sequence operations
   , decodeSequenceLenIndef -- :: ...
@@ -219,6 +218,11 @@ data DecodeAction s a
 
     | PeekTokenType  (TokenType -> ST s (DecodeAction s a))
     | PeekAvailable  (Int#      -> ST s (DecodeAction s a))
+#if defined(ARCH_32bit)
+    | PeekByteOffset (Int64#    -> ST s (DecodeAction s a))
+#else
+    | PeekByteOffset (Int#      -> ST s (DecodeAction s a))
+#endif
 
     | Fail String
     | Done a
@@ -900,6 +904,47 @@ peekTokenType = Decoder (\k -> return (PeekTokenType (\tk -> k tk)))
 peekAvailable :: Decoder s Int
 peekAvailable = Decoder (\k -> return (PeekAvailable (\len# -> k (I# len#))))
 {-# INLINE peekAvailable #-}
+
+
+-- | A 0-based offset within the overall byte sequence that makes up the
+-- input to the 'Decoder'.
+--
+-- This is an 'Int64' since 'Decoder' is incremental and can decode more data
+-- than fits in memory at once. This is also compatible with the result type
+-- of 'Data.ByteString.Lazy.length'.
+--
+type ByteOffset = Int64
+
+-- | Get the current 'ByteOffset' in the input byte sequence of the 'Decoder'.
+--
+-- The 'Decoder' does not provide any facility to get at the input data
+-- directly (since that is tricky with an incremental decoder). The next best
+-- is this primitive which can be used to keep track of the offset within the
+-- input bytes that makes up the encoded form of a term.
+--
+-- By keeping track of the byte offsets before and after decoding a subterm
+-- (a pattern captured by 'decodeWithByteSpan') and if the overall input data
+-- is retained then this is enables later retrieving the span of bytes for the
+-- subterm.
+--
+-- @since 0.2.2.0
+peekByteOffset :: Decoder s ByteOffset
+peekByteOffset = Decoder (\k -> return (PeekByteOffset (\off# -> k (I64# off#))))
+{-# INLINE peekByteOffset #-}
+
+-- | This captures the pattern of getting the byte offsets before and after
+-- decoding a subterm.
+--
+-- > !before <- peekByteOffset
+-- > x <- decode
+-- > !after  <- peekByteOffset
+--
+decodeWithByteSpan :: Decoder s a -> Decoder s (a, ByteOffset, ByteOffset)
+decodeWithByteSpan da = do
+    !before <- peekByteOffset
+    x <- da
+    !after  <- peekByteOffset
+    return (x, before, after)
 
 {-
 expectExactly :: Word -> Decoder (Word :#: s) s

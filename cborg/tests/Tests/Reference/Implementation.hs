@@ -24,6 +24,7 @@ module Tests.Reference.Implementation (
     reservedSimple,
     eqTerm,
     canonicaliseTerm,
+    isCanonicalTerm,
 
     UInt(..),
     fromUInt,
@@ -811,6 +812,9 @@ eqTerm a b = a == b
 
 eqTermPair :: (Term, Term) -> (Term, Term) -> Bool
 eqTermPair (a,b) (a',b') = eqTerm a a' && eqTerm b b'
+
+isCanonicalTerm :: Term -> Bool
+isCanonicalTerm t = canonicaliseTerm t == t
 
 canonicaliseTerm :: Term -> Term
 canonicaliseTerm (TUInt n) = TUInt (canonicaliseUInt n)

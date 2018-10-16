@@ -328,7 +328,15 @@ fromFlatTerm decoder ft =
 
     go ts@(tk:_) (PeekTokenType k) = k (tokenTypeOf tk) >>= go ts
     go ts        (PeekTokenType _) = unexpected "peekTokenType" ts
+
+    -- We don't have real bytes so we have to give these two operations
+    -- different interpretations: remaining tokens and just 0 for offsets.
     go ts        (PeekAvailable k) = k (unI# (length ts)) >>= go ts
+#if defined(ARCH_32bit)
+    go ts        (PeekByteOffset k)= k (unI64# 0) >>= go ts
+#else
+    go ts        (PeekByteOffset k)= k 0# >>= go ts
+#endif
 
     go _  (Fail msg) = return $ Left msg
     go [] (Done x)   = return $ Right x
