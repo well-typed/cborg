@@ -23,8 +23,8 @@ import           Test.Tasty.HUnit
 import           Test.Tasty.QuickCheck
 
 import qualified Tests.Reference.Implementation  as RefImpl
-import qualified Tests.Reference as TestVector
-import           Tests.Reference (TestCase(..))
+import           Tests.Reference.TestVectors
+import           Tests.Reference (termToJson, equalJson)
 import           Tests.Util
 
 #if !MIN_VERSION_base(4,8,0)
@@ -33,16 +33,29 @@ import           Control.Applicative
 import           Control.Exception (throw)
 
 
-externalTestCase :: TestCase -> Assertion
-externalTestCase TestCase { encoded, decoded = Left expectedJson } = do
+-------------------------------------------------------------------------------
+-- Unit tests for test vector from CBOR spec RFC7049 Appendix A
+--
+
+unit_externalTestVector :: [ExternalTestCase] -> Assertion
+unit_externalTestVector = mapM_ unit_externalTestCase
+
+unit_externalTestCase :: ExternalTestCase -> Assertion
+unit_externalTestCase ExternalTestCase {
+                        encoded,
+                        decoded = Left expectedJson
+                      } = do
   let term       = deserialise encoded
-      actualJson = TestVector.termToJson (toRefTerm term)
+      actualJson = termToJson (toRefTerm term)
       reencoded  = serialise term
 
-  expectedJson `TestVector.equalJson` actualJson
+  expectedJson `equalJson` actualJson
   encoded @=? reencoded
 
-externalTestCase TestCase { encoded, decoded = Right expectedDiagnostic } = do
+unit_externalTestCase ExternalTestCase {
+                        encoded,
+                        decoded = Right expectedDiagnostic
+                      } = do
   let term             = deserialise encoded
       actualDiagnostic = RefImpl.diagnosticNotation (toRefTerm term)
       reencoded        = serialise term
@@ -50,26 +63,40 @@ externalTestCase TestCase { encoded, decoded = Right expectedDiagnostic } = do
   expectedDiagnostic @=? actualDiagnostic
   encoded @=? reencoded
 
-expectedDiagnosticNotation :: String -> [Word8] -> Assertion
-expectedDiagnosticNotation expectedDiagnostic encoded = do
-  let term             = deserialise (LBS.pack encoded)
+
+-------------------------------------------------------------------------------
+-- Unit tests for test vector from CBOR spec RFC7049 Appendix A
+--
+
+unit_expectedDiagnosticNotation :: RFC7049TestCase -> Assertion
+unit_expectedDiagnosticNotation RFC7049TestCase {
+                                  expectedDiagnostic,
+                                  encodedBytes
+                                } = do
+  let term             = deserialise (LBS.pack encodedBytes)
       actualDiagnostic = RefImpl.diagnosticNotation (toRefTerm term)
 
   expectedDiagnostic @=? actualDiagnostic
-
 
 -- | The reference implementation satisfies the roundtrip property for most
 -- examples (all the ones from Appendix A). It does not satisfy the roundtrip
 -- property in general however, non-canonical over-long int encodings for
 -- example.
 --
---
-encodedRoundtrip :: String -> [Word8] -> Assertion
-encodedRoundtrip expectedDiagnostic encoded = do
-  let term       = deserialise (LBS.pack encoded)
-      reencoded  = LBS.unpack (serialise term)
+unit_encodedRoundtrip :: RFC7049TestCase -> Assertion
+unit_encodedRoundtrip RFC7049TestCase {
+                        expectedDiagnostic,
+                        encodedBytes
+                      } = do
+  let term           = deserialise (LBS.pack encodedBytes)
+      reencodedBytes = LBS.unpack (serialise term)
 
-  assertEqual ("for CBOR: " ++ expectedDiagnostic) encoded reencoded
+  assertEqual ("for CBOR: " ++ expectedDiagnostic) encodedBytes reencodedBytes
+
+
+--------------------------------------------------------------------------------
+-- Properties
+--
 
 prop_encodeDecodeTermRoundtrip :: Term -> Bool
 prop_encodeDecodeTermRoundtrip term =
@@ -101,10 +128,23 @@ prop_encodeTermMatchesRefImpl2 term =
 
 prop_decodeTermMatchesRefImpl :: RefImpl.Term -> Bool
 prop_decodeTermMatchesRefImpl term0 =
-    let encoded = RefImpl.serialise (RefImpl.canonicaliseTerm term0)
+    let encoded = RefImpl.serialise term0
         term    = RefImpl.deserialise encoded
         term'   = deserialise encoded
      in term' `eqTerm` fromRefTerm term
+
+prop_decodeTermNonCanonical :: RefImpl.Term -> Property
+prop_decodeTermNonCanonical term0 =
+    let encoded = RefImpl.serialise term0
+        term    = RefImpl.deserialise encoded
+        term'   = deserialise encoded
+        encoded'= serialise term'
+        isCanonical = encoded == encoded'
+     in not isCanonical ==>
+        -- This property holds without this pre-condition, as demonstrated by
+        -- prop_decodeTermMatchesRefImpl, but using it ensures we get good
+        -- coverage of the non-canonical cases
+        term' `eqTerm` fromRefTerm term
 
 ------------------------------------------------------------------------------
 
@@ -255,16 +295,18 @@ instance Arbitrary Term where
 --------------------------------------------------------------------------------
 -- TestTree API
 
-testTree :: [TestCase] -> TestTree
-testTree testCases =
+testTree :: TestTree
+testTree =
   testGroup "Main implementation"
-    [ testCase "external test vector" $
-        mapM_ externalTestCase testCases
+    [ testCase "RFC7049 test vector: decode" $
+        mapM_ unit_expectedDiagnosticNotation rfc7049TestVector
 
-    , testCase "internal test vector" $ do
-        sequence_  [ do expectedDiagnosticNotation d e
-                        encodedRoundtrip d e
-                   | (d,e) <- TestVector.specTestVector ]
+    , testCase "RFC7049 test vector: roundtrip" $
+        mapM_ unit_encodedRoundtrip rfc7049TestVector
+
+    , withExternalTestVector $ \getTestVector ->
+      testCase "external test vector" $
+        getTestVector >>= unit_externalTestVector
 
     , --localOption (QuickCheckTests  5000) $
       localOption (QuickCheckMaxSize 150) $
@@ -282,5 +324,6 @@ testTree testCases =
         , testProperty "encode term matches ref impl 1" prop_encodeTermMatchesRefImpl
         , testProperty "encode term matches ref impl 2" prop_encodeTermMatchesRefImpl2
         , testProperty "decoding term matches ref impl" prop_decodeTermMatchesRefImpl
+        , testProperty "non-canonical encoding"         prop_decodeTermNonCanonical
         ]
     ]
