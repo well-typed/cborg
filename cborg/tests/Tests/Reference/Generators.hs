@@ -1,6 +1,4 @@
-{-# LANGUAGE CPP, BangPatterns, MagicHash, UnboxedTuples, RankNTypes, ScopedTypeVariables #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-
+{-# LANGUAGE CPP #-}
 module Tests.Reference.Generators (
     -- * Integer with a large range
     LargeInteger(..)
