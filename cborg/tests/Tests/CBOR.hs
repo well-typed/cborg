@@ -5,6 +5,7 @@
 module Tests.CBOR
   ( testTree -- :: TestTree
   , eqTerm
+  , canonicaliseTermNaNs
   ) where
 
 import qualified Data.ByteString      as BS
@@ -24,6 +25,7 @@ import           Test.Tasty.QuickCheck (testProperty, QuickCheckMaxSize(..))
 import           Test.QuickCheck
 
 import qualified Tests.Reference.Implementation as RefImpl
+import           Tests.Reference.Generators (floatToWord, doubleToWord)
 import           Tests.Reference.TestVectors
 import           Tests.Reference (termToJson, equalJson)
 import           Tests.Util
@@ -101,17 +103,17 @@ unit_encodedRoundtrip RFC7049TestCase {
 
 prop_encodeDecodeTermRoundtrip :: Term -> Bool
 prop_encodeDecodeTermRoundtrip term =
-    (deserialise . serialise) term `eqTerm` term
+    (deserialise . serialise) term `eqTerm` canonicaliseTermNaNs term
 
 prop_encodeDecodeTermRoundtrip_splits2 :: Term -> Bool
 prop_encodeDecodeTermRoundtrip_splits2 term =
-    and [ deserialise thedata' `eqTerm` term
+    and [ deserialise thedata' `eqTerm` canonicaliseTermNaNs term
         | let thedata = serialise term
         , thedata' <- splits2 thedata ]
 
 prop_encodeDecodeTermRoundtrip_splits3 :: Term -> Bool
 prop_encodeDecodeTermRoundtrip_splits3 term =
-    and [ deserialise thedata' `eqTerm` term
+    and [ deserialise thedata' `eqTerm` canonicaliseTermNaNs term
         | let thedata = serialise term
         , thedata' <- splits3 thedata ]
 
@@ -229,7 +231,17 @@ fromRefTerm (RefImpl.TFloat16 f) = THalf (Half.fromHalf f)
 fromRefTerm (RefImpl.TFloat32 f) = TFloat f
 fromRefTerm (RefImpl.TFloat64 f) = TDouble f
 
--- NaNs are so annoying...
+-- | Compare terms for equality.
+--
+-- This computes equality modulo different representations for the same
+-- Int\/Integer.
+--
+-- > TInt 42 `eqTerm` TInteger 42 == True
+--
+-- It does however do exact bit for bit equality of floats. This means we can
+-- compare NaNs, and different NaNs do not compare equal. If you need equality
+-- modulo different NaNs then use 'canonicaliseTermNaNs'.
+--
 eqTerm :: Term -> Term -> Bool
 eqTerm (TInt     n)  (TInteger n')   = fromIntegral n == n'
 eqTerm (TInteger n)  (TInt     n')   = n == fromIntegral n'
@@ -238,17 +250,34 @@ eqTerm (TListI  ts)  (TListI  ts')   = and (zipWith eqTerm ts ts')
 eqTerm (TMap    ts)  (TMap    ts')   = and (zipWith eqTermPair ts ts')
 eqTerm (TMapI   ts)  (TMapI   ts')   = and (zipWith eqTermPair ts ts')
 eqTerm (TTagged w t) (TTagged w' t') = w == w' && eqTerm t t'
-eqTerm (THalf   f)   (THalf   f') | isNaN f && isNaN f' = True
-eqTerm (TFloat  f)   (TFloat  f') | isNaN f && isNaN f' = True
-eqTerm (TDouble f)   (TDouble f') | isNaN f && isNaN f' = True
-eqTerm (THalf   f)   (TFloat  f') | isNaN f && isNaN f' = True
-eqTerm (THalf   f)   (TDouble f') | isNaN f && isNaN f' = True
-eqTerm (TFloat  f)   (THalf   f') | isNaN f && isNaN f' = True
-eqTerm (TDouble f)   (THalf   f') | isNaN f && isNaN f' = True
+eqTerm (THalf   f)   (THalf   f')    = floatToWord  f == floatToWord  f'
+eqTerm (TFloat  f)   (TFloat  f')    = floatToWord  f == floatToWord  f'
+eqTerm (TDouble f)   (TDouble f')    = doubleToWord f == doubleToWord f'
 eqTerm a b = a == b
 
 eqTermPair :: (Term, Term) -> (Term, Term) -> Bool
 eqTermPair (a,b) (a',b') = eqTerm a a' && eqTerm b b'
+
+-- | Both 'toRefTerm' and the encoding \/ decoding round trip canonicalises
+-- NaNs. So tests involving these often need this in combination with
+-- comparing for exact equality using 'eqTerm'.
+--
+canonicaliseTermNaNs :: Term -> Term
+canonicaliseTermNaNs (THalf   f) | isNaN f = canonicalTermNaN
+canonicaliseTermNaNs (TFloat  f) | isNaN f = canonicalTermNaN
+canonicaliseTermNaNs (TDouble f) | isNaN f = canonicalTermNaN
+canonicaliseTermNaNs (TList  ts)     = TList  (map canonicaliseTermNaNs ts)
+canonicaliseTermNaNs (TListI ts)     = TListI (map canonicaliseTermNaNs ts)
+canonicaliseTermNaNs (TMap   ts)     = TMap   (map canonicaliseTermNaNsPair ts)
+canonicaliseTermNaNs (TMapI  ts)     = TMapI  (map canonicaliseTermNaNsPair ts)
+canonicaliseTermNaNs (TTagged tag t) = TTagged tag (canonicaliseTermNaNs t)
+canonicaliseTermNaNs t = t
+
+canonicalTermNaN :: Term
+canonicalTermNaN = THalf (Half.fromHalf RefImpl.canonicalNaN)
+
+canonicaliseTermNaNsPair :: (Term, Term) -> (Term, Term)
+canonicaliseTermNaNsPair (a,b) = (canonicaliseTermNaNs a, canonicaliseTermNaNs b)
 
 
 prop_fromToRefTerm :: RefImpl.Term -> Bool
@@ -256,7 +285,8 @@ prop_fromToRefTerm term = toRefTerm (fromRefTerm term)
          `RefImpl.eqTerm` RefImpl.canonicaliseTerm term
 
 prop_toFromRefTerm :: Term -> Bool
-prop_toFromRefTerm term = fromRefTerm (toRefTerm term) `eqTerm` term
+prop_toFromRefTerm term = fromRefTerm (toRefTerm term)
+                 `eqTerm` canonicaliseTermNaNs term
 
 instance Arbitrary Term where
   arbitrary = fromRefTerm <$> arbitrary

@@ -808,23 +808,27 @@ prop_Term term =
         Just (term', []) = runDecoder decodeTerm ws
      in term `eqTerm` term'
 
--- NaNs are so annoying...
+-- | Compare terms for equality, including bit for bit equality on floats.
+-- This means we can compare NaNs, and different NaNs do not compare equal.
+--
+-- If you need equality modulo different NaNs then use 'canonicaliseNaNs'.
+--
 eqTerm :: Term -> Term -> Bool
 eqTerm (TArray  ts)  (TArray  ts')   = and (zipWith eqTerm ts ts')
 eqTerm (TArrayI ts)  (TArrayI ts')   = and (zipWith eqTerm ts ts')
 eqTerm (TMap    ts)  (TMap    ts')   = and (zipWith eqTermPair ts ts')
 eqTerm (TMapI   ts)  (TMapI   ts')   = and (zipWith eqTermPair ts ts')
 eqTerm (TTagged w t) (TTagged w' t') = w == w' && eqTerm t t'
-eqTerm (TFloat16 f)  (TFloat16 f') | isNaN f && isNaN f' = True
-eqTerm (TFloat32 f)  (TFloat32 f') | isNaN f && isNaN f' = True
-eqTerm (TFloat64 f)  (TFloat64 f') | isNaN f && isNaN f' = True
+eqTerm (TFloat16 f)  (TFloat16 f')   = halfToWord   f == halfToWord   f'
+eqTerm (TFloat32 f)  (TFloat32 f')   = floatToWord  f == floatToWord  f'
+eqTerm (TFloat64 f)  (TFloat64 f')   = doubleToWord f == doubleToWord f'
 eqTerm a b = a == b
 
 eqTermPair :: (Term, Term) -> (Term, Term) -> Bool
 eqTermPair (a,b) (a',b') = eqTerm a a' && eqTerm b b'
 
 isCanonicalTerm :: Term -> Bool
-isCanonicalTerm t = canonicaliseTerm t == t
+isCanonicalTerm t = canonicaliseTerm t `eqTerm` t
 
 canonicaliseTerm :: Term -> Term
 canonicaliseTerm (TUInt n) = TUInt (canonicaliseUInt n)

@@ -21,7 +21,8 @@ import           Test.Tasty.QuickCheck (testProperty, QuickCheckMaxSize(..))
 import           Test.QuickCheck hiding (subterms)
 
 import qualified Tests.Reference.Implementation as RefImpl
-import           Tests.CBOR (eqTerm)
+import           Tests.Reference.Generators (floatToWord, doubleToWord)
+import           Tests.CBOR (eqTerm, canonicaliseTermNaNs)
 import           Tests.Util
 
 import Prelude hiding (encodeFloat, decodeFloat)
@@ -91,15 +92,16 @@ prop_ATerm_isomorphic t =
 --
 prop_ATerm_isomorphic2 :: Term -> Bool
 prop_ATerm_isomorphic2 t =
-    t `eqTerm` (convertATermToTerm . deserialiseATerm . serialiseTerm) t
-    -- eqTerm is (==) modulo NaNs and overlapping Int vs Integer
+           canonicaliseTermNaNs t
+  `eqTerm` (convertATermToTerm . deserialiseATerm . serialiseTerm) t
+    -- eqTerm is (==) modulo overlapping Int vs Integer
 
 -- | Variation on 'prop_ATerm_isomorphic2', but where we check the terms are
 -- equivalent as 'ATerm's.
 --
 prop_ATerm_isomorphic3 :: Term -> Bool
 prop_ATerm_isomorphic3 t =
-            convertTermToATerm t
+            convertTermToATerm (canonicaliseTermNaNs t)
   `eqATerm` (fmap (const ()) . deserialiseATerm . serialiseTerm) t
 
 
@@ -447,13 +449,9 @@ eqATermF (TListI  ts)  (TListI  ts')   = and (zipWith eqATerm ts ts')
 eqATermF (TMap    ts)  (TMap    ts')   = and (zipWith eqATermPair ts ts')
 eqATermF (TMapI   ts)  (TMapI   ts')   = and (zipWith eqATermPair ts ts')
 eqATermF (TTagged w t) (TTagged w' t') = w == w' && eqATerm t t'
-eqATermF (THalf   f)   (THalf   f') | isNaN f && isNaN f' = True
-eqATermF (TFloat  f)   (TFloat  f') | isNaN f && isNaN f' = True
-eqATermF (TDouble f)   (TDouble f') | isNaN f && isNaN f' = True
-eqATermF (THalf   f)   (TFloat  f') | isNaN f && isNaN f' = True
-eqATermF (THalf   f)   (TDouble f') | isNaN f && isNaN f' = True
-eqATermF (TFloat  f)   (THalf   f') | isNaN f && isNaN f' = True
-eqATermF (TDouble f)   (THalf   f') | isNaN f && isNaN f' = True
+eqATermF (THalf   f)   (THalf   f')    = floatToWord  f == floatToWord  f'
+eqATermF (TFloat  f)   (TFloat  f')    = floatToWord  f == floatToWord  f'
+eqATermF (TDouble f)   (TDouble f')    = doubleToWord f == doubleToWord f'
 eqATermF a b = a == b
 
 eqATermPair :: (Eq a, Eq b)
