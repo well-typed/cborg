@@ -518,11 +518,13 @@ prop_Token token =
         Just (token', []) = runDecoder decodeToken ws
      in token `eqToken` token'
 
--- NaNs are so annoying...
+-- | Compare tokens for equality, including bit for bit equality on floats.
+-- This means we can compare NaNs, and different NaNs do not compare equal.
+--
 eqToken :: Token -> Token -> Bool
-eqToken (MT7_Float16 f) (MT7_Float16 f') | isNaN f && isNaN f' = True
-eqToken (MT7_Float32 f) (MT7_Float32 f') | isNaN f && isNaN f' = True
-eqToken (MT7_Float64 f) (MT7_Float64 f') | isNaN f && isNaN f' = True
+eqToken (MT7_Float16 f) (MT7_Float16 f') = halfToWord   f == halfToWord   f'
+eqToken (MT7_Float32 f) (MT7_Float32 f') = floatToWord  f == floatToWord  f'
+eqToken (MT7_Float64 f) (MT7_Float64 f') = doubleToWord f == doubleToWord f'
 eqToken a b = a == b
 
 data Term = TUInt   UInt
