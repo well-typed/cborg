@@ -59,15 +59,12 @@ module Tests.Reference.Implementation (
     prop_word32ToFromNet,
     prop_word64ToFromNet,
     prop_halfToFromFloat,
-
-    arbitraryFullRangeIntegral,
     ) where
 
 
 import qualified Control.Monad.Fail as Fail
 import           Data.Bits
 import           Data.Word
-import           Data.Int
 import           Numeric.Half (Half(..))
 import qualified Numeric.Half as Half
 import           Data.List
@@ -78,8 +75,6 @@ import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import           Data.Monoid ((<>))
-import           Foreign
-import           System.IO.Unsafe
 import           Control.Monad (ap)
 
 import           Test.QuickCheck.Arbitrary
@@ -89,6 +84,8 @@ import           Test.QuickCheck.Gen
 import           Data.Monoid (Monoid(..))
 import           Control.Applicative
 #endif
+
+import           Tests.Reference.Generators
 
 
 serialise :: Term -> LBS.ByteString
@@ -977,36 +974,6 @@ prop_word64ToFromNet w7 w6 w5 w4 w3 w2 w1 w0 =
     word64ToNet (word64FromNet w7 w6 w5 w4 w3 w2 w1 w0)
  == (w7, w6, w5, w4, w3, w2, w1, w0)
 
-wordToHalf :: Word16 -> Half
-wordToHalf = Half.Half . fromIntegral
-
-wordToFloat :: Word32 -> Float
-wordToFloat = toFloat
-
-wordToDouble :: Word64 -> Double
-wordToDouble = toFloat
-
-toFloat :: (Storable word, Storable float) => word -> float
-toFloat w =
-    unsafeDupablePerformIO $ alloca $ \buf -> do
-      poke (castPtr buf) w
-      peek buf
-
-halfToWord :: Half -> Word16
-halfToWord (Half.Half w) = fromIntegral w
-
-floatToWord :: Float -> Word32
-floatToWord = fromFloat
-
-doubleToWord :: Double -> Word64
-doubleToWord = fromFloat
-
-fromFloat :: (Storable word, Storable float) => float -> word
-fromFloat float =
-    unsafeDupablePerformIO $ alloca $ \buf -> do
-            poke (castPtr buf) float
-            peek buf
-
 -- Note: some NaNs do not roundtrip https://github.com/ekmett/half/issues/3
 -- but all the others had better
 prop_halfToFromFloat :: Bool
@@ -1015,64 +982,4 @@ prop_halfToFromFloat =
   where
     roundTrip w =
       w == (Half.getHalf . Half.toHalf . Half.fromHalf . Half.Half $ w)
-
-instance Arbitrary Half where
-  arbitrary = Half.Half . fromIntegral <$> (arbitrary :: Gen Word16)
-
-newtype FloatSpecials n = FloatSpecials { getFloatSpecials :: n }
-  deriving (Show, Eq)
-
-instance (Arbitrary n, RealFloat n) => Arbitrary (FloatSpecials n) where
-  arbitrary =
-    frequency
-      [ (7, FloatSpecials <$> arbitrary)
-      , (1, pure (FloatSpecials (1/0)) )  -- +Infinity
-      , (1, pure (FloatSpecials (0/0)) )  --  NaN
-      , (1, pure (FloatSpecials (-1/0)) ) -- -Infinity
-      ]
-
-newtype LargeInteger = LargeInteger { getLargeInteger :: Integer }
-  deriving (Show, Eq)
-
-instance Arbitrary LargeInteger where
-  arbitrary =
-    sized $ \n ->
-      oneof $ take (1 + n `div` 10)
-        [ LargeInteger .          fromIntegral <$> (arbitrary :: Gen Int8)
-        , LargeInteger .          fromIntegral <$> choose (minBound, maxBound :: Int64)
-        , LargeInteger . bigger . fromIntegral <$> choose (minBound, maxBound :: Int64)
-        ]
-    where
-      bigger n = n * abs n
-
-
-arbitraryFullRangeIntegral :: forall a. (Bounded a,
-#if MIN_VERSION_base(4,7,0)
-                                         FiniteBits a,
-#else
-                                         Bits a,
-#endif
-                                         Integral a) => Gen a
-arbitraryFullRangeIntegral
-  | isSigned (undefined :: a)
-  = let maxBits = bitSize' (undefined :: a) - 1
-     in sized $ \s ->
-          let bound = fromIntegral (maxBound :: a)
-                      `shiftR` ((maxBits - s) `max` 0)
-           in fmap fromInteger $ choose (-bound, bound)
-
-  | otherwise
-  = let maxBits = bitSize' (undefined :: a)
-     in sized $ \s ->
-          let bound = fromIntegral (maxBound :: a)
-                      `shiftR` ((maxBits - s) `max` 0)
-           in fmap fromInteger $ choose (0, bound)
-
-  where
-    bitSize' =
-#if MIN_VERSION_base(4,7,0)
-      finiteBitSize
-#else
-      bitSize
-#endif
 

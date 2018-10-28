@@ -115,6 +115,7 @@ test-suite tests
     Tests.Regress.FlatTerm
     Tests.Reference
     Tests.Reference.Implementation
+    Tests.Reference.Generators
     Tests.Reference.TestVectors
     Tests.UTF8
     Tests.Util
