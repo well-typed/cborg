@@ -336,9 +336,9 @@ instance Arbitrary Token where
       , pure MT5_MapLenIndef
       , MT6_Tag     <$> arbitrary
       , MT7_Simple  <$> arbitrary
-      , MT7_Float16 . getFloatSpecials <$> arbitrary
-      , MT7_Float32 . getFloatSpecials <$> arbitrary
-      , MT7_Float64 . getFloatSpecials <$> arbitrary
+      , MT7_Float16 . getHalfSpecials   <$> arbitrary
+      , MT7_Float32 . getFloatSpecials  <$> arbitrary
+      , MT7_Float64 . getDoubleSpecials <$> arbitrary
       , pure MT7_Break
       ]
     where
@@ -555,9 +555,9 @@ instance Arbitrary Term where
         , (1, pure TNull)
         , (1, pure TUndef)
         , (1, TSimple  <$> arbitrary `suchThat` (not . reservedSimple))
-        , (1, TFloat16 <$> arbitrary)
-        , (1, TFloat32 <$> arbitrary)
-        , (1, TFloat64 <$> arbitrary)
+        , (1, TFloat16 . getHalfSpecials   <$> arbitrary)
+        , (1, TFloat32 . getFloatSpecials  <$> arbitrary)
+        , (1, TFloat64 . getDoubleSpecials <$> arbitrary)
         ]
     where
       listOfSmaller :: Gen a -> Gen [a]

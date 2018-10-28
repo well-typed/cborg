@@ -225,12 +225,8 @@ fromRefTerm  RefImpl.TNull       = TNull
 fromRefTerm  RefImpl.TUndef      = TSimple 23
 fromRefTerm (RefImpl.TSimple  w) = TSimple w
 fromRefTerm (RefImpl.TFloat16 f) = THalf (Half.fromHalf f)
-fromRefTerm (RefImpl.TFloat32 f) = if isNaN f
-                                   then THalf (Half.fromHalf RefImpl.canonicalNaN)
-                                   else TFloat f
-fromRefTerm (RefImpl.TFloat64 f) = if isNaN f
-                                   then THalf (Half.fromHalf RefImpl.canonicalNaN)
-                                   else TDouble f
+fromRefTerm (RefImpl.TFloat32 f) = TFloat f
+fromRefTerm (RefImpl.TFloat64 f) = TDouble f
 
 -- NaNs are so annoying...
 eqTerm :: Term -> Term -> Bool
@@ -244,6 +240,10 @@ eqTerm (TTagged w t) (TTagged w' t') = w == w' && eqTerm t t'
 eqTerm (THalf   f)   (THalf   f') | isNaN f && isNaN f' = True
 eqTerm (TFloat  f)   (TFloat  f') | isNaN f && isNaN f' = True
 eqTerm (TDouble f)   (TDouble f') | isNaN f && isNaN f' = True
+eqTerm (THalf   f)   (TFloat  f') | isNaN f && isNaN f' = True
+eqTerm (THalf   f)   (TDouble f') | isNaN f && isNaN f' = True
+eqTerm (TFloat  f)   (THalf   f') | isNaN f && isNaN f' = True
+eqTerm (TDouble f)   (THalf   f') | isNaN f && isNaN f' = True
 eqTerm a b = a == b
 
 eqTermPair :: (Term, Term) -> (Term, Term) -> Bool

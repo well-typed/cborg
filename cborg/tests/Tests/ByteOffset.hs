@@ -450,6 +450,10 @@ eqATermF (TTagged w t) (TTagged w' t') = w == w' && eqATerm t t'
 eqATermF (THalf   f)   (THalf   f') | isNaN f && isNaN f' = True
 eqATermF (TFloat  f)   (TFloat  f') | isNaN f && isNaN f' = True
 eqATermF (TDouble f)   (TDouble f') | isNaN f && isNaN f' = True
+eqATermF (THalf   f)   (TFloat  f') | isNaN f && isNaN f' = True
+eqATermF (THalf   f)   (TDouble f') | isNaN f && isNaN f' = True
+eqATermF (TFloat  f)   (THalf   f') | isNaN f && isNaN f' = True
+eqATermF (TDouble f)   (THalf   f') | isNaN f && isNaN f' = True
 eqATermF a b = a == b
 
 eqATermPair :: (Eq a, Eq b)
