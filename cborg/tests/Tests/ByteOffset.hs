@@ -18,7 +18,7 @@ import qualified Codec.CBOR.Term as Term (Term(..))
 
 import           Test.Tasty (TestTree, testGroup, localOption)
 import           Test.Tasty.QuickCheck (testProperty, QuickCheckMaxSize(..))
-import           Test.QuickCheck (Property, (==>))
+import           Test.QuickCheck hiding (subterms)
 
 import qualified Tests.Reference.Implementation as RefImpl
 import           Tests.CBOR (eqTerm)

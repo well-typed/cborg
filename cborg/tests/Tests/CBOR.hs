@@ -18,11 +18,12 @@ import           Codec.CBOR.Term
 import           Codec.CBOR.Read
 import           Codec.CBOR.Write
 
-import           Test.Tasty
-import           Test.Tasty.HUnit
-import           Test.Tasty.QuickCheck
+import           Test.Tasty (TestTree, testGroup, localOption)
+import           Test.Tasty.HUnit (Assertion, testCase, assertEqual, (@=?))
+import           Test.Tasty.QuickCheck (testProperty, QuickCheckMaxSize(..))
+import           Test.QuickCheck
 
-import qualified Tests.Reference.Implementation  as RefImpl
+import qualified Tests.Reference.Implementation as RefImpl
 import           Tests.Reference.TestVectors
 import           Tests.Reference (termToJson, equalJson)
 import           Tests.Util
@@ -280,8 +281,8 @@ instance Arbitrary Term where
   shrink (TMapI xys@[(x,y)]) = x : y : [ TMapI xys' | xys' <- shrink xys ]
   shrink (TMapI xys)         =         [ TMapI xys' | xys' <- shrink xys ]
 
-  shrink (TTagged w t) = [ TTagged w' t' | (w', t') <- shrink (w, t)
-                         , not (RefImpl.reservedTag (fromIntegral w')) ]
+  shrink (TTagged w t) = t : [ TTagged w' t' | (w', t') <- shrink (w, t)
+                             , not (RefImpl.reservedTag (fromIntegral w')) ]
 
   shrink (TBool _) = []
   shrink TNull  = []

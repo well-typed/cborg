@@ -208,6 +208,18 @@ instance Arbitrary UInt where
         , UInt32    <$> arbitraryBoundedIntegral
         , UInt64    <$> arbitraryBoundedIntegral
         ]
+  shrink (UIntSmall n) = [ UIntSmall n' | n' <- shrink n ]
+  shrink (UInt8  n)    = [ UInt8  n'    | n' <- shrink n ]
+                      ++ [ UIntSmall (fromIntegral n) | n <= 23 ]
+  shrink (UInt16 n)    = [ UInt16 n'    | n' <- shrink n ]
+                      ++ [ UInt8 (fromIntegral n)
+                         | n <= fromIntegral (maxBound :: Word8) ]
+  shrink (UInt32 n)    = [ UInt32 n'    | n' <- shrink n ]
+                      ++ [ UInt16 (fromIntegral n)
+                         | n <= fromIntegral (maxBound :: Word16) ]
+  shrink (UInt64 n)    = [ UInt64 n'    | n' <- shrink n ]
+                      ++ [ UInt32 (fromIntegral n)
+                         | n <= fromIntegral (maxBound :: Word32) ]
 
 instance Arbitrary AdditionalInformation where
   arbitrary =
