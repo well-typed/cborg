@@ -833,13 +833,9 @@ canonicaliseTerm (TBigInt n)
   | n <  0 && n >= -1 - fromIntegral (maxBound :: Word64)
                            = TNInt (toUInt (fromIntegral (-1 - n)))
   | otherwise              = TBigInt n
-canonicaliseTerm (TFloat16 f)   = TFloat16 (canonicaliseHalf f)
-canonicaliseTerm (TFloat32 f)   = if isNaN f
-                                  then TFloat16 canonicalNaN
-                                  else TFloat32 f
-canonicaliseTerm (TFloat64 f)   = if isNaN f
-                                  then TFloat16 canonicalNaN
-                                  else TFloat64 f
+canonicaliseTerm (TFloat16 f)   = canonicaliseFloat TFloat16 f
+canonicaliseTerm (TFloat32 f)   = canonicaliseFloat TFloat32 f
+canonicaliseTerm (TFloat64 f)   = canonicaliseFloat TFloat64 f
 canonicaliseTerm (TBytess  wss) = TBytess  (filter (not . null) wss)
 canonicaliseTerm (TStrings css) = TStrings (filter (not . null) css)
 canonicaliseTerm (TArray  ts) = TArray  (map canonicaliseTerm ts)
@@ -852,10 +848,10 @@ canonicaliseTerm t = t
 canonicaliseUInt :: UInt -> UInt
 canonicaliseUInt = toUInt . fromUInt
 
-canonicaliseHalf :: Half -> Half
-canonicaliseHalf f
-  | isNaN f   = canonicalNaN
-  | otherwise = f
+canonicaliseFloat :: RealFloat t => (t -> Term) -> t -> Term
+canonicaliseFloat tfloatNN f
+  | isNaN f   = TFloat16 canonicalNaN
+  | otherwise = tfloatNN f
 
 canonicaliseTermPair :: (Term, Term) -> (Term, Term)
 canonicaliseTermPair (x,y) = (canonicaliseTerm x, canonicaliseTerm y)
