@@ -28,6 +28,9 @@ module Codec.Serialise.Class
  , GSerialiseSum(..)
  , encodeVector
  , decodeVector
+ , encodeContainerSkel
+ , encodeMapSkel
+ , decodeMapSkel
  ) where
 
 import           Control.Applicative
@@ -856,9 +859,10 @@ instance Serialise a => Serialise (Tree.Tree a) where
   encode (Tree.Node r sub) = encodeListLen 2 <> encode r <> encode sub
   decode = decodeListLenOf 2 *> (Tree.Node <$> decode <*> decode)
 
-encodeContainerSkel :: (Word -> Encoding)
-                    -> (container -> Int)
-                    -> (accumFunc -> Encoding -> container -> Encoding)
+-- | Patch functions together to obtain an 'Encoding' for a container.
+encodeContainerSkel :: (Word -> Encoding) -- ^ encoder of the length
+                    -> (container -> Int) -- ^ length
+                    -> (accumFunc -> Encoding -> container -> Encoding) -- ^ foldr
                     -> accumFunc
                     -> container
                     -> Encoding
@@ -996,8 +1000,9 @@ instance (Serialise a, Hashable a, Eq a) => Serialise (HashSet.HashSet a) where
   encode = encodeSetSkel HashSet.size HashSet.foldr
   decode = decodeSetSkel HashSet.fromList
 
+-- | A helper function for encoding maps.
 encodeMapSkel :: (Serialise k, Serialise v)
-              => (m -> Int)
+              => (m -> Int) -- ^ obtain the length
               -> ((k -> v -> Encoding -> Encoding) -> Encoding -> m -> Encoding)
               -> m
               -> Encoding
@@ -1009,8 +1014,9 @@ encodeMapSkel size foldrWithKey =
     (\k v b -> encode k <> encode v <> b)
 {-# INLINE encodeMapSkel #-}
 
+-- | A utility function to construct a 'Decoder' for maps.
 decodeMapSkel :: (Serialise k, Serialise v)
-              => ([(k,v)] -> m)
+              => ([(k,v)] -> m) -- ^ fromList
               -> Decoder s m
 decodeMapSkel fromList = do
   n <- decodeMapLen
