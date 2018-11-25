@@ -22,7 +22,7 @@ import           Test.QuickCheck hiding (subterms)
 
 import qualified Tests.Reference.Implementation as RefImpl
 import           Tests.Reference.Generators (floatToWord, doubleToWord)
-import           Tests.Term (eqTerm, canonicaliseTermNaNs, canonicaliseTermIntegers)
+import           Tests.Term (eqTerm, canonicaliseTerm)
 import           Tests.Util
 
 import Prelude hiding (encodeFloat, decodeFloat)
@@ -91,7 +91,7 @@ prop_ATerm_isomorphic t =
 --
 prop_ATerm_isomorphic2 :: Term -> Bool
 prop_ATerm_isomorphic2 t =
-           (canonicaliseTermNaNs . canonicaliseTermIntegers) t
+           canonicaliseTerm t
   `eqTerm` (convertATermToTerm . deserialiseATerm . serialiseTerm) t
 
 -- | Variation on 'prop_ATerm_isomorphic2', but where we check the terms are
@@ -99,8 +99,7 @@ prop_ATerm_isomorphic2 t =
 --
 prop_ATerm_isomorphic3 :: Term -> Bool
 prop_ATerm_isomorphic3 t =
-            (convertTermToATerm . canonicaliseTermNaNs
-                                . canonicaliseTermIntegers) t
+            (convertTermToATerm . canonicaliseTerm) t
   `eqATerm` (fmap (const ()) . deserialiseATerm . serialiseTerm) t
 
 

@@ -17,7 +17,7 @@ import qualified Tests.Term as Term (serialise, deserialise)
 import           Tests.Term
                    ( fromRefTerm, toRefTerm, eqTerm
                    , prop_toFromRefTerm, prop_fromToRefTerm
-                   , canonicaliseTermNaNs, canonicaliseTermIntegers )
+                   , canonicaliseTerm )
 import           Tests.Util
 
 #if !MIN_VERSION_base(4,8,0)
@@ -32,19 +32,19 @@ import           Control.Applicative
 prop_encodeDecodeTermRoundtrip :: Term -> Bool
 prop_encodeDecodeTermRoundtrip term =
              (Term.deserialise . Term.serialise) term
-    `eqTerm` (canonicaliseTermNaNs . canonicaliseTermIntegers) term
+    `eqTerm` canonicaliseTerm term
 
 prop_encodeDecodeTermRoundtrip_splits2 :: Term -> Bool
 prop_encodeDecodeTermRoundtrip_splits2 term =
     and [          Term.deserialise thedata'
-          `eqTerm` (canonicaliseTermNaNs . canonicaliseTermIntegers) term
+          `eqTerm` canonicaliseTerm term
         | let thedata = Term.serialise term
         , thedata' <- splits2 thedata ]
 
 prop_encodeDecodeTermRoundtrip_splits3 :: Term -> Bool
 prop_encodeDecodeTermRoundtrip_splits3 term =
     and [          Term.deserialise thedata'
-          `eqTerm` (canonicaliseTermNaNs . canonicaliseTermIntegers) term
+          `eqTerm` canonicaliseTerm term
         | let thedata = Term.serialise term
         , thedata' <- splits3 thedata ]
 

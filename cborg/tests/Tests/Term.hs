@@ -9,8 +9,7 @@ module Tests.Term (
   , toRefTerm
   , fromRefTerm
   , eqTerm
-  , canonicaliseTermNaNs
-  , canonicaliseTermIntegers
+  , canonicaliseTerm
   , prop_fromToRefTerm
   , prop_toFromRefTerm
   ) where
@@ -124,10 +123,10 @@ fromRefTerm (Ref.TFloat64 f) = TDouble f
 --
 -- It does exact bit for bit equality of floats. This means we can compare
 -- NaNs, and different NaNs do not compare equal. If you need equality
--- modulo different NaNs then use 'canonicaliseTermNaNs'.
+-- modulo different NaNs then use 'canonicaliseTerm'.
 --
 -- If you need equality modulo different representations of 'TInt' vs 'TInteger'
--- then use 'canonicaliseTermIntegers'.
+-- then use 'canonicaliseTerm'.
 --
 eqTerm :: Term -> Term -> Bool
 eqTerm (TList   ts)  (TList   ts')   = and (zipWith eqTerm ts ts')
@@ -147,37 +146,26 @@ eqTermPair (a,b) (a',b') = eqTerm a a' && eqTerm b b'
 -- NaNs. So tests involving these often need this in combination with
 -- comparing for exact equality using 'eqTerm'.
 --
-canonicaliseTermNaNs :: Term -> Term
-canonicaliseTermNaNs (THalf   f) | isNaN f = canonicalTermNaN
-canonicaliseTermNaNs (TFloat  f) | isNaN f = canonicalTermNaN
-canonicaliseTermNaNs (TDouble f) | isNaN f = canonicalTermNaN
-canonicaliseTermNaNs (TList  ts)     = TList  (map canonicaliseTermNaNs ts)
-canonicaliseTermNaNs (TListI ts)     = TListI (map canonicaliseTermNaNs ts)
-canonicaliseTermNaNs (TMap   ts)     = TMap   (map canonicaliseTermNaNsPair ts)
-canonicaliseTermNaNs (TMapI  ts)     = TMapI  (map canonicaliseTermNaNsPair ts)
-canonicaliseTermNaNs (TTagged tag t) = TTagged tag (canonicaliseTermNaNs t)
-canonicaliseTermNaNs t = t
+canonicaliseTerm :: Term -> Term
+canonicaliseTerm (THalf    f) | isNaN f = canonicalTermNaN
+canonicaliseTerm (TFloat   f) | isNaN f = canonicalTermNaN
+canonicaliseTerm (TDouble  f) | isNaN f = canonicalTermNaN
+canonicaliseTerm (TInteger n) | n <= fromIntegral (maxBound :: Int)
+                              , n >= fromIntegral (minBound :: Int)
+                              = TInt (fromIntegral n)
+canonicaliseTerm (TList  ts)     = TList  (map canonicaliseTerm ts)
+canonicaliseTerm (TListI ts)     = TListI (map canonicaliseTerm ts)
+canonicaliseTerm (TMap   ts)     = TMap   (map canonicaliseTermPair ts)
+canonicaliseTerm (TMapI  ts)     = TMapI  (map canonicaliseTermPair ts)
+canonicaliseTerm (TTagged tag t) = TTagged tag (canonicaliseTerm t)
+canonicaliseTerm t = t
 
 canonicalTermNaN :: Term
 canonicalTermNaN = THalf canonicalNaN
 
-canonicaliseTermNaNsPair :: (Term, Term) -> (Term, Term)
-canonicaliseTermNaNsPair (a,b) = (canonicaliseTermNaNs a, canonicaliseTermNaNs b)
-
-canonicaliseTermIntegers :: Term -> Term
-canonicaliseTermIntegers (TInteger n)    | n <= fromIntegral (maxBound :: Int)
-                                         , n >= fromIntegral (minBound :: Int)
-                                         = TInt (fromIntegral n)
-canonicaliseTermIntegers (TList  ts)     = TList  (map canonicaliseTermIntegers ts)
-canonicaliseTermIntegers (TListI ts)     = TListI (map canonicaliseTermIntegers ts)
-canonicaliseTermIntegers (TMap   ts)     = TMap   (map canonicaliseTermIntegersPair ts)
-canonicaliseTermIntegers (TMapI  ts)     = TMapI  (map canonicaliseTermIntegersPair ts)
-canonicaliseTermIntegers (TTagged tag t) = TTagged tag (canonicaliseTermIntegers t)
-canonicaliseTermIntegers t = t
-
-canonicaliseTermIntegersPair :: (Term, Term) -> (Term, Term)
-canonicaliseTermIntegersPair (a,b) =
-    (canonicaliseTermIntegers a, canonicaliseTermIntegers b)
+canonicaliseTermPair :: (Term, Term) -> (Term, Term)
+canonicaliseTermPair (a,b) =
+    (canonicaliseTerm a, canonicaliseTerm b)
 
 
 prop_fromToRefTerm :: Ref.Term -> Bool
@@ -186,7 +174,7 @@ prop_fromToRefTerm term = toRefTerm (fromRefTerm term)
 
 prop_toFromRefTerm :: Term -> Bool
 prop_toFromRefTerm term = fromRefTerm (toRefTerm term)
-                 `eqTerm` (canonicaliseTermNaNs . canonicaliseTermIntegers) term
+                 `eqTerm` canonicaliseTerm term
 
 instance Arbitrary Term where
   arbitrary = fromRefTerm <$> arbitrary
