@@ -20,6 +20,8 @@ import           Data.Word
 import qualified Numeric.Half as Half
 
 import           Tests.Reference.Implementation as CBOR
+import           Tests.Reference.Generators
+                   ( HalfSpecials(..), FloatSpecials(..), DoubleSpecials(..) )
 import           Tests.Reference.TestVectors
 
 
@@ -87,9 +89,9 @@ termToJson  TFalse        = Aeson.Bool False
 termToJson  TNull         = Aeson.Null
 termToJson  TUndef        = Aeson.Null -- replacement value
 termToJson (TSimple _)    = Aeson.Null -- replacement value
-termToJson (TFloat16 f)   = Aeson.Number (fromFloatDigits (Half.fromHalf f))
-termToJson (TFloat32 f)   = Aeson.Number (fromFloatDigits f)
-termToJson (TFloat64 f)   = Aeson.Number (fromFloatDigits f)
+termToJson (TFloat16 f)   = Aeson.Number (fromFloatDigits (Half.fromHalf (getHalfSpecials f)))
+termToJson (TFloat32 f)   = Aeson.Number (fromFloatDigits (getFloatSpecials f))
+termToJson (TFloat64 f)   = Aeson.Number (fromFloatDigits (getDoubleSpecials f))
 
 bytesToBase64Text :: [Word8] -> T.Text
 bytesToBase64Text = T.decodeLatin1 . Base64url.encode . BS.pack

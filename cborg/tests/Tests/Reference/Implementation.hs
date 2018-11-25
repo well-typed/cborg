@@ -21,7 +21,6 @@ module Tests.Reference.Implementation (
     Term(..),
     reservedTag,
     reservedSimple,
-    eqTerm,
     canonicaliseTerm,
     isCanonicalTerm,
 
@@ -62,7 +61,6 @@ module Tests.Reference.Implementation (
 import qualified Control.Monad.Fail as Fail
 import           Data.Bits
 import           Data.Word
-import           Numeric.Half (Half(..))
 import qualified Numeric.Half as Half
 import           Data.List
 import           Numeric
@@ -322,9 +320,9 @@ data Token =
    | MT5_MapLenIndef
    | MT6_Tag     UInt
    | MT7_Simple  Word8
-   | MT7_Float16 Half
-   | MT7_Float32 Float
-   | MT7_Float64 Double
+   | MT7_Float16 HalfSpecials
+   | MT7_Float32 FloatSpecials
+   | MT7_Float64 DoubleSpecials
    | MT7_Break
   deriving (Show, Eq)
 
@@ -346,9 +344,9 @@ instance Arbitrary Token where
       , pure MT5_MapLenIndef
       , MT6_Tag     <$> arbitrary
       , MT7_Simple  <$> arbitrary
-      , MT7_Float16 . getHalfSpecials   <$> arbitrary
-      , MT7_Float32 . getFloatSpecials  <$> arbitrary
-      , MT7_Float64 . getDoubleSpecials <$> arbitrary
+      , MT7_Float16 <$> arbitrary
+      , MT7_Float32 <$> arbitrary
+      , MT7_Float64 <$> arbitrary
       , pure MT7_Break
       ]
     where
@@ -445,9 +443,9 @@ packToken (TokenHeader mt ai) extra = case (mt, ai) of
     --   | 31          | "break" stop code for indefinite-length items    |
     (MajorType7, AiValue (UIntSmall w)) -> return (MT7_Simple (fromIntegral w))
     (MajorType7, AiValue (UInt8     w)) -> return (MT7_Simple (fromIntegral w))
-    (MajorType7, AiValue (UInt16    w)) -> return (MT7_Float16 (wordToHalf w))
-    (MajorType7, AiValue (UInt32    w)) -> return (MT7_Float32 (wordToFloat w))
-    (MajorType7, AiValue (UInt64    w)) -> return (MT7_Float64 (wordToDouble w))
+    (MajorType7, AiValue (UInt16    w)) -> return (MT7_Float16 (HalfSpecials (wordToHalf w)))
+    (MajorType7, AiValue (UInt32    w)) -> return (MT7_Float32 (FloatSpecials (wordToFloat w)))
+    (MajorType7, AiValue (UInt64    w)) -> return (MT7_Float64 (DoubleSpecials (wordToDouble w)))
     (MajorType7, AiIndefLen)            -> return (MT7_Break)
     _                                   -> fail "invalid token header"
 
@@ -474,9 +472,12 @@ unpackToken tok = (\(mt, ai, ws) -> (TokenHeader mt ai, ws)) $ case tok of
     (MT7_Simple  n)
                | n <= 23   -> (MajorType7, AiValue (UIntSmall (fromIntegral n)), [])
                | otherwise -> (MajorType7, AiValue (UInt8     n), [])
-    (MT7_Float16 f)        -> (MajorType7, AiValue (UInt16 (halfToWord f)),   [])
-    (MT7_Float32 f)        -> (MajorType7, AiValue (UInt32 (floatToWord f)),  [])
-    (MT7_Float64 f)        -> (MajorType7, AiValue (UInt64 (doubleToWord f)), [])
+    (MT7_Float16
+        (HalfSpecials f))  -> (MajorType7, AiValue (UInt16 (halfToWord f)),   [])
+    (MT7_Float32
+        (FloatSpecials f)) -> (MajorType7, AiValue (UInt32 (floatToWord f)),  [])
+    (MT7_Float64
+        (DoubleSpecials f))-> (MajorType7, AiValue (UInt64 (doubleToWord f)), [])
     MT7_Break              -> (MajorType7, AiIndefLen, [])
 
 
@@ -514,16 +515,7 @@ prop_Token :: Token -> Bool
 prop_Token token =
     let ws = encodeToken token
         Just (token', []) = runDecoder decodeToken ws
-     in token `eqToken` token'
-
--- | Compare tokens for equality, including bit for bit equality on floats.
--- This means we can compare NaNs, and different NaNs do not compare equal.
---
-eqToken :: Token -> Token -> Bool
-eqToken (MT7_Float16 f) (MT7_Float16 f') = halfToWord   f == halfToWord   f'
-eqToken (MT7_Float32 f) (MT7_Float32 f') = floatToWord  f == floatToWord  f'
-eqToken (MT7_Float64 f) (MT7_Float64 f') = doubleToWord f == doubleToWord f'
-eqToken a b = a == b
+     in token == token'
 
 data Term = TUInt   UInt
           | TNInt   UInt
@@ -542,9 +534,9 @@ data Term = TUInt   UInt
           | TNull
           | TUndef
           | TSimple  Word8
-          | TFloat16 Half
-          | TFloat32 Float
-          | TFloat64 Double
+          | TFloat16 HalfSpecials
+          | TFloat32 FloatSpecials
+          | TFloat64 DoubleSpecials
   deriving (Show, Eq)
 
 instance Arbitrary Term where
@@ -567,9 +559,9 @@ instance Arbitrary Term where
         , (1, pure TNull)
         , (1, pure TUndef)
         , (1, TSimple  <$> arbitrary `suchThat` (not . reservedSimple))
-        , (1, TFloat16 . getHalfSpecials   <$> arbitrary)
-        , (1, TFloat32 . getFloatSpecials  <$> arbitrary)
-        , (1, TFloat64 . getDoubleSpecials <$> arbitrary)
+        , (1, TFloat16 <$> arbitrary)
+        , (1, TFloat32 <$> arbitrary)
+        , (1, TFloat64 <$> arbitrary)
         ]
     where
       listOfSmaller :: Gen a -> Gen [a]
@@ -804,29 +796,10 @@ prop_Term :: Term -> Bool
 prop_Term term =
     let ws = encodeTerm term
         Just (term', []) = runDecoder decodeTerm ws
-     in term `eqTerm` term'
-
--- | Compare terms for equality, including bit for bit equality on floats.
--- This means we can compare NaNs, and different NaNs do not compare equal.
---
--- If you need equality modulo different NaNs then use 'canonicaliseNaNs'.
---
-eqTerm :: Term -> Term -> Bool
-eqTerm (TArray  ts)  (TArray  ts')   = and (zipWith eqTerm ts ts')
-eqTerm (TArrayI ts)  (TArrayI ts')   = and (zipWith eqTerm ts ts')
-eqTerm (TMap    ts)  (TMap    ts')   = and (zipWith eqTermPair ts ts')
-eqTerm (TMapI   ts)  (TMapI   ts')   = and (zipWith eqTermPair ts ts')
-eqTerm (TTagged w t) (TTagged w' t') = w == w' && eqTerm t t'
-eqTerm (TFloat16 f)  (TFloat16 f')   = halfToWord   f == halfToWord   f'
-eqTerm (TFloat32 f)  (TFloat32 f')   = floatToWord  f == floatToWord  f'
-eqTerm (TFloat64 f)  (TFloat64 f')   = doubleToWord f == doubleToWord f'
-eqTerm a b = a == b
-
-eqTermPair :: (Term, Term) -> (Term, Term) -> Bool
-eqTermPair (a,b) (a',b') = eqTerm a a' && eqTerm b b'
+     in term == term'
 
 isCanonicalTerm :: Term -> Bool
-isCanonicalTerm t = canonicaliseTerm t `eqTerm` t
+isCanonicalTerm t = canonicaliseTerm t == t
 
 canonicaliseTerm :: Term -> Term
 canonicaliseTerm (TUInt n) = TUInt (canonicaliseUInt n)
@@ -885,9 +858,9 @@ diagnosticNotation = \t -> showsTerm t ""
       TUndef         -> showString "undefined"
       TSimple  n     -> showString "simple" . surround '(' ')' (shows n)
       -- convert to float to work around https://github.com/ekmett/half/issues/2
-      TFloat16 f     -> showFloatCompat (float2Double (Half.fromHalf f))
-      TFloat32 f     -> showFloatCompat (float2Double f)
-      TFloat64 f     -> showFloatCompat f
+      TFloat16 f     -> showFloatCompat (float2Double (Half.fromHalf (getHalfSpecials f)))
+      TFloat32 f     -> showFloatCompat (float2Double (getFloatSpecials f))
+      TFloat64 f     -> showFloatCompat (getDoubleSpecials f)
 
     surround a b x = showChar a . x . showChar b
 

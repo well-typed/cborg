@@ -29,7 +29,8 @@ import           Test.QuickCheck
 
 import qualified Tests.Reference.Implementation as Ref
 import           Tests.Reference.Generators
-                   ( floatToWord, doubleToWord, canonicalNaN )
+                   ( floatToWord, doubleToWord, canonicalNaN
+                   , HalfSpecials(..), FloatSpecials(..), DoubleSpecials(..) )
 
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
@@ -76,13 +77,13 @@ toRefTerm (TSimple  23) = Ref.TUndef
 toRefTerm (TSimple   w) = Ref.TSimple (fromIntegral w)
 toRefTerm (THalf     f) = if isNaN f
                           then Ref.TFloat16 canonicalNaN
-                          else Ref.TFloat16 (Half.toHalf f)
+                          else Ref.TFloat16 (HalfSpecials (Half.toHalf f))
 toRefTerm (TFloat    f) = if isNaN f
                           then Ref.TFloat16 canonicalNaN
-                          else Ref.TFloat32 f
+                          else Ref.TFloat32 (FloatSpecials f)
 toRefTerm (TDouble   f) = if isNaN f
                           then Ref.TFloat16 canonicalNaN
-                          else Ref.TFloat64 f
+                          else Ref.TFloat64 (DoubleSpecials f)
 
 
 fromRefTerm :: Ref.Term -> Term
@@ -115,9 +116,9 @@ fromRefTerm (Ref.TTrue)      = TBool True
 fromRefTerm  Ref.TNull       = TNull
 fromRefTerm  Ref.TUndef      = TSimple 23
 fromRefTerm (Ref.TSimple  w) = TSimple w
-fromRefTerm (Ref.TFloat16 f) = THalf (Half.fromHalf f)
-fromRefTerm (Ref.TFloat32 f) = TFloat f
-fromRefTerm (Ref.TFloat64 f) = TDouble f
+fromRefTerm (Ref.TFloat16 f) = THalf (Half.fromHalf (getHalfSpecials f))
+fromRefTerm (Ref.TFloat32 f) = TFloat  (getFloatSpecials  f)
+fromRefTerm (Ref.TFloat64 f) = TDouble (getDoubleSpecials f)
 
 -- | Compare terms for equality.
 --
@@ -170,7 +171,7 @@ canonicaliseTermPair (a,b) =
 
 prop_fromToRefTerm :: Ref.Term -> Bool
 prop_fromToRefTerm term = toRefTerm (fromRefTerm term)
-         `Ref.eqTerm` Ref.canonicaliseTerm term
+                       == Ref.canonicaliseTerm term
 
 prop_toFromRefTerm :: Term -> Bool
 prop_toFromRefTerm term = fromRefTerm (toRefTerm term)
