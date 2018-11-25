@@ -28,7 +28,7 @@ import           Codec.CBOR.Write
 
 import           Test.QuickCheck
 
-import qualified Tests.Reference.Implementation as RefImpl
+import qualified Tests.Reference.Implementation as Ref
 import           Tests.Reference.Generators (floatToWord, doubleToWord)
 
 #if !MIN_VERSION_base(4,8,0)
@@ -47,77 +47,77 @@ deserialise = either throw snd . deserialiseFromBytes decodeTerm
 
 ------------------------------------------------------------------------------
 
-toRefTerm :: Term -> RefImpl.Term
+toRefTerm :: Term -> Ref.Term
 toRefTerm (TInt      n)
-            | n >= 0    = RefImpl.TUInt (RefImpl.toUInt (fromIntegral n))
-            | otherwise = RefImpl.TNInt (RefImpl.toUInt (fromIntegral (-1 - n)))
-toRefTerm (TInteger  n) -- = RefImpl.TBigInt n
+            | n >= 0    = Ref.TUInt (Ref.toUInt (fromIntegral n))
+            | otherwise = Ref.TNInt (Ref.toUInt (fromIntegral (-1 - n)))
+toRefTerm (TInteger  n) -- = Ref.TBigInt n
             | n >= 0 && n <= fromIntegral (maxBound :: Word64)
-                        = RefImpl.TUInt (RefImpl.toUInt (fromIntegral n))
+                        = Ref.TUInt (Ref.toUInt (fromIntegral n))
             | n <  0 && n >= -1 - fromIntegral (maxBound :: Word64)
-                        = RefImpl.TNInt (RefImpl.toUInt (fromIntegral (-1 - n)))
-            | otherwise = RefImpl.TBigInt n
-toRefTerm (TBytes   bs) = RefImpl.TBytes   (BS.unpack bs)
-toRefTerm (TBytesI  bs) = RefImpl.TBytess  (map BS.unpack (LBS.toChunks bs))
-toRefTerm (TString  st) = RefImpl.TString  (T.unpack st)
-toRefTerm (TStringI st) = RefImpl.TStrings (map T.unpack (LT.toChunks st))
-toRefTerm (TList    ts) = RefImpl.TArray   (map toRefTerm ts)
-toRefTerm (TListI   ts) = RefImpl.TArrayI  (map toRefTerm ts)
-toRefTerm (TMap     ts) = RefImpl.TMap  [ (toRefTerm x, toRefTerm y)
+                        = Ref.TNInt (Ref.toUInt (fromIntegral (-1 - n)))
+            | otherwise = Ref.TBigInt n
+toRefTerm (TBytes   bs) = Ref.TBytes   (BS.unpack bs)
+toRefTerm (TBytesI  bs) = Ref.TBytess  (map BS.unpack (LBS.toChunks bs))
+toRefTerm (TString  st) = Ref.TString  (T.unpack st)
+toRefTerm (TStringI st) = Ref.TStrings (map T.unpack (LT.toChunks st))
+toRefTerm (TList    ts) = Ref.TArray   (map toRefTerm ts)
+toRefTerm (TListI   ts) = Ref.TArrayI  (map toRefTerm ts)
+toRefTerm (TMap     ts) = Ref.TMap  [ (toRefTerm x, toRefTerm y)
                                         | (x,y) <- ts ]
-toRefTerm (TMapI    ts) = RefImpl.TMapI [ (toRefTerm x, toRefTerm y)
+toRefTerm (TMapI    ts) = Ref.TMapI [ (toRefTerm x, toRefTerm y)
                                         | (x,y) <- ts ]
-toRefTerm (TTagged w t) = RefImpl.TTagged (RefImpl.toUInt (fromIntegral w))
+toRefTerm (TTagged w t) = Ref.TTagged (Ref.toUInt (fromIntegral w))
                                           (toRefTerm t)
-toRefTerm (TBool False) = RefImpl.TFalse
-toRefTerm (TBool True)  = RefImpl.TTrue
-toRefTerm  TNull        = RefImpl.TNull
-toRefTerm (TSimple  23) = RefImpl.TUndef
-toRefTerm (TSimple   w) = RefImpl.TSimple (fromIntegral w)
+toRefTerm (TBool False) = Ref.TFalse
+toRefTerm (TBool True)  = Ref.TTrue
+toRefTerm  TNull        = Ref.TNull
+toRefTerm (TSimple  23) = Ref.TUndef
+toRefTerm (TSimple   w) = Ref.TSimple (fromIntegral w)
 toRefTerm (THalf     f) = if isNaN f
-                          then RefImpl.TFloat16 RefImpl.canonicalNaN
-                          else RefImpl.TFloat16 (Half.toHalf f)
+                          then Ref.TFloat16 Ref.canonicalNaN
+                          else Ref.TFloat16 (Half.toHalf f)
 toRefTerm (TFloat    f) = if isNaN f
-                          then RefImpl.TFloat16 RefImpl.canonicalNaN
-                          else RefImpl.TFloat32 f
+                          then Ref.TFloat16 Ref.canonicalNaN
+                          else Ref.TFloat32 f
 toRefTerm (TDouble   f) = if isNaN f
-                          then RefImpl.TFloat16 RefImpl.canonicalNaN
-                          else RefImpl.TFloat64 f
+                          then Ref.TFloat16 Ref.canonicalNaN
+                          else Ref.TFloat64 f
 
 
-fromRefTerm :: RefImpl.Term -> Term
-fromRefTerm (RefImpl.TUInt u)
+fromRefTerm :: Ref.Term -> Term
+fromRefTerm (Ref.TUInt u)
   | n <= fromIntegral (maxBound :: Int) = TInt     (fromIntegral n)
   | otherwise                           = TInteger (fromIntegral n)
-  where n = RefImpl.fromUInt u
+  where n = Ref.fromUInt u
 
-fromRefTerm (RefImpl.TNInt u)
+fromRefTerm (Ref.TNInt u)
   | n <= fromIntegral (maxBound :: Int) = TInt     (-1 - fromIntegral n)
   | otherwise                           = TInteger (-1 - fromIntegral n)
-  where n = RefImpl.fromUInt u
+  where n = Ref.fromUInt u
 
-fromRefTerm (RefImpl.TBigInt   n) = TInteger n
-fromRefTerm (RefImpl.TBytes   bs) = TBytes (BS.pack bs)
-fromRefTerm (RefImpl.TBytess  bs) = TBytesI  (LBS.fromChunks (map BS.pack bs))
-fromRefTerm (RefImpl.TString  st) = TString  (T.pack st)
-fromRefTerm (RefImpl.TStrings st) = TStringI (LT.fromChunks (map T.pack st))
+fromRefTerm (Ref.TBigInt   n) = TInteger n
+fromRefTerm (Ref.TBytes   bs) = TBytes (BS.pack bs)
+fromRefTerm (Ref.TBytess  bs) = TBytesI  (LBS.fromChunks (map BS.pack bs))
+fromRefTerm (Ref.TString  st) = TString  (T.pack st)
+fromRefTerm (Ref.TStrings st) = TStringI (LT.fromChunks (map T.pack st))
 
-fromRefTerm (RefImpl.TArray   ts) = TList  (map fromRefTerm ts)
-fromRefTerm (RefImpl.TArrayI  ts) = TListI (map fromRefTerm ts)
-fromRefTerm (RefImpl.TMap     ts) = TMap  [ (fromRefTerm x, fromRefTerm y)
-                                          | (x,y) <- ts ]
-fromRefTerm (RefImpl.TMapI    ts) = TMapI [ (fromRefTerm x, fromRefTerm y)
-                                          | (x,y) <- ts ]
-fromRefTerm (RefImpl.TTagged w t) = TTagged (RefImpl.fromUInt w)
-                                            (fromRefTerm t)
-fromRefTerm (RefImpl.TFalse)     = TBool False
-fromRefTerm (RefImpl.TTrue)      = TBool True
-fromRefTerm  RefImpl.TNull       = TNull
-fromRefTerm  RefImpl.TUndef      = TSimple 23
-fromRefTerm (RefImpl.TSimple  w) = TSimple w
-fromRefTerm (RefImpl.TFloat16 f) = THalf (Half.fromHalf f)
-fromRefTerm (RefImpl.TFloat32 f) = TFloat f
-fromRefTerm (RefImpl.TFloat64 f) = TDouble f
+fromRefTerm (Ref.TArray   ts) = TList  (map fromRefTerm ts)
+fromRefTerm (Ref.TArrayI  ts) = TListI (map fromRefTerm ts)
+fromRefTerm (Ref.TMap     ts) = TMap  [ (fromRefTerm x, fromRefTerm y)
+                                      | (x,y) <- ts ]
+fromRefTerm (Ref.TMapI    ts) = TMapI [ (fromRefTerm x, fromRefTerm y)
+                                      | (x,y) <- ts ]
+fromRefTerm (Ref.TTagged w t) = TTagged (Ref.fromUInt w)
+                                        (fromRefTerm t)
+fromRefTerm (Ref.TFalse)     = TBool False
+fromRefTerm (Ref.TTrue)      = TBool True
+fromRefTerm  Ref.TNull       = TNull
+fromRefTerm  Ref.TUndef      = TSimple 23
+fromRefTerm (Ref.TSimple  w) = TSimple w
+fromRefTerm (Ref.TFloat16 f) = THalf (Half.fromHalf f)
+fromRefTerm (Ref.TFloat32 f) = TFloat f
+fromRefTerm (Ref.TFloat64 f) = TDouble f
 
 -- | Compare terms for equality.
 --
@@ -158,7 +158,7 @@ canonicaliseTermNaNs (TTagged tag t) = TTagged tag (canonicaliseTermNaNs t)
 canonicaliseTermNaNs t = t
 
 canonicalTermNaN :: Term
-canonicalTermNaN = THalf (Half.fromHalf RefImpl.canonicalNaN)
+canonicalTermNaN = THalf (Half.fromHalf Ref.canonicalNaN)
 
 canonicaliseTermNaNsPair :: (Term, Term) -> (Term, Term)
 canonicaliseTermNaNsPair (a,b) = (canonicaliseTermNaNs a, canonicaliseTermNaNs b)
@@ -179,9 +179,9 @@ canonicaliseTermIntegersPair (a,b) =
     (canonicaliseTermIntegers a, canonicaliseTermIntegers b)
 
 
-prop_fromToRefTerm :: RefImpl.Term -> Bool
+prop_fromToRefTerm :: Ref.Term -> Bool
 prop_fromToRefTerm term = toRefTerm (fromRefTerm term)
-         `RefImpl.eqTerm` RefImpl.canonicaliseTerm term
+         `Ref.eqTerm` Ref.canonicaliseTerm term
 
 prop_toFromRefTerm :: Term -> Bool
 prop_toFromRefTerm term = fromRefTerm (toRefTerm term)
@@ -211,13 +211,13 @@ instance Arbitrary Term where
   shrink (TMapI xys)         =         [ TMapI xys' | xys' <- shrink xys ]
 
   shrink (TTagged w t) = t : [ TTagged w' t' | (w', t') <- shrink (w, t)
-                             , not (RefImpl.reservedTag (fromIntegral w')) ]
+                             , not (Ref.reservedTag (fromIntegral w')) ]
 
   shrink (TBool _) = []
   shrink TNull  = []
 
   shrink (TSimple w) = [ TSimple w' | w' <- shrink w
-                       , not (RefImpl.reservedSimple (fromIntegral w)) ]
+                       , not (Ref.reservedSimple (fromIntegral w)) ]
   shrink (THalf  _f) = []
   shrink (TFloat  f) = [ TFloat  f' | f' <- shrink f ]
   shrink (TDouble f) = [ TDouble f' | f' <- shrink f ]

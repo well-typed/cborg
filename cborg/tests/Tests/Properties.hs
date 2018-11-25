@@ -12,11 +12,11 @@ import           Test.Tasty (TestTree, testGroup, localOption)
 import           Test.Tasty.QuickCheck (testProperty, QuickCheckMaxSize(..))
 import           Test.QuickCheck
 
-import qualified Tests.Reference.Implementation as RefImpl
+import qualified Tests.Reference.Implementation as Ref
+import qualified Tests.Term as Term (serialise, deserialise)
 import           Tests.Term
                    ( fromRefTerm, toRefTerm, eqTerm
                    , prop_toFromRefTerm, prop_fromToRefTerm
-                   , serialise, deserialise
                    , canonicaliseTermNaNs, canonicaliseTermIntegers )
 import           Tests.Util
 
@@ -31,48 +31,48 @@ import           Control.Applicative
 
 prop_encodeDecodeTermRoundtrip :: Term -> Bool
 prop_encodeDecodeTermRoundtrip term =
-             (deserialise . serialise) term
+             (Term.deserialise . Term.serialise) term
     `eqTerm` (canonicaliseTermNaNs . canonicaliseTermIntegers) term
 
 prop_encodeDecodeTermRoundtrip_splits2 :: Term -> Bool
 prop_encodeDecodeTermRoundtrip_splits2 term =
-    and [          deserialise thedata'
+    and [          Term.deserialise thedata'
           `eqTerm` (canonicaliseTermNaNs . canonicaliseTermIntegers) term
-        | let thedata = serialise term
+        | let thedata = Term.serialise term
         , thedata' <- splits2 thedata ]
 
 prop_encodeDecodeTermRoundtrip_splits3 :: Term -> Bool
 prop_encodeDecodeTermRoundtrip_splits3 term =
-    and [          deserialise thedata'
+    and [          Term.deserialise thedata'
           `eqTerm` (canonicaliseTermNaNs . canonicaliseTermIntegers) term
-        | let thedata = serialise term
+        | let thedata = Term.serialise term
         , thedata' <- splits3 thedata ]
 
-prop_encodeTermMatchesRefImpl :: RefImpl.Term -> Bool
+prop_encodeTermMatchesRefImpl :: Ref.Term -> Bool
 prop_encodeTermMatchesRefImpl term =
-    let encoded  = serialise (fromRefTerm term)
-        encoded' = RefImpl.serialise (RefImpl.canonicaliseTerm term)
+    let encoded  = Term.serialise (fromRefTerm term)
+        encoded' = Ref.serialise (Ref.canonicaliseTerm term)
      in encoded == encoded'
 
 prop_encodeTermMatchesRefImpl2 :: Term -> Bool
 prop_encodeTermMatchesRefImpl2 term =
-    let encoded  = serialise term
-        encoded' = RefImpl.serialise (toRefTerm term)
+    let encoded  = Term.serialise term
+        encoded' = Ref.serialise (toRefTerm term)
      in encoded == encoded'
 
-prop_decodeTermMatchesRefImpl :: RefImpl.Term -> Bool
+prop_decodeTermMatchesRefImpl :: Ref.Term -> Bool
 prop_decodeTermMatchesRefImpl term0 =
-    let encoded = RefImpl.serialise term0
-        term    = RefImpl.deserialise encoded
-        term'   = deserialise encoded
+    let encoded = Ref.serialise term0
+        term    = Ref.deserialise encoded
+        term'   = Term.deserialise encoded
      in term' `eqTerm` fromRefTerm term
 
-prop_decodeTermNonCanonical :: RefImpl.Term -> Property
+prop_decodeTermNonCanonical :: Ref.Term -> Property
 prop_decodeTermNonCanonical term0 =
-    let encoded = RefImpl.serialise term0
-        term    = RefImpl.deserialise encoded
-        term'   = deserialise encoded
-        encoded'= serialise term'
+    let encoded = Ref.serialise term0
+        term    = Ref.deserialise encoded
+        term'   = Term.deserialise encoded
+        encoded'= Term.serialise term'
         isCanonical = encoded == encoded'
      in not isCanonical ==>
         -- This property holds without this pre-condition, as demonstrated by

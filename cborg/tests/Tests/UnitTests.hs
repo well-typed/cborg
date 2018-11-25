@@ -8,7 +8,7 @@ import qualified Data.ByteString.Lazy as LBS
 import           Test.Tasty (TestTree, testGroup)
 import           Test.Tasty.HUnit (Assertion, testCase, assertEqual, (@=?))
 
-import qualified Tests.Reference.Implementation as RefImpl
+import qualified Tests.Reference.Implementation as Ref
 import           Tests.Reference.TestVectors
 import           Tests.Reference (termToJson, equalJson)
 import           Tests.Term as Term (toRefTerm, serialise, deserialise)
@@ -30,9 +30,9 @@ unit_externalTestCase ExternalTestCase {
                         encoded,
                         decoded = Left expectedJson
                       } = do
-  let term       = deserialise encoded
+  let term       = Term.deserialise encoded
       actualJson = termToJson (toRefTerm term)
-      reencoded  = serialise term
+      reencoded  = Term.serialise term
 
   expectedJson `equalJson` actualJson
   encoded @=? reencoded
@@ -41,9 +41,9 @@ unit_externalTestCase ExternalTestCase {
                         encoded,
                         decoded = Right expectedDiagnostic
                       } = do
-  let term             = deserialise encoded
-      actualDiagnostic = RefImpl.diagnosticNotation (toRefTerm term)
-      reencoded        = serialise term
+  let term             = Term.deserialise encoded
+      actualDiagnostic = Ref.diagnosticNotation (toRefTerm term)
+      reencoded        = Term.serialise term
 
   expectedDiagnostic @=? actualDiagnostic
   encoded @=? reencoded
@@ -58,8 +58,8 @@ unit_expectedDiagnosticNotation RFC7049TestCase {
                                   expectedDiagnostic,
                                   encodedBytes
                                 } = do
-  let term             = deserialise (LBS.pack encodedBytes)
-      actualDiagnostic = RefImpl.diagnosticNotation (toRefTerm term)
+  let term             = Term.deserialise (LBS.pack encodedBytes)
+      actualDiagnostic = Ref.diagnosticNotation (toRefTerm term)
 
   expectedDiagnostic @=? actualDiagnostic
 
@@ -73,8 +73,8 @@ unit_encodedRoundtrip RFC7049TestCase {
                         expectedDiagnostic,
                         encodedBytes
                       } = do
-  let term           = deserialise (LBS.pack encodedBytes)
-      reencodedBytes = LBS.unpack (serialise term)
+  let term           = Term.deserialise (LBS.pack encodedBytes)
+      reencodedBytes = LBS.unpack (Term.serialise term)
 
   assertEqual ("for CBOR: " ++ expectedDiagnostic) encodedBytes reencodedBytes
 
