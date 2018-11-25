@@ -44,6 +44,7 @@ module Tests.Reference.Implementation (
 
     diagnosticNotation,
 
+    Encoder,
     encodeTerm,
     encodeToken,
 

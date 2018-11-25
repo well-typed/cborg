@@ -1,12 +1,23 @@
-{-# LANGUAGE CPP               #-}
-{-# LANGUAGE NamedFieldPuns    #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE CPP                  #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE TypeFamilies         #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE DefaultSignatures    #-}
+{-# LANGUAGE AllowAmbiguousTypes  #-}
+{-# LANGUAGE TypeApplications     #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module Tests.Properties (
     testTree
   ) where
 
+import qualified Data.ByteString.Lazy as LBS
+
 import           Codec.CBOR.Term
+import           Codec.CBOR.Read
+import           Codec.CBOR.Write
+import           Codec.CBOR.Decoding
+import           Codec.CBOR.Encoding
 
 import           Test.Tasty (TestTree, testGroup, localOption)
 import           Test.Tasty.QuickCheck (testProperty, QuickCheckMaxSize(..))
@@ -23,6 +34,263 @@ import           Tests.Util
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
 #endif
+
+
+-- | The CBOR implementation and its reference implementation satisfy all the
+-- properties implied in the following commuting diagram.
+--
+-- The properties in this module exercise various paths throguh this diagram,
+-- and do so for various different types.
+--
+-- >        canon          id
+-- >  Ref──────────▶Ref───────────▶Ref
+-- >    │            ▲ ╲  (ref)  ╱ │
+-- >    │            │  ╲enc dec╱  │
+-- >    │            │   ╲     ╱   │
+-- >    │from      to│    ▶Enc▶    │from
+-- >    │            │   ╱     ╲   │
+-- >    │            │  ╱enc dec╲  │
+-- >    ▼            │ ╱  (imp)  ╲ ▼
+-- >  Imp──────────▶Imp───────────▶Imp
+-- >         id           canon
+--
+-- Key
+--
+--  * Imp:  Implementation token type
+--  * Ref:  Reference token type
+--  * Enc:  Encoding (ie bytes)
+--  * canon: canonicaliseRef or canonicaliseImp
+--  * enc:   encodeRef       or encodeImp
+--  * dec:   decodeRef       or decodeImp
+--
+-- We capture these types and arrows with a type class and an associated type.
+--
+class (Eq t, Show t) => Token t where
+  type Imp t :: *
+
+  encodeImp :: Imp t -> Encoding
+  encodeRef :: Ref.Encoder t
+
+  decodeImp :: forall s. Decoder s (Imp t)
+  decodeRef :: Ref.Decoder t
+
+  canonicaliseImp :: Imp t -> Imp t
+  canonicaliseRef ::     t ->     t
+
+  eqImp   :: Imp t -> Imp t -> Bool
+
+  toRef   :: Imp t -> t
+  fromRef :: t -> Imp t
+
+  -- defaults
+  canonicaliseImp = id
+  canonicaliseRef = toRef . fromRef
+
+  default eqImp :: Eq (Imp t) => Imp t -> Imp t -> Bool
+  eqImp = (==)
+
+
+-- A few derived utils
+
+serialiseRef :: forall t. Token t => t -> LBS.ByteString
+serialiseRef = LBS.pack . encodeRef
+
+serialiseImp :: forall t. Token t => Imp t -> LBS.ByteString
+serialiseImp = toLazyByteString . encodeImp @t
+
+deserialiseRef :: forall t. Token t => LBS.ByteString -> t
+deserialiseRef bytes =
+  case Ref.runDecoder (decodeRef @t) (LBS.unpack bytes) of
+    Just (x, trailing)
+      | null trailing -> x
+      | otherwise     -> error "deserialiseRef: trailing bytes"
+    Nothing           -> error "deserialiseRef: decode failure"
+
+deserialiseImp :: forall t. Token t => LBS.ByteString -> Imp t
+deserialiseImp bytes =
+    case deserialiseFromBytes (decodeImp @ t) bytes of
+      Right (trailing, x)
+        | LBS.null trailing -> x
+        | otherwise         -> error "deserialiseImp: trailing data"
+      Left _failure         -> error "deserialiseImp: decode failure"
+
+
+--------------------------------------------------------------------------------
+-- Properties
+--
+
+
+-- | The property corresponding to the following part of the commuting diagram.
+--
+-- >        canon
+-- >  Ref──────────▶Ref . . . . . ▷.
+-- >    │            ▲ .         . .
+-- >    │            │  .       .  .
+-- >    │            │   .     .   .
+-- >    │from      to│    ▷   ▷    .
+-- >    │            │   .     .   .
+-- >    │            │  .       .  .
+-- >    ▼            │ .         . ▽
+-- >  Imp──────────▶Imp . . . . . ▷.
+-- >         id
+--
+-- > to . id . from = canon_ref
+--
+prop_fromRefToRef :: Token t => t -> Bool
+prop_fromRefToRef x =
+
+    (toRef . fromRef) x == canonicaliseRef x
+
+
+-- | The property corresponding to the following part of the commuting diagram.
+--
+-- >                       id
+-- >    . . . . . .▷Ref───────────▶Ref
+-- >    .            ▲ .         . │
+-- >    .            │  .       .  │
+-- >    .            │   .     .   │
+-- >    .          to│    ▷   ▷    │from
+-- >    .            │   .     .   │
+-- >    .            │  .       .  │
+-- >    ▽            │ .         . ▼
+-- >    . . . . . .▶Imp───────────▶Imp
+-- >                      canon
+--
+-- > from . id . to = canon_imp
+--
+prop_toRefFromRef :: forall t. Token t => Imp t -> Bool
+prop_toRefFromRef x =
+
+    (fromRef . toRef @t) x  `eq`  canonicaliseImp @t x
+
+  where
+    eq = eqImp @t
+
+
+-- | The property corresponding to the following part of the commuting diagram.
+--
+-- This is a round trip property, with the reference implementation of the
+-- encoder and decoder.
+--
+-- >                       id
+-- >    . . . . . .▷Ref───────────▶Ref
+-- >    .            △ ╲         ╱ .
+-- >    .            .  ╲enc dec╱  .
+-- >    .            .   ╲     ╱   .
+-- >    .            .    ▶Enc▶    .
+-- >    .            .   .     .   .
+-- >    .            .  .       .  .
+-- >    ▽            . .         . ▽
+-- >    . . . . . . ▷.. . . . . . ▷.
+--
+-- > dec_ref . enc_ref = id
+--
+prop_encodeRefdecodeRef :: forall t. Token t => t -> Bool
+prop_encodeRefdecodeRef x =
+
+    (deserialiseRef . serialiseRef) x  ==  x
+
+
+-- | The property corresponding to the following part of the commuting diagram.
+--
+-- This is a round trip property, with the production implementation of the
+-- encoder and decoder.
+--
+-- >    . . . . . . ▷. . . . . . .▷.
+-- >    .            △ .         . .
+-- >    .            .  .       .  .
+-- >    .            .   .     .   .
+-- >    .            .    ▶Enc▶    .
+-- >    .            .   ╱     ╲   .
+-- >    .            .  ╱enc dec╲  .
+-- >    ▽            . ╱         ╲ ▽
+-- >    . . . . . .▷Imp───────────▶Imp
+-- >                      canon
+--
+-- > dec_imp . enc_imp = canon_imp
+--
+prop_encodeImpdecodeImp :: forall t. Token t => Imp t -> Bool
+prop_encodeImpdecodeImp x =
+
+    (deserialiseImp @t . serialiseImp @t) x  `eq`  canonicaliseImp @t x
+
+  where
+    eq = eqImp @t
+
+
+-- | The property corresponding to the following part of the commuting diagram.
+--
+-- This checks that the reference and real implementation produce the same
+-- encoded bytes. It starts from a value in the reference implementation.
+--
+-- >        canon
+-- >  Ref──────────▶Ref . . . . . ▷.
+-- >    │            △ ╲         . .
+-- >    │            .  ╲enc    .  .
+-- >    │            .   ╲     .   .
+-- >    │from        .    ▶Enc▷    .
+-- >    │            .   ╱     .   .
+-- >    │            .  ╱enc    .  .
+-- >    ▼            . ╱         . ▽
+-- >  Imp──────────▶Imp . . . . . ▷.
+-- >         id
+--
+-- > enc_imp . id . from = enc_ref . canon_ref
+--
+prop_encodeRefencodeImp1 :: forall t. Token t => t -> Bool
+prop_encodeRefencodeImp1 x =
+
+    (serialiseImp @t . fromRef) x  ==  (serialiseRef . canonicaliseRef) x
+
+
+-- | The property corresponding to the following part of the commuting diagram.
+--
+-- This checks that the reference and real implementation produce the same
+-- encoded bytes.  It starts from a value in the real implementation.
+--
+-- >    . . . . . .▷Ref . . . . . ▷.
+-- >    .            ▲ ╲         . .
+-- >    .            │  ╲enc    .  .
+-- >    .            │   ╲     .   .
+-- >    .          to│    ▶Enc▷    .
+-- >    .            │   ╱     .   .
+-- >    .            │  ╱enc    .  .
+-- >    ▽            │ ╱         . ▽
+-- >    . . . . . .▷Imp . . . . . ▷.
+--
+-- > enc_ref . id . to = enc_imp
+--
+prop_encodeRefencodeImp2 :: forall t. Token t => Imp t -> Bool
+prop_encodeRefencodeImp2 x =
+
+    (serialiseRef . toRef @t) x == serialiseImp @t x
+
+
+-- | The property corresponding to the following part of the commuting diagram.
+--
+-- This checks that starting from the same encoding, the reference and real
+-- implementation deserialise to equivalent values.
+--
+-- >    . . . . . .▷Ref . . . . . ▶Ref
+-- >    .            △ ╲         ╱ │
+-- >    .            .  ╲enc dec╱  │
+-- >    .            .   ╲     ╱   │
+-- >    .            .    ▶Enc▶    │from
+-- >    .            .   .     ╲   │
+-- >    .            .  .    dec╲  │
+-- >    ▽            . .         ╲ ▼
+-- >    . . . . . . ▷.. . . . . . ▶Imp
+--
+-- > dec_imp . enc_ref = from . dec_ref . enc_ref
+--
+prop_decodeRefdecodeImp :: forall t. Token t => t -> Bool
+prop_decodeRefdecodeImp x =
+
+    deserialiseImp @t enc  `eq`  (fromRef . deserialiseRef @t) enc
+
+  where
+    enc = serialiseRef x
+    eq  = eqImp @t
 
 
 --------------------------------------------------------------------------------
@@ -82,11 +350,62 @@ prop_decodeTermNonCanonical term0 =
 
 
 --------------------------------------------------------------------------------
+-- Token class instances for Term type
+--
+
+instance Token Ref.Term where
+    type Imp Ref.Term = Term
+
+    eqImp = eqTerm
+
+    fromRef = fromRefTerm
+    toRef   = toRefTerm
+
+    canonicaliseImp = canonicaliseTerm
+    canonicaliseRef = Ref.canonicaliseTerm
+
+    encodeImp = encodeTerm
+    decodeImp = decodeTerm
+
+    encodeRef = Ref.encodeTerm
+    decodeRef = Ref.decodeTerm
+
+
+--------------------------------------------------------------------------------
 -- TestTree API
 
 testTree :: TestTree
 testTree =
   testGroup "properties"
+  [ testGroup "to . id . from = canon_ref"
+    [ testProperty "Term"    (prop_fromRefToRef @ Ref.Term)
+    ]
+
+  , testGroup "from . id . to = canon_imp"
+    [ testProperty "Term"    (prop_toRefFromRef @ Ref.Term)
+    ]
+
+  , testGroup "dec_ref . enc_ref = id"
+    [ testProperty "Term"    (prop_encodeRefdecodeRef @ Ref.Term)
+    ]
+
+  , testGroup "dec_imp . enc_imp = canon_imp"
+    [ testProperty "Term"    (prop_encodeImpdecodeImp @ Ref.Term)
+    ]
+
+  , testGroup "enc_imp . from = enc_ref . canon_ref"
+    [ testProperty "Term"    (prop_encodeRefencodeImp1 @ Ref.Term)
+    ]
+
+  , testGroup "enc_ref . to = enc_imp"
+    [ testProperty "Term"    (prop_encodeRefencodeImp2 @ Ref.Term)
+    ]
+
+  , testGroup "dec_imp . enc_ref = from . dec_ref . enc_ref"
+    [ testProperty "Term"    (prop_decodeRefdecodeImp @ Ref.Term)
+    ]
+
+  , testGroup "Terms"
     [ testProperty "from/to reference terms"        prop_fromToRefTerm
     , testProperty "to/from reference terms"        prop_toFromRefTerm
     , testProperty "rountrip de/encoding terms"     prop_encodeDecodeTermRoundtrip
@@ -102,3 +421,4 @@ testTree =
     , testProperty "decoding term matches ref impl" prop_decodeTermMatchesRefImpl
     , testProperty "non-canonical encoding"         prop_decodeTermNonCanonical
     ]
+  ]
