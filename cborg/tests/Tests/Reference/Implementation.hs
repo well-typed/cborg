@@ -38,8 +38,6 @@ module Tests.Reference.Implementation (
     decodeTokens,
     decodeToken,
 
-    canonicalNaN,
-
     diagnosticNotation,
 
     encodeTerm,
@@ -862,8 +860,6 @@ canonicaliseFloat tfloatNN f
 canonicaliseTermPair :: (Term, Term) -> (Term, Term)
 canonicaliseTermPair (x,y) = (canonicaliseTerm x, canonicaliseTerm y)
 
-canonicalNaN :: Half
-canonicalNaN = Half 0x7e00
 
 -------------------------------------------------------------------------------
 

@@ -9,6 +9,10 @@ module Tests.Reference.Generators (
     -- * Integer with a large range
     LargeInteger(..)
 
+    -- * Floats with NaNs
+  , FloatNaN(..)
+  , canonicaliseNaN
+
     -- * Floats with special values
   , HalfSpecials(..)
   , FloatSpecials(..)
@@ -26,6 +30,7 @@ module Tests.Reference.Generators (
 import           Data.Word
 import           Numeric (showHex)
 import           Numeric.Half as Half
+import           GHC.Float (float2Double)
 import           Data.Proxy
 
 import           Foreign
@@ -88,6 +93,26 @@ fromFloat float =
             poke (castPtr buf) float
             peek buf
 
+---------------------------------------------------
+-- Floats with NaNs
+--
+
+class RealFloat n => FloatNaN n where
+  canonicalNaN :: n
+
+canonicaliseNaN :: FloatNaN n => n -> n
+canonicaliseNaN n | isNaN n   = canonicalNaN
+                  | otherwise = n
+
+instance FloatNaN Half where
+  canonicalNaN = Half 0x7e00
+
+instance FloatNaN Float where
+  canonicalNaN = Half.fromHalf canonicalNaN
+
+instance FloatNaN Double where
+  canonicalNaN = float2Double canonicalNaN
+
 
 ---------------------------------------------------
 -- Generators for float types with special values
@@ -98,13 +123,13 @@ instance Arbitrary Half where
   shrink    = shrinkRealFrac
 
 newtype HalfSpecials   = HalfSpecials   { getHalfSpecials   :: Half }
-  deriving (Num, Fractional)
+  deriving (Ord, Num, Fractional, RealFrac, Real, Floating, RealFloat, FloatNaN)
 
 newtype FloatSpecials  = FloatSpecials  { getFloatSpecials  :: Float }
-  deriving (Num, Fractional)
+  deriving (Ord, Num, Fractional, RealFrac, Real, Floating, RealFloat, FloatNaN)
 
 newtype DoubleSpecials = DoubleSpecials { getDoubleSpecials :: Double }
-  deriving (Num, Fractional)
+  deriving (Ord, Num, Fractional, RealFrac, Real, Floating, RealFloat, FloatNaN)
 
 instance Eq HalfSpecials where
   HalfSpecials a == HalfSpecials b = halfToWord a == halfToWord b

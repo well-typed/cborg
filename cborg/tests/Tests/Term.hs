@@ -29,7 +29,8 @@ import           Codec.CBOR.Write
 import           Test.QuickCheck
 
 import qualified Tests.Reference.Implementation as Ref
-import           Tests.Reference.Generators (floatToWord, doubleToWord)
+import           Tests.Reference.Generators
+                   ( floatToWord, doubleToWord, canonicalNaN )
 
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
@@ -75,13 +76,13 @@ toRefTerm  TNull        = Ref.TNull
 toRefTerm (TSimple  23) = Ref.TUndef
 toRefTerm (TSimple   w) = Ref.TSimple (fromIntegral w)
 toRefTerm (THalf     f) = if isNaN f
-                          then Ref.TFloat16 Ref.canonicalNaN
+                          then Ref.TFloat16 canonicalNaN
                           else Ref.TFloat16 (Half.toHalf f)
 toRefTerm (TFloat    f) = if isNaN f
-                          then Ref.TFloat16 Ref.canonicalNaN
+                          then Ref.TFloat16 canonicalNaN
                           else Ref.TFloat32 f
 toRefTerm (TDouble   f) = if isNaN f
-                          then Ref.TFloat16 Ref.canonicalNaN
+                          then Ref.TFloat16 canonicalNaN
                           else Ref.TFloat64 f
 
 
@@ -158,7 +159,7 @@ canonicaliseTermNaNs (TTagged tag t) = TTagged tag (canonicaliseTermNaNs t)
 canonicaliseTermNaNs t = t
 
 canonicalTermNaN :: Term
-canonicalTermNaN = THalf (Half.fromHalf Ref.canonicalNaN)
+canonicalTermNaN = THalf canonicalNaN
 
 canonicaliseTermNaNsPair :: (Term, Term) -> (Term, Term)
 canonicaliseTermNaNsPair (a,b) = (canonicaliseTermNaNs a, canonicaliseTermNaNs b)
