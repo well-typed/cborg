@@ -106,7 +106,8 @@ test-suite tests
     -threaded -rtsopts "-with-rtsopts=-N2"
 
   other-modules:
-    Tests.CBOR
+    Tests.UnitTests
+    Tests.Properties
     Tests.Boundary
     Tests.ByteOffset
     Tests.Regress
@@ -117,6 +118,7 @@ test-suite tests
     Tests.Reference.Implementation
     Tests.Reference.Generators
     Tests.Reference.TestVectors
+    Tests.Term
     Tests.UTF8
     Tests.Util
 

@@ -2,11 +2,17 @@
 {-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Tests.CBOR
-  ( testTree -- :: TestTree
+module Tests.Term (
+    Term
+  , serialise
+  , deserialise
+  , toRefTerm
+  , fromRefTerm
   , eqTerm
   , canonicaliseTermNaNs
   , canonicaliseTermIntegers
+  , prop_fromToRefTerm
+  , prop_toFromRefTerm
   ) where
 
 import qualified Data.ByteString      as BS
@@ -20,138 +26,16 @@ import           Codec.CBOR.Term
 import           Codec.CBOR.Read
 import           Codec.CBOR.Write
 
-import           Test.Tasty (TestTree, testGroup, localOption)
-import           Test.Tasty.HUnit (Assertion, testCase, assertEqual, (@=?))
-import           Test.Tasty.QuickCheck (testProperty, QuickCheckMaxSize(..))
 import           Test.QuickCheck
 
 import qualified Tests.Reference.Implementation as RefImpl
 import           Tests.Reference.Generators (floatToWord, doubleToWord)
-import           Tests.Reference.TestVectors
-import           Tests.Reference (termToJson, equalJson)
-import           Tests.Util
 
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
 #endif
 import           Control.Exception (throw)
 
-
--------------------------------------------------------------------------------
--- Unit tests for test vector from CBOR spec RFC7049 Appendix A
---
-
-unit_externalTestVector :: [ExternalTestCase] -> Assertion
-unit_externalTestVector = mapM_ unit_externalTestCase
-
-unit_externalTestCase :: ExternalTestCase -> Assertion
-unit_externalTestCase ExternalTestCase {
-                        encoded,
-                        decoded = Left expectedJson
-                      } = do
-  let term       = deserialise encoded
-      actualJson = termToJson (toRefTerm term)
-      reencoded  = serialise term
-
-  expectedJson `equalJson` actualJson
-  encoded @=? reencoded
-
-unit_externalTestCase ExternalTestCase {
-                        encoded,
-                        decoded = Right expectedDiagnostic
-                      } = do
-  let term             = deserialise encoded
-      actualDiagnostic = RefImpl.diagnosticNotation (toRefTerm term)
-      reencoded        = serialise term
-
-  expectedDiagnostic @=? actualDiagnostic
-  encoded @=? reencoded
-
-
--------------------------------------------------------------------------------
--- Unit tests for test vector from CBOR spec RFC7049 Appendix A
---
-
-unit_expectedDiagnosticNotation :: RFC7049TestCase -> Assertion
-unit_expectedDiagnosticNotation RFC7049TestCase {
-                                  expectedDiagnostic,
-                                  encodedBytes
-                                } = do
-  let term             = deserialise (LBS.pack encodedBytes)
-      actualDiagnostic = RefImpl.diagnosticNotation (toRefTerm term)
-
-  expectedDiagnostic @=? actualDiagnostic
-
--- | The reference implementation satisfies the roundtrip property for most
--- examples (all the ones from Appendix A). It does not satisfy the roundtrip
--- property in general however, non-canonical over-long int encodings for
--- example.
---
-unit_encodedRoundtrip :: RFC7049TestCase -> Assertion
-unit_encodedRoundtrip RFC7049TestCase {
-                        expectedDiagnostic,
-                        encodedBytes
-                      } = do
-  let term           = deserialise (LBS.pack encodedBytes)
-      reencodedBytes = LBS.unpack (serialise term)
-
-  assertEqual ("for CBOR: " ++ expectedDiagnostic) encodedBytes reencodedBytes
-
-
---------------------------------------------------------------------------------
--- Properties
---
-
-prop_encodeDecodeTermRoundtrip :: Term -> Bool
-prop_encodeDecodeTermRoundtrip term =
-             (deserialise . serialise) term
-    `eqTerm` (canonicaliseTermNaNs . canonicaliseTermIntegers) term
-
-prop_encodeDecodeTermRoundtrip_splits2 :: Term -> Bool
-prop_encodeDecodeTermRoundtrip_splits2 term =
-    and [          deserialise thedata'
-          `eqTerm` (canonicaliseTermNaNs . canonicaliseTermIntegers) term
-        | let thedata = serialise term
-        , thedata' <- splits2 thedata ]
-
-prop_encodeDecodeTermRoundtrip_splits3 :: Term -> Bool
-prop_encodeDecodeTermRoundtrip_splits3 term =
-    and [          deserialise thedata'
-          `eqTerm` (canonicaliseTermNaNs . canonicaliseTermIntegers) term
-        | let thedata = serialise term
-        , thedata' <- splits3 thedata ]
-
-prop_encodeTermMatchesRefImpl :: RefImpl.Term -> Bool
-prop_encodeTermMatchesRefImpl term =
-    let encoded  = serialise (fromRefTerm term)
-        encoded' = RefImpl.serialise (RefImpl.canonicaliseTerm term)
-     in encoded == encoded'
-
-prop_encodeTermMatchesRefImpl2 :: Term -> Bool
-prop_encodeTermMatchesRefImpl2 term =
-    let encoded  = serialise term
-        encoded' = RefImpl.serialise (toRefTerm term)
-     in encoded == encoded'
-
-prop_decodeTermMatchesRefImpl :: RefImpl.Term -> Bool
-prop_decodeTermMatchesRefImpl term0 =
-    let encoded = RefImpl.serialise term0
-        term    = RefImpl.deserialise encoded
-        term'   = deserialise encoded
-     in term' `eqTerm` fromRefTerm term
-
-prop_decodeTermNonCanonical :: RefImpl.Term -> Property
-prop_decodeTermNonCanonical term0 =
-    let encoded = RefImpl.serialise term0
-        term    = RefImpl.deserialise encoded
-        term'   = deserialise encoded
-        encoded'= serialise term'
-        isCanonical = encoded == encoded'
-     in not isCanonical ==>
-        -- This property holds without this pre-condition, as demonstrated by
-        -- prop_decodeTermMatchesRefImpl, but using it ensures we get good
-        -- coverage of the non-canonical cases
-        term' `eqTerm` fromRefTerm term
 
 ------------------------------------------------------------------------------
 
@@ -338,38 +222,3 @@ instance Arbitrary Term where
   shrink (TFloat  f) = [ TFloat  f' | f' <- shrink f ]
   shrink (TDouble f) = [ TDouble f' | f' <- shrink f ]
 
---------------------------------------------------------------------------------
--- TestTree API
-
-testTree :: TestTree
-testTree =
-  testGroup "Main implementation"
-    [ testCase "RFC7049 test vector: decode" $
-        mapM_ unit_expectedDiagnosticNotation rfc7049TestVector
-
-    , testCase "RFC7049 test vector: roundtrip" $
-        mapM_ unit_encodedRoundtrip rfc7049TestVector
-
-    , withExternalTestVector $ \getTestVector ->
-      testCase "external test vector" $
-        getTestVector >>= unit_externalTestVector
-
-    , --localOption (QuickCheckTests  5000) $
-      localOption (QuickCheckMaxSize 150) $
-      testGroup "properties"
-        [ testProperty "from/to reference terms"        prop_fromToRefTerm
-        , testProperty "to/from reference terms"        prop_toFromRefTerm
-        , testProperty "rountrip de/encoding terms"     prop_encodeDecodeTermRoundtrip
-          -- TODO FIXME: need to fix the generation of terms to give
-          -- better size distribution some get far too big for the
-          -- splits properties.
-        , localOption (QuickCheckMaxSize 30) $
-          testProperty "decoding with all 2-chunks"     prop_encodeDecodeTermRoundtrip_splits2
-        , localOption (QuickCheckMaxSize 20) $
-          testProperty "decoding with all 3-chunks"     prop_encodeDecodeTermRoundtrip_splits3
-        , testProperty "encode term matches ref impl 1" prop_encodeTermMatchesRefImpl
-        , testProperty "encode term matches ref impl 2" prop_encodeTermMatchesRefImpl2
-        , testProperty "decoding term matches ref impl" prop_decodeTermMatchesRefImpl
-        , testProperty "non-canonical encoding"         prop_decodeTermNonCanonical
-        ]
-    ]

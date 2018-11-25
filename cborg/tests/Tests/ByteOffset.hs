@@ -22,7 +22,7 @@ import           Test.QuickCheck hiding (subterms)
 
 import qualified Tests.Reference.Implementation as RefImpl
 import           Tests.Reference.Generators (floatToWord, doubleToWord)
-import           Tests.CBOR (eqTerm, canonicaliseTermNaNs, canonicaliseTermIntegers)
+import           Tests.Term (eqTerm, canonicaliseTermNaNs, canonicaliseTermIntegers)
 import           Tests.Util
 
 import Prelude hiding (encodeFloat, decodeFloat)
