@@ -19,8 +19,6 @@ module Tests.Reference.Implementation (
     deserialise,
 
     Term(..),
-    reservedTag,
-    reservedSimple,
     canonicaliseTerm,
     isCanonicalTerm,
 
@@ -28,6 +26,13 @@ module Tests.Reference.Implementation (
     fromUInt,
     toUInt,
     canonicaliseUInt,
+
+    Simple(..),
+    fromSimple,
+    toSimple,
+    reservedSimple,
+    unassignedSimple,
+    reservedTag,
 
     Decoder,
     runDecoder,
@@ -307,6 +312,36 @@ prop_TokenHeader2 =
               extraused = take (8 - length unused) extra
         ]
 
+data Simple = SimpleSmall Word  --  0 .. 23
+            | SimpleLarge Word8 --  0 .. 255, but  0..23 are non-canonical
+                                --            and 24..31 are reserved
+  deriving (Eq, Show)
+
+fromSimple :: Simple -> Word8
+fromSimple (SimpleSmall w) = fromIntegral w
+fromSimple (SimpleLarge w) = w
+
+toSimple :: Word8 -> Simple
+toSimple w | w <= 23   = SimpleSmall (fromIntegral w)
+           | otherwise = SimpleLarge w
+
+reservedSimple :: Word8 -> Bool
+reservedSimple w = w >= 24 && w <= 31
+
+unassignedSimple :: Word8 -> Bool
+unassignedSimple w = w < 20 || w > 31
+
+instance Arbitrary Simple where
+  arbitrary = oneof [ SimpleSmall <$> choose (0, 23)
+                    , SimpleLarge <$> choose (0, 31)
+                    , SimpleLarge <$> choose (32, 255)
+                    ]
+  shrink (SimpleSmall n) = [ SimpleSmall n' | n' <- shrink n ]
+  shrink (SimpleLarge n) = [ SimpleSmall (fromIntegral n')
+                           | n' <- shrink n, n' <= 23 ]
+                        ++ [ SimpleLarge n' | n' <- shrink n ]
+
+
 data Token =
      MT0_UnsignedInt UInt
    | MT1_NegativeInt UInt
@@ -319,7 +354,7 @@ data Token =
    | MT5_MapLen      UInt
    | MT5_MapLenIndef
    | MT6_Tag     UInt
-   | MT7_Simple  Word8
+   | MT7_Simple  Simple
    | MT7_Float16 HalfSpecials
    | MT7_Float32 FloatSpecials
    | MT7_Float64 DoubleSpecials
@@ -441,8 +476,8 @@ packToken (TokenHeader mt ai) extra = case (mt, ai) of
     --   | 27          | IEEE 754 Double-Precision Float (64 bits follow) |
     --   | 28-30       | (Unassigned)                                     |
     --   | 31          | "break" stop code for indefinite-length items    |
-    (MajorType7, AiValue (UIntSmall w)) -> return (MT7_Simple (fromIntegral w))
-    (MajorType7, AiValue (UInt8     w)) -> return (MT7_Simple (fromIntegral w))
+    (MajorType7, AiValue (UIntSmall w)) -> return (MT7_Simple (SimpleSmall w))
+    (MajorType7, AiValue (UInt8     w)) -> return (MT7_Simple (SimpleLarge w))
     (MajorType7, AiValue (UInt16    w)) -> return (MT7_Float16 (HalfSpecials (wordToHalf w)))
     (MajorType7, AiValue (UInt32    w)) -> return (MT7_Float32 (FloatSpecials (wordToFloat w)))
     (MajorType7, AiValue (UInt64    w)) -> return (MT7_Float64 (DoubleSpecials (wordToDouble w)))
@@ -469,9 +504,10 @@ unpackToken tok = (\(mt, ai, ws) -> (TokenHeader mt ai, ws)) $ case tok of
     (MT5_MapLen      n)    -> (MajorType5, AiValue n,  [])
     MT5_MapLenIndef        -> (MajorType5, AiIndefLen, [])
     (MT6_Tag     n)        -> (MajorType6, AiValue n,  [])
-    (MT7_Simple  n)
-               | n <= 23   -> (MajorType7, AiValue (UIntSmall (fromIntegral n)), [])
-               | otherwise -> (MajorType7, AiValue (UInt8     n), [])
+    (MT7_Simple
+        (SimpleSmall n))   -> (MajorType7, AiValue (UIntSmall (fromIntegral n)), [])
+    (MT7_Simple
+        (SimpleLarge n))   -> (MajorType7, AiValue (UInt8  n), [])
     (MT7_Float16
         (HalfSpecials f))  -> (MajorType7, AiValue (UInt16 (halfToWord f)),   [])
     (MT7_Float32
@@ -505,9 +541,6 @@ decodeUTF8 = either (fail . show) (return . T.unpack) . T.decodeUtf8' . BS.pack
 encodeUTF8 :: [Char] -> [Word8]
 encodeUTF8 = BS.unpack . T.encodeUtf8 . T.pack
 
-reservedSimple :: Word8 -> Bool
-reservedSimple w = w >= 20 && w <= 31
-
 reservedTag :: Word64 -> Bool
 reservedTag w = w <= 5
 
@@ -533,7 +566,7 @@ data Term = TUInt   UInt
           | TFalse
           | TNull
           | TUndef
-          | TSimple  Word8
+          | TSimple  Simple
           | TFloat16 HalfSpecials
           | TFloat32 FloatSpecials
           | TFloat64 DoubleSpecials
@@ -558,7 +591,7 @@ instance Arbitrary Term where
         , (1, pure TTrue)
         , (1, pure TNull)
         , (1, pure TUndef)
-        , (1, TSimple  <$> arbitrary `suchThat` (not . reservedSimple))
+        , (1, TSimple  <$> arbitrary `suchThat` (unassignedSimple . fromSimple))
         , (1, TFloat16 <$> arbitrary)
         , (1, TFloat32 <$> arbitrary)
         , (1, TFloat64 <$> arbitrary)
@@ -599,7 +632,8 @@ instance Arbitrary Term where
   shrink TNull  = []
   shrink TUndef = []
 
-  shrink (TSimple  w) = [ TSimple  w' | w' <- shrink w, not (reservedSimple w) ]
+  shrink (TSimple  n) = [ TSimple  n' | n' <- shrink n
+                                      , unassignedSimple (fromSimple n') ]
   shrink (TFloat16 f) = [ TFloat16 f' | f' <- shrink f ]
   shrink (TFloat32 f) = [ TFloat32 f' | f' <- shrink f ]
   shrink (TFloat64 f) = [ TFloat64 f' | f' <- shrink f ]
@@ -628,11 +662,14 @@ decodeTermFrom tk =
 
       MT6_Tag     tag    -> decodeTagged tag
 
-      MT7_Simple  20     -> return TFalse
-      MT7_Simple  21     -> return TTrue
-      MT7_Simple  22     -> return TNull
-      MT7_Simple  23     -> return TUndef
-      MT7_Simple  w      -> return (TSimple w)
+      MT7_Simple  n
+        | n' == 20       -> return TFalse
+        | n' == 21       -> return TTrue
+        | n' == 22       -> return TNull
+        | n' == 23       -> return TUndef
+        | otherwise      -> return (TSimple n)
+        where
+          n' = fromSimple n
       MT7_Float16 f      -> return (TFloat16 f)
       MT7_Float32 f      -> return (TFloat32 f)
       MT7_Float64 f      -> return (TFloat64 f)
@@ -780,10 +817,10 @@ encodeTerm (TMapI   kvs)   = encodeToken MT5_MapLenIndef
                           <> encodeToken MT7_Break
 encodeTerm (TTagged tag t) = encodeToken (MT6_Tag tag)
                           <> encodeTerm t
-encodeTerm  TFalse         = encodeToken (MT7_Simple 20)
-encodeTerm  TTrue          = encodeToken (MT7_Simple 21)
-encodeTerm  TNull          = encodeToken (MT7_Simple 22)
-encodeTerm  TUndef         = encodeToken (MT7_Simple 23)
+encodeTerm  TFalse         = encodeToken (MT7_Simple (SimpleSmall 20))
+encodeTerm  TTrue          = encodeToken (MT7_Simple (SimpleSmall 21))
+encodeTerm  TNull          = encodeToken (MT7_Simple (SimpleSmall 22))
+encodeTerm  TUndef         = encodeToken (MT7_Simple (SimpleSmall 23))
 encodeTerm (TSimple  w)    = encodeToken (MT7_Simple w)
 encodeTerm (TFloat16 f)    = encodeToken (MT7_Float16 f)
 encodeTerm (TFloat32 f)    = encodeToken (MT7_Float32 f)
@@ -810,6 +847,7 @@ canonicaliseTerm (TBigInt n)
   | n <  0 && n >= -1 - fromIntegral (maxBound :: Word64)
                            = TNInt (toUInt (fromIntegral (-1 - n)))
   | otherwise              = TBigInt n
+canonicaliseTerm (TSimple  n)   = TSimple  (canonicaliseSimple n)
 canonicaliseTerm (TFloat16 f)   = canonicaliseFloat TFloat16 f
 canonicaliseTerm (TFloat32 f)   = canonicaliseFloat TFloat32 f
 canonicaliseTerm (TFloat64 f)   = canonicaliseFloat TFloat64 f
@@ -824,6 +862,9 @@ canonicaliseTerm t = t
 
 canonicaliseUInt :: UInt -> UInt
 canonicaliseUInt = toUInt . fromUInt
+
+canonicaliseSimple :: Simple -> Simple
+canonicaliseSimple = toSimple . fromSimple
 
 canonicaliseFloat :: RealFloat t => (t -> Term) -> t -> Term
 canonicaliseFloat tfloatNN f
@@ -856,7 +897,7 @@ diagnosticNotation = \t -> showsTerm t ""
       TFalse         -> showString "false"
       TNull          -> showString "null"
       TUndef         -> showString "undefined"
-      TSimple  n     -> showString "simple" . surround '(' ')' (shows n)
+      TSimple  n     -> showString "simple" . surround '(' ')' (shows (fromSimple n))
       -- convert to float to work around https://github.com/ekmett/half/issues/2
       TFloat16 f     -> showFloatCompat (float2Double (Half.fromHalf (getHalfSpecials f)))
       TFloat32 f     -> showFloatCompat (float2Double (getFloatSpecials f))

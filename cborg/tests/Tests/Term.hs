@@ -74,7 +74,7 @@ toRefTerm (TBool False) = Ref.TFalse
 toRefTerm (TBool True)  = Ref.TTrue
 toRefTerm  TNull        = Ref.TNull
 toRefTerm (TSimple  23) = Ref.TUndef
-toRefTerm (TSimple   w) = Ref.TSimple (fromIntegral w)
+toRefTerm (TSimple   w) = Ref.TSimple (Ref.toSimple w)
 toRefTerm (THalf     f) = if isNaN f
                           then Ref.TFloat16 canonicalNaN
                           else Ref.TFloat16 (HalfSpecials (Half.toHalf f))
@@ -115,7 +115,7 @@ fromRefTerm (Ref.TFalse)     = TBool False
 fromRefTerm (Ref.TTrue)      = TBool True
 fromRefTerm  Ref.TNull       = TNull
 fromRefTerm  Ref.TUndef      = TSimple 23
-fromRefTerm (Ref.TSimple  w) = TSimple w
+fromRefTerm (Ref.TSimple  w) = TSimple (Ref.fromSimple w)
 fromRefTerm (Ref.TFloat16 f) = THalf (Half.fromHalf (getHalfSpecials f))
 fromRefTerm (Ref.TFloat32 f) = TFloat  (getFloatSpecials  f)
 fromRefTerm (Ref.TFloat64 f) = TDouble (getDoubleSpecials f)
@@ -207,7 +207,7 @@ instance Arbitrary Term where
   shrink TNull  = []
 
   shrink (TSimple w) = [ TSimple w' | w' <- shrink w
-                       , not (Ref.reservedSimple (fromIntegral w)) ]
+                       , Ref.unassignedSimple w || w == 23 ]
   shrink (THalf  _f) = []
   shrink (TFloat  f) = [ TFloat  f' | f' <- shrink f ]
   shrink (TDouble f) = [ TDouble f' | f' <- shrink f ]
