@@ -44,7 +44,13 @@ serialise :: Term -> LBS.ByteString
 serialise = toLazyByteString . encodeTerm
 
 deserialise :: LBS.ByteString -> Term
-deserialise = either throw snd . deserialiseFromBytes decodeTerm
+deserialise b =
+    case deserialiseFromBytes decodeTerm b of
+      Left failure        -> throw failure
+      Right (trailing, _)  | not (LBS.null trailing)
+                          -> error "Test.deserialise: trailing data"
+      Right (_, t)        -> t
+
 
 ------------------------------------------------------------------------------
 
