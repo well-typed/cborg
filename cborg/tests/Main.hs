@@ -7,6 +7,7 @@ import qualified Tests.UnitTests  as UnitTests
 import qualified Tests.Properties as Properties
 import qualified Tests.Boundary   as Boundary
 import qualified Tests.ByteOffset as ByteOffset
+import qualified Tests.Canonical  as Canonical
 import qualified Tests.Regress    as Regress
 import qualified Tests.UTF8       as UTF8
 
@@ -21,6 +22,7 @@ tests =
     , Properties.testTree
     , ByteOffset.testTree
     , Boundary.testTree
+    , Canonical.testTree
     , Regress.testTree
     , UTF8.testTree
     ]

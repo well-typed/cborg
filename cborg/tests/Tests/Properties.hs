@@ -9,6 +9,33 @@
 
 module Tests.Properties (
     testTree
+
+    -- * Token type class and derived functions
+  , Token(..)
+  , serialiseRef
+  , serialiseImp
+  , deserialiseRef
+  , deserialiseImp
+
+    -- * Various test token types
+  , TokInt
+  , TokInt8
+  , TokInt16
+  , TokInt32
+  , TokInt64
+  , TokInteger
+  , TokWord
+  , TokWord8
+  , TokWord16
+  , TokWord32
+  , TokWord64
+  , TokHalf
+  , TokFloat
+  , TokDouble
+  , TokTag
+  , TokTag64
+  , Ref.Simple
+  , Ref.Term
   ) where
 
 import           Prelude hiding (decodeFloat, encodeFloat)

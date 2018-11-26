@@ -110,6 +110,7 @@ test-suite tests
     Tests.Properties
     Tests.Boundary
     Tests.ByteOffset
+    Tests.Canonical
     Tests.Regress
     Tests.Regress.Issue160
     Tests.Regress.Issue162
