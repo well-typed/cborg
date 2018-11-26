@@ -19,6 +19,7 @@ module Tests.Reference.Implementation (
     deserialise,
 
     Term(..),
+    Token(..),
     canonicaliseTerm,
     isCanonicalTerm,
 
@@ -41,6 +42,7 @@ module Tests.Reference.Implementation (
     decodeTerm,
     decodeTokens,
     decodeToken,
+    decodeTagged,
 
     diagnosticNotation,
 
