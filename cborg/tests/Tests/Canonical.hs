@@ -1,9 +1,6 @@
 {-# LANGUAGE CPP                  #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE RankNTypes           #-}
-{-# LANGUAGE TypeFamilies         #-}
-{-# LANGUAGE AllowAmbiguousTypes  #-}
-{-# LANGUAGE TypeApplications     #-}
 
 module Tests.Canonical (testTree) where
 
@@ -14,6 +11,7 @@ import           Control.Applicative
 #endif
 
 import qualified Data.ByteString.Lazy as LBS
+import           Data.Proxy
 
 import           Codec.CBOR.Read (deserialiseFromBytes)
 import           Codec.CBOR.Decoding
@@ -30,12 +28,12 @@ import           Tests.Properties hiding (testTree)
 -- original property. This property just ensures that we have good coverage of
 -- this case.
 --
-prop_decodeRefdecodeImp_NonCanonical :: forall t. Token t => t -> Property
-prop_decodeRefdecodeImp_NonCanonical x =
+prop_decode_nonCanonical :: forall t. Token t => t -> Property
+prop_decode_nonCanonical x =
     let enc  = serialiseRef x
-        y    = deserialiseRef @t enc
-        y'   = deserialiseImp @t enc
-        enc' = serialiseImp @t y'
+        y    = deserialiseRef t enc
+        y'   = deserialiseImp t enc
+        enc' = serialiseImp t y'
         isCanonical = enc == enc'
      in not isCanonical ==>
         -- This property holds without this pre-condition, as demonstrated by
@@ -44,7 +42,8 @@ prop_decodeRefdecodeImp_NonCanonical x =
         y' `eq` fromRef y
 
   where
-    eq = eqImp @t
+    eq = eqImp t
+    t  = Proxy :: Proxy t
 
 
 -- | Check that the special checked canonical form decoder primitives work.
@@ -64,13 +63,14 @@ prop_decodeCanonical decodeCanonical x =
     case deserialiseFromBytes decodeCanonical enc of
       Left  _failure       -> not isCanonical
       Right (trailing, y') ->     isCanonical
-                               && eqImp @t y y'
+                               && eqImp t y y'
                                && LBS.null trailing
   where
     enc = serialiseRef x
-    y   = deserialiseImp @t enc
+    y   = deserialiseImp t enc
     -- It is canonical if it re-encodes to the same bytes we decoded
-    isCanonical = serialiseImp @t y == enc
+    isCanonical = serialiseImp t y == enc
+    t   = Proxy :: Proxy t
 
 
 
@@ -147,25 +147,25 @@ testTree :: TestTree
 testTree =
   testGroup "properties"
   [ testGroup "decode non-canonical encoding"
-    [ testProperty "Word8"   (prop_decodeRefdecodeImp_NonCanonical @ TokWord8)
-    , testProperty "Word16"  (prop_decodeRefdecodeImp_NonCanonical @ TokWord16)
-    , testProperty "Word32"  (prop_decodeRefdecodeImp_NonCanonical @ TokWord32)
-    , testProperty "Word64"  (prop_decodeRefdecodeImp_NonCanonical @ TokWord64)
-    , testProperty "Word"    (prop_decodeRefdecodeImp_NonCanonical @ TokWord)
---  , testProperty "NegWord" (prop_decodeRefdecodeImp_NonCanonical @ TokNegWord)
-    , testProperty "Int8"    (prop_decodeRefdecodeImp_NonCanonical @ TokInt8)
-    , testProperty "Int16"   (prop_decodeRefdecodeImp_NonCanonical @ TokInt16)
-    , testProperty "Int32"   (prop_decodeRefdecodeImp_NonCanonical @ TokInt32)
-    , testProperty "Int64"   (prop_decodeRefdecodeImp_NonCanonical @ TokInt64)
-    , testProperty "Int"     (prop_decodeRefdecodeImp_NonCanonical @ TokInt)
-    , testProperty "Integer" (prop_decodeRefdecodeImp_NonCanonical @ TokInteger)
-    , testProperty "Half"    (prop_decodeRefdecodeImp_NonCanonical @ TokHalf)
-    , testProperty "Float"   (prop_decodeRefdecodeImp_NonCanonical @ TokFloat)
-    , testProperty "Double"  (prop_decodeRefdecodeImp_NonCanonical @ TokDouble)
-    , testProperty "Tag"     (prop_decodeRefdecodeImp_NonCanonical @ TokTag)
-    , testProperty "Tag64"   (prop_decodeRefdecodeImp_NonCanonical @ TokTag64)
-    , testProperty "Simple"  (prop_decodeRefdecodeImp_NonCanonical @ Simple)
-    , testProperty "Term"    (prop_decodeRefdecodeImp_NonCanonical @ Term)
+    [ testProperty "Word8"   (prop_decode_nonCanonical :: TokWord8   -> Property)
+    , testProperty "Word16"  (prop_decode_nonCanonical :: TokWord16  -> Property)
+    , testProperty "Word32"  (prop_decode_nonCanonical :: TokWord32  -> Property)
+    , testProperty "Word64"  (prop_decode_nonCanonical :: TokWord64  -> Property)
+    , testProperty "Word"    (prop_decode_nonCanonical :: TokWord    -> Property)
+--  , testProperty "NegWord" (prop_decode_nonCanonical :: TokNegWord -> Property)
+    , testProperty "Int8"    (prop_decode_nonCanonical :: TokInt8    -> Property)
+    , testProperty "Int16"   (prop_decode_nonCanonical :: TokInt16   -> Property)
+    , testProperty "Int32"   (prop_decode_nonCanonical :: TokInt32   -> Property)
+    , testProperty "Int64"   (prop_decode_nonCanonical :: TokInt64   -> Property)
+    , testProperty "Int"     (prop_decode_nonCanonical :: TokInt     -> Property)
+    , testProperty "Integer" (prop_decode_nonCanonical :: TokInteger -> Property)
+    , testProperty "Half"    (prop_decode_nonCanonical :: TokHalf    -> Property)
+    , testProperty "Float"   (prop_decode_nonCanonical :: TokFloat   -> Property)
+    , testProperty "Double"  (prop_decode_nonCanonical :: TokDouble  -> Property)
+    , testProperty "Tag"     (prop_decode_nonCanonical :: TokTag     -> Property)
+    , testProperty "Tag64"   (prop_decode_nonCanonical :: TokTag64   -> Property)
+    , testProperty "Simple"  (prop_decode_nonCanonical :: Simple     -> Property)
+    , testProperty "Term"    (prop_decode_nonCanonical :: Term       -> Property)
     ]
 
   , testGroup "canonical decoding"
