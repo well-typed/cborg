@@ -652,8 +652,8 @@ go_fast !bs da@(ConsumeSimpleCanonical k) =
     case tryConsumeSimple (BS.unsafeHead bs) bs of
       DecodeFailure           -> go_fast_end bs da
       DecodedToken sz (W# w#)
-        | isWordCanonical sz w# -> k w# >>= go_fast (BS.unsafeDrop sz bs)
-        | otherwise             -> go_fast_end bs da
+        | isSimpleCanonical sz w# -> k w# >>= go_fast (BS.unsafeDrop sz bs)
+        | otherwise               -> go_fast_end bs da
 
 go_fast !bs da@(ConsumeBytesIndef k) =
     case tryConsumeBytesIndef (BS.unsafeHead bs) of
@@ -1161,8 +1161,8 @@ go_fast_end !bs (ConsumeSimpleCanonical k) =
     case tryConsumeSimple (BS.unsafeHead bs) bs of
       DecodeFailure           -> return $! SlowFail bs "expected simple"
       DecodedToken sz (W# w#)
-        | isWordCanonical sz w# -> k w# >>= go_fast_end (BS.unsafeDrop sz bs)
-        | otherwise             -> return $! SlowFail bs "non-canonical simple"
+        | isSimpleCanonical sz w# -> k w# >>= go_fast_end (BS.unsafeDrop sz bs)
+        | otherwise               -> return $! SlowFail bs "non-canonical simple"
 
 go_fast_end !bs (ConsumeBytesIndef k) =
     case tryConsumeBytesIndef (BS.unsafeHead bs) of
@@ -1561,6 +1561,12 @@ isInt64Canonical sz i#
   where
     w# = int64ToWord64# i#
 #endif
+
+{-# INLINE isSimpleCanonical #-}
+isSimpleCanonical :: Int -> Word# -> Bool
+isSimpleCanonical 2 w# = isTrue# (w# `gtWord#` 0x17##)
+isSimpleCanonical _ _  = True -- only size 1 and 2 are possible here
+
 
 -- TODO FIXME: check with 7.10 and file ticket:
 -- a case analysis against 0x00 .. 0xff :: Word8 turns into a huge chain
