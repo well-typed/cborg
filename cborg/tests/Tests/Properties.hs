@@ -218,6 +218,35 @@ prop_encodeImpdecodeImp x =
     eq = eqImp @t
 
 
+-- | This is the same property as 'prop_encodeImpdecodeImp' but the encoded
+-- data is split into two chunks provided as input into the decoder. All
+-- possible 2-chunk splits are tried. This checks that the decoder gives the
+-- same result irrespective of the chunk boundaries.
+--
+prop_encodeImpdecodeImp_splits2 :: forall t. Token t => Imp t -> Bool
+prop_encodeImpdecodeImp_splits2 x =
+    and [ deserialiseImp @t enc'  `eq`  x'
+        | let enc = serialiseImp    @t x
+              x'  = canonicaliseImp @t x
+        , enc' <- splits2 enc ]
+  where
+    eq = eqImp @t
+
+
+-- | This is the same idea as 'prop_encodeImpdecodeImp_splits2' but with all
+-- possible 3-chunk splits of the input data. This test is of course more
+-- expensive and so the size of the input must be limited.
+--
+prop_encodeImpdecodeImp_splits3 :: forall t. Token t => Imp t -> Bool
+prop_encodeImpdecodeImp_splits3 x =
+    and [ deserialiseImp @t enc'  `eq`  x'
+        | let enc = serialiseImp    @t x
+              x'  = canonicaliseImp @t x
+        , enc' <- splits3 enc ]
+  where
+    eq = eqImp @t
+
+
 -- | The property corresponding to the following part of the commuting diagram.
 --
 -- This checks that the reference and real implementation produce the same
@@ -391,6 +420,16 @@ testTree =
 
   , testGroup "dec_imp . enc_imp = canon_imp"
     [ testProperty "Term"    (prop_encodeImpdecodeImp @ Ref.Term)
+    ]
+
+  , testGroup "dec_imp . enc_imp = canon_imp (all 2-splits)"
+    [ localOption (QuickCheckMaxSize 100) $
+      testProperty "Term"    (prop_encodeImpdecodeImp_splits2 @ Ref.Term)
+    ]
+
+  , testGroup "dec_imp . enc_imp = canon_imp (all 3-splits)"
+    [ localOption (QuickCheckMaxSize 25) $
+      testProperty "Term"    (prop_encodeImpdecodeImp_splits3 @ Ref.Term)
     ]
 
   , testGroup "enc_imp . from = enc_ref . canon_ref"
