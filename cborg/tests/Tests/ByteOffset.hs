@@ -18,10 +18,11 @@ import qualified Codec.CBOR.Term as Term (Term(..))
 
 import           Test.Tasty (TestTree, testGroup, localOption)
 import           Test.Tasty.QuickCheck (testProperty, QuickCheckMaxSize(..))
-import           Test.QuickCheck (Property, (==>))
+import           Test.QuickCheck hiding (subterms)
 
 import qualified Tests.Reference.Implementation as RefImpl
-import           Tests.CBOR (eqTerm)
+import           Tests.Reference.Generators (floatToWord, doubleToWord)
+import           Tests.Term (eqTerm, canonicaliseTerm)
 import           Tests.Util
 
 import Prelude hiding (encodeFloat, decodeFloat)
@@ -83,7 +84,6 @@ testTree =
 prop_ATerm_isomorphic :: Term -> Bool
 prop_ATerm_isomorphic t =
     t `eqTerm` (convertATermToTerm . convertTermToATerm) t
-    -- eqTerm is (==) modulo NaNs and overlapping Int vs Integer
 
 -- | Variation on 'prop_ATerm_isomorphic', checking that serialising as a
 -- 'Term', deserialising as an 'ATerm' and converting back gives an equivalent
@@ -91,15 +91,15 @@ prop_ATerm_isomorphic t =
 --
 prop_ATerm_isomorphic2 :: Term -> Bool
 prop_ATerm_isomorphic2 t =
-    t `eqTerm` (convertATermToTerm . deserialiseATerm . serialiseTerm) t
-    -- eqTerm is (==) modulo NaNs and overlapping Int vs Integer
+           canonicaliseTerm t
+  `eqTerm` (convertATermToTerm . deserialiseATerm . serialiseTerm) t
 
 -- | Variation on 'prop_ATerm_isomorphic2', but where we check the terms are
 -- equivalent as 'ATerm's.
 --
 prop_ATerm_isomorphic3 :: Term -> Bool
 prop_ATerm_isomorphic3 t =
-            convertTermToATerm t
+            (convertTermToATerm . canonicaliseTerm) t
   `eqATerm` (fmap (const ()) . deserialiseATerm . serialiseTerm) t
 
 
@@ -440,16 +440,14 @@ eqATerm (ATerm t1 ann1) (ATerm t2 ann2) =
     ann1 == ann2 && eqATermF t1 t2
 
 eqATermF :: Eq a => TermF (ATerm a) -> TermF (ATerm a) -> Bool
-eqATermF (TInt    n)   (TInteger n')   = fromIntegral n == n'
-eqATermF (TInteger n)  (TInt     n')   = n == fromIntegral n'
 eqATermF (TList   ts)  (TList   ts')   = and (zipWith eqATerm ts ts')
 eqATermF (TListI  ts)  (TListI  ts')   = and (zipWith eqATerm ts ts')
 eqATermF (TMap    ts)  (TMap    ts')   = and (zipWith eqATermPair ts ts')
 eqATermF (TMapI   ts)  (TMapI   ts')   = and (zipWith eqATermPair ts ts')
 eqATermF (TTagged w t) (TTagged w' t') = w == w' && eqATerm t t'
-eqATermF (THalf   f)   (THalf   f') | isNaN f && isNaN f' = True
-eqATermF (TFloat  f)   (TFloat  f') | isNaN f && isNaN f' = True
-eqATermF (TDouble f)   (TDouble f') | isNaN f && isNaN f' = True
+eqATermF (THalf   f)   (THalf   f')    = floatToWord  f == floatToWord  f'
+eqATermF (TFloat  f)   (TFloat  f')    = floatToWord  f == floatToWord  f'
+eqATermF (TDouble f)   (TDouble f')    = doubleToWord f == doubleToWord f'
 eqATermF a b = a == b
 
 eqATermPair :: (Eq a, Eq b)
