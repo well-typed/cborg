@@ -107,7 +107,7 @@ import           Foreign.C (CUShort)
 
 import qualified Numeric.Half as Half
 
-#if !defined(HAVE_BYTESWAP_PRIMOPS) || !defined(MEM_UNALIGNED_OPS)
+#if !defined(HAVE_BYTESWAP_PRIMOPS) || !defined(MEM_UNALIGNED_OPS) || !defined(OPTIMIZE_GMP)
 import           Data.Bits ((.|.), unsafeShiftL)
 #endif
 
