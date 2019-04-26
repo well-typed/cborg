@@ -21,7 +21,7 @@ library
   exposed-modules:     Codec.CBOR.JSON
   ghc-options:         -Wall
   build-depends:
-    base >=4.7 && <4.13,
+    base >=4.7 && < 4.14,
     aeson >=0.7 && <1.5,
     aeson-pretty >=0.8 && <0.9,
     unordered-containers >=0.2 && <0.3,
