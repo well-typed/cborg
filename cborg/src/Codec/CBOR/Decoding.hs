@@ -286,7 +286,9 @@ instance Monad (Decoder s) where
     {-# INLINE (>>) #-}
     (>>) = (*>)
 
+#if !MIN_VERSION_base(4,13,0)
     fail = Fail.fail
+#endif
 
 -- | @since 0.2.0.0
 instance Fail.MonadFail (Decoder s) where
@@ -832,14 +834,14 @@ decodeListLenCanonicalOf :: Int -> Decoder s ()
 decodeListLenCanonicalOf = decodeListLenOfHelper decodeListLenCanonical
 {-# INLINE decodeListLenCanonicalOf #-}
 
-decodeListLenOfHelper :: (Show a, Eq a, Monad m) => m a -> a -> m ()
+decodeListLenOfHelper :: (Show a, Eq a, Fail.MonadFail m) => m a -> a -> m ()
 decodeListLenOfHelper decodeFun = \len -> do
   len' <- decodeFun
   if len == len' then return ()
                  else fail $ "expected list of length " ++ show len
 {-# INLINE decodeListLenOfHelper #-}
 
-decodeWordOfHelper :: (Show a, Eq a, Monad m) => m a -> a -> m ()
+decodeWordOfHelper :: (Show a, Eq a, Fail.MonadFail m) => m a -> a -> m ()
 decodeWordOfHelper decodeFun = \n -> do
   n' <- decodeFun
   if n == n' then return ()
@@ -993,4 +995,3 @@ decodeSequenceLenN f z g c get =
     go !acc 0 = return $! g acc
     go !acc n = do !x <- get; go (f acc x) (n-1)
 {-# INLINE decodeSequenceLenN #-}
-
