@@ -93,7 +93,7 @@ library
     ghc-options: -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances
   else
     -- provide/emulate `Control.Monad.Fail` and `Data.Semigroups` API for pre-GHC8
-    build-depends: fail == 4.9.*, semigroups == 0.18.*
+    build-depends: fail == 4.9.*, semigroups >=0.18 && <0.20
 
 test-suite tests
   type:              exitcode-stdio-1.0
@@ -135,7 +135,7 @@ test-suite tests
     deepseq                 >= 1.0     && < 1.5,
     fail                    >= 4.9.0.0 && < 4.10,
     half                    >= 0.2.2.3 && < 0.4,
-    QuickCheck              >= 2.9     && < 2.13,
+    QuickCheck              >= 2.9     && < 2.14,
     random,
     scientific              >= 0.3     && < 0.4,
     tasty                   >= 0.11    && < 1.3,
