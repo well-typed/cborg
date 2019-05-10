@@ -29,6 +29,8 @@ copyright:           2015-2017 Duncan Coutts,
 cabal-version:       >=1.10
 category:            Codec
 build-type:          Simple
+tested-with:
+  GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5
 
 extra-source-files:
   ChangeLog.md
@@ -62,7 +64,7 @@ library
 
   build-depends:
     array                   >= 0.4     && < 0.6,
-    base                    >= 4.6     && < 5.0,
+    base                    >= 4.7     && < 5.0,
     bytestring              >= 0.10.4  && < 0.11,
     cborg                   == 0.2.*,
     containers              >= 0.5     && < 0.7,
@@ -114,7 +116,7 @@ test-suite tests
     Tests.GeneralisedUTF8
 
   build-depends:
-    base                    >= 4.6     && < 5.0,
+    base                    >= 4.7     && < 5.0,
     bytestring              >= 0.10.4  && < 0.11,
     directory               >= 1.0     && < 1.4,
     filepath                >= 1.0     && < 1.5,
@@ -151,7 +153,7 @@ benchmark instances
     Instances.Time
 
   build-depends:
-    base                    >= 4.6     && < 5.0,
+    base                    >= 4.7     && < 5.0,
     binary                  >= 0.7     && < 0.11,
     bytestring              >= 0.10.4  && < 0.11,
     vector                  >= 0.10    && < 0.13,
@@ -195,7 +197,7 @@ benchmark micro
     SimpleVersus
 
   build-depends:
-    base                    >= 4.6     && < 5.0,
+    base                    >= 4.7     && < 5.0,
     binary                  >= 0.7     && < 0.11,
     bytestring              >= 0.10.4  && < 0.11,
     ghc-prim                >= 0.3.1.0 && < 0.6,
@@ -242,7 +244,7 @@ benchmark versus
 
   build-depends:
     array                   >= 0.4     && < 0.6,
-    base                    >= 4.6     && < 5.0,
+    base                    >= 4.7     && < 5.0,
     binary                  >= 0.7     && < 0.11,
     bytestring              >= 0.10.4  && < 0.11,
     directory               >= 1.0     && < 1.4,
