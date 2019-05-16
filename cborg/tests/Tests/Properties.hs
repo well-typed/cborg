@@ -1,8 +1,9 @@
 {-# LANGUAGE CPP                  #-}
-{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE DefaultSignatures    #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Tests.Properties (
@@ -45,14 +46,13 @@ import           Data.Bits (complement)
 import qualified Numeric.Half as Half
 import           Data.Function (on)
 import           Data.Proxy
-import           Control.Applicative (liftA2)
 
 import           Codec.CBOR.Term
 import           Codec.CBOR.Read
 import           Codec.CBOR.Write
 import           Codec.CBOR.Decoding
 import           Codec.CBOR.Encoding
-import           Codec.CBOR.FlatTerm (toFlatTerm, fromFlatTerm)
+import           Codec.CBOR.FlatTerm
 
 import           Test.Tasty (TestTree, testGroup, localOption)
 import           Test.Tasty.QuickCheck (testProperty, QuickCheckMaxSize(..))
@@ -399,19 +399,25 @@ prop_decodeRefdecodeImp _ x =
 -- >                Imp ─────────────────────▶Imp
 -- >                              id
 --
--- > (fromFlatTerm dec_imp . toFlatTerm . enc_imp) imp = Right imp
+-- > (fromFlatTerm dec_imp . toFlatTerm . enc_imp) imp = imp
 --
 prop_toFromFlatTerm :: forall t. Token t => Proxy t -> t -> Bool
 prop_toFromFlatTerm _ x =    
   
-    liftA2 eq (fn enc) (Right imp) == Right True
+  (deserialiseFromFlatTerm (decodeImp t) . toFlatTerm . encodeImp t) imp  `eq`  imp
     
   where
     imp  = fromRef . canonicaliseRef $ x
     eq   = eqImp t
     enc  = encodeImp t imp 
-    fn e = fromFlatTerm  (decodeImp (Proxy :: Proxy t)) $ toFlatTerm e
+    fn e = fromFlatTerm (decodeImp t) $ toFlatTerm e
     t    = Proxy :: Proxy t
+
+    deserialiseFromFlatTerm :: (forall s. Decoder s a) -> FlatTerm -> a
+    deserialiseFromFlatTerm dec flatTerm =
+      case fromFlatTerm dec flatTerm of
+        Left _ -> error "fromFlatTerm: decode failure"
+        Right x -> x
 
 
 --------------------------------------------------------------------------------
