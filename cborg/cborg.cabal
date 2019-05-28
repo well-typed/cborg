@@ -122,6 +122,7 @@ test-suite tests
     Tests.Term
     Tests.UTF8
     Tests.Util
+    Tests.FlatTerm
 
   build-depends:
     array                   >= 0.4     && < 0.6,
