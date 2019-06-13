@@ -83,79 +83,96 @@ toStrictByteString = L.toStrict . B.toLazyByteString . toBuilder
 toBuilder :: Encoding  -- ^ The @'Encoding'@ of a CBOR value.
           -> B.Builder -- ^ The encoded value as a @'B.Builder'@.
 toBuilder =
-    \(Encoding vs0) -> BI.builder (step (vs0 TkEnd))
+    \(Encoding vs0) -> BI.builder (buildStep (vs0 TkEnd))
+
+buildStep :: Tokens
+          -> (BI.BufferRange -> IO (BI.BuildSignal a))
+          -> BI.BufferRange
+          -> IO (BI.BuildSignal a)
+buildStep vs1 k (BI.BufferRange op0 ope0) =
+    go vs1 op0
   where
-    step vs1 k (BI.BufferRange op0 ope0) =
-        go vs1 op0
-      where
-        go vs !op
-          | op `plusPtr` bound <= ope0 = case vs of
-              TkWord     x vs' -> PI.runB wordMP     x op >>= go vs'
-              TkWord64   x vs' -> PI.runB word64MP   x op >>= go vs'
+    go vs !op
+      | op `plusPtr` bound <= ope0 = case vs of
+          TkWord     x vs' -> PI.runB wordMP     x op >>= go vs'
+          TkWord64   x vs' -> PI.runB word64MP   x op >>= go vs'
 
-              TkInt      x vs' -> PI.runB intMP      x op >>= go vs'
-              TkInt64    x vs' -> PI.runB int64MP    x op >>= go vs'
+          TkInt      x vs' -> PI.runB intMP      x op >>= go vs'
+          TkInt64    x vs' -> PI.runB int64MP    x op >>= go vs'
 
-              TkBytes    x vs' -> BI.runBuilderWith (bytesMP  x) (step vs' k) (BI.BufferRange op ope0)
-              TkBytesBegin vs' -> PI.runB bytesBeginMP  () op >>= go vs'
-              TkByteArray x vs' -> BI.runBuilderWith (byteArrayMP x) (step vs' k) (BI.BufferRange op ope0)
+          TkBytes        x vs' -> BI.runBuilderWith
+                                    (bytesMP  x) (buildStep vs' k)
+                                    (BI.BufferRange op ope0)
+          TkByteArray    x vs' -> BI.runBuilderWith
+                                    (byteArrayMP x) (buildStep vs' k)
+                                    (BI.BufferRange op ope0)
 
-              TkUtf8ByteArray x vs' -> BI.runBuilderWith (utf8ByteArrayMP x) (step vs' k) (BI.BufferRange op ope0)
-              TkString   x vs' -> BI.runBuilderWith (stringMP x) (step vs' k) (BI.BufferRange op ope0)
-              TkStringBegin vs'-> PI.runB stringBeginMP () op >>= go vs'
+          TkUtf8ByteArray x vs' -> BI.runBuilderWith
+                                     (utf8ByteArrayMP x) (buildStep vs' k)
+                                     (BI.BufferRange op ope0)
+          TkString        x vs' -> BI.runBuilderWith
+                                     (stringMP x) (buildStep vs' k)
+                                     (BI.BufferRange op ope0)
 
-              TkListLen  x vs' -> PI.runB arrayLenMP x op >>= go vs'
-              TkListBegin  vs' -> PI.runB arrayBeginMP  () op >>= go vs'
+          TkBytesBegin vs' -> PI.runB bytesBeginMP  () op >>= go vs'
+          TkStringBegin vs'-> PI.runB stringBeginMP () op >>= go vs'
 
-              TkMapLen   x vs' -> PI.runB mapLenMP   x op >>= go vs'
-              TkMapBegin   vs' -> PI.runB mapBeginMP    () op >>= go vs'
+          TkListLen  x vs' -> PI.runB arrayLenMP     x op >>= go vs'
+          TkListBegin  vs' -> PI.runB arrayBeginMP  () op >>= go vs'
 
-              TkTag      x vs' -> PI.runB tagMP      x op >>= go vs'
-              TkTag64    x vs' -> PI.runB tag64MP      x op >>= go vs'
+          TkMapLen   x vs' -> PI.runB mapLenMP       x op >>= go vs'
+          TkMapBegin   vs' -> PI.runB mapBeginMP    () op >>= go vs'
+
+          TkTag      x vs' -> PI.runB tagMP          x op >>= go vs'
+          TkTag64    x vs' -> PI.runB tag64MP        x op >>= go vs'
 
 #if defined(OPTIMIZE_GMP)
-              -- This code is specialized for GMP implementation of Integer. By
-              -- looking directly at the constructors we can avoid some checks.
-              -- S# hold an Int, so we can just use intMP.
-              TkInteger (Gmp.S# i) vs' -> PI.runB intMP (I# i) op >>= go vs'
-              -- Jp# is guaranteed to be > 0.
-              TkInteger integer@(Gmp.Jp# bigNat) vs'
-                | integer <= fromIntegral (maxBound :: Word64) ->
-                    PI.runB word64MP (fromIntegral integer) op >>= go vs'
-                | otherwise ->
-                   let buffer = BI.BufferRange op ope0
-                   in BI.runBuilderWith (bigNatMP bigNat) (step vs' k) buffer
-              -- Jn# is guaranteed to be < 0.
-              TkInteger integer@(Gmp.Jn# bigNat) vs'
-                | integer >= -1 - fromIntegral (maxBound :: Word64) ->
-                    PI.runB negInt64MP (fromIntegral (-1 - integer)) op >>= go vs'
-                | otherwise ->
-                    let buffer = BI.BufferRange op ope0
-                    in BI.runBuilderWith (negBigNatMP bigNat) (step vs' k) buffer
+          -- This code is specialized for GMP implementation of Integer. By
+          -- looking directly at the constructors we can avoid some checks.
+          -- S# hold an Int, so we can just use intMP.
+          TkInteger (Gmp.S# i) vs' -> PI.runB intMP (I# i) op >>= go vs'
+          -- Jp# is guaranteed to be > 0.
+          TkInteger integer@(Gmp.Jp# bigNat) vs'
+            | integer <= fromIntegral (maxBound :: Word64) ->
+                PI.runB word64MP (fromIntegral integer) op >>= go vs'
+            | otherwise ->
+               let buffer = BI.BufferRange op ope0
+               in BI.runBuilderWith
+                    (bigNatMP bigNat) (buildStep vs' k) buffer
+          -- Jn# is guaranteed to be < 0.
+          TkInteger integer@(Gmp.Jn# bigNat) vs'
+            | integer >= -1 - fromIntegral (maxBound :: Word64) ->
+                PI.runB negInt64MP (fromIntegral (-1 - integer)) op >>= go vs'
+            | otherwise ->
+                let buffer = BI.BufferRange op ope0
+                in BI.runBuilderWith
+                     (negBigNatMP bigNat) (buildStep vs' k) buffer
 #else
-              TkInteger  x vs'
-                | x >= 0
-                , x <= fromIntegral (maxBound :: Word64)
-                                -> PI.runB word64MP (fromIntegral x) op >>= go vs'
-                | x <  0
-                , x >= -1 - fromIntegral (maxBound :: Word64)
-                                -> PI.runB negInt64MP (fromIntegral (-1 - x)) op >>= go vs'
-                | otherwise     -> BI.runBuilderWith (integerMP x) (step vs' k) (BI.BufferRange op ope0)
+          TkInteger  x vs'
+            | x >= 0
+            , x <= fromIntegral (maxBound :: Word64)
+                            -> PI.runB word64MP (fromIntegral x) op >>= go vs'
+            | x <  0
+            , x >= -1 - fromIntegral (maxBound :: Word64)
+                            -> PI.runB negInt64MP (fromIntegral (-1 - x)) op >>= go vs'
+            | otherwise     -> BI.runBuilderWith
+                                 (integerMP x) (buildStep vs' k)
+                                 (BI.BufferRange op ope0)
 #endif
 
-              TkBool False vs' -> PI.runB falseMP   () op >>= go vs'
-              TkBool True  vs' -> PI.runB trueMP    () op >>= go vs'
-              TkNull       vs' -> PI.runB nullMP    () op >>= go vs'
-              TkUndef      vs' -> PI.runB undefMP   () op >>= go vs'
-              TkSimple   w vs' -> PI.runB simpleMP   w op >>= go vs'
-              TkFloat16  f vs' -> PI.runB halfMP     f op >>= go vs'
-              TkFloat32  f vs' -> PI.runB floatMP    f op >>= go vs'
-              TkFloat64  f vs' -> PI.runB doubleMP   f op >>= go vs'
-              TkBreak      vs' -> PI.runB breakMP   () op >>= go vs'
+          TkBool False vs' -> PI.runB falseMP   () op >>= go vs'
+          TkBool True  vs' -> PI.runB trueMP    () op >>= go vs'
+          TkNull       vs' -> PI.runB nullMP    () op >>= go vs'
+          TkUndef      vs' -> PI.runB undefMP   () op >>= go vs'
+          TkSimple   w vs' -> PI.runB simpleMP   w op >>= go vs'
+          TkFloat16  f vs' -> PI.runB halfMP     f op >>= go vs'
+          TkFloat32  f vs' -> PI.runB floatMP    f op >>= go vs'
+          TkFloat64  f vs' -> PI.runB doubleMP   f op >>= go vs'
+          TkBreak      vs' -> PI.runB breakMP   () op >>= go vs'
 
-              TkEnd            -> k (BI.BufferRange op ope0)
+          TkEnd            -> k (BI.BufferRange op ope0)
 
-          | otherwise = return $ BI.bufferFull bound op (step vs k)
+      | otherwise = return $ BI.bufferFull bound op (buildStep vs k)
 
     -- The maximum size in bytes of the fixed-size encodings
     bound :: Int
