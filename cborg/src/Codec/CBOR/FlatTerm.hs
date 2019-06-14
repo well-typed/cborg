@@ -11,16 +11,16 @@
 -- Stability   : experimental
 -- Portability : non-portable (GHC extensions)
 --
--- A simpler form than CBOR for writing out @'Enc.Encoding'@ values that allows
+-- A simpler form than CBOR for writing out 'Enc.Encoding' values that allows
 -- easier verification and testing. While this library primarily focuses
--- on taking @'Enc.Encoding'@ values (independent of any underlying format)
+-- on taking 'Enc.Encoding' values (independent of any underlying format)
 -- and serializing them into CBOR format, this module offers an alternative
--- format called @'FlatTerm'@ for serializing @'Enc.Encoding'@ values.
+-- format called 'FlatTerm' for serializing 'Enc.Encoding' values.
 --
--- The @'FlatTerm'@ form is very simple and internally mirrors the original
--- @'Encoding'@ type very carefully. The intention here is that once you
--- have @'Enc.Encoding'@ and @'Dec.Decoding'@ values for your types, you can
--- round-trip values through @'FlatTerm'@ to catch bugs more easily and with
+-- The 'FlatTerm' form is very simple and internally mirrors the original
+-- 'Encoding' type very carefully. The intention here is that once you
+-- have 'Enc.Encoding' and 'Dec.Decoding' values for your types, you can
+-- round-trip values through 'FlatTerm' to catch bugs more easily and with
 -- a smaller amount of code to look through.
 --
 -- For that reason, this module is primarily useful for client libraries,
@@ -65,14 +65,14 @@ import           Control.Monad.ST
 
 --------------------------------------------------------------------------------
 
--- | A "flat" representation of an @'Enc.Encoding'@ value,
+-- | A \"flat\" representation of an 'Enc.Encoding' value,
 -- useful for round-tripping and writing tests.
 --
 -- @since 0.2.0.0
 type FlatTerm = [TermToken]
 
--- | A concrete encoding of @'Enc.Encoding'@ values, one
--- which mirrors the original @'Enc.Encoding'@ type closely.
+-- | A concrete encoding of 'Enc.Encoding' values, one
+-- which mirrors the original 'Enc.Encoding' type closely.
 --
 -- @since 0.2.0.0
 data TermToken
@@ -98,11 +98,11 @@ data TermToken
 
 --------------------------------------------------------------------------------
 
--- | Convert an arbitrary @'Enc.Encoding'@ into a @'FlatTerm'@.
+-- | Convert an arbitrary 'Enc.Encoding' into a 'FlatTerm'.
 --
 -- @since 0.2.0.0
-toFlatTerm :: Encoding -- ^ The input @'Enc.Encoding'@.
-           -> FlatTerm -- ^ The resulting @'FlatTerm'@.
+toFlatTerm :: Encoding -- ^ The input 'Enc.Encoding'.
+           -> FlatTerm -- ^ The resulting 'FlatTerm'.
 toFlatTerm (Encoding tb) = convFlatTerm (tb Enc.TkEnd)
 
 convFlatTerm :: Enc.Tokens -> FlatTerm
@@ -145,13 +145,13 @@ convFlatTerm  Enc.TkEnd             = []
 
 --------------------------------------------------------------------------------
 
--- | Given a @'Dec.Decoder'@, decode a @'FlatTerm'@ back into
+-- | Given a 'Dec.Decoder', decode a 'FlatTerm' back into
 -- an ordinary value, or return an error.
 --
 -- @since 0.2.0.0
 fromFlatTerm :: (forall s. Decoder s a)
-                                -- ^ A @'Dec.Decoder'@ for a serialised value.
-             -> FlatTerm        -- ^ The serialised @'FlatTerm'@.
+                                -- ^ A 'Dec.Decoder' for a serialised value.
+             -> FlatTerm        -- ^ The serialised 'FlatTerm'.
              -> Either String a -- ^ The deserialised value, or an error.
 fromFlatTerm decoder ft =
     runST (getDecodeAction decoder >>= go ft)
@@ -423,7 +423,7 @@ fromFlatTerm decoder ft =
     unexpected name []      = return $ Left $ name ++ ": unexpected end of input"
     unexpected name (tok:_) = return $ Left $ name ++ ": unexpected token " ++ show tok
 
--- | Map a @'TermToken'@ to the underlying CBOR @'TokenType'@
+-- | Map a 'TermToken' to the underlying CBOR 'TokenType'
 tokenTypeOf :: TermToken -> TokenType
 tokenTypeOf (TkInt n)
     | n >= 0                = TypeUInt
@@ -448,12 +448,12 @@ tokenTypeOf TkFloat64{}     = TypeFloat64
 
 --------------------------------------------------------------------------------
 
--- | Ensure a @'FlatTerm'@ is internally consistent and was created in a valid
+-- | Ensure a 'FlatTerm' is internally consistent and was created in a valid
 -- manner.
 --
 -- @since 0.2.0.0
-validFlatTerm :: FlatTerm -- ^ The input @'FlatTerm'@
-              -> Bool     -- ^ @'True'@ if valid, @'False'@ otherwise.
+validFlatTerm :: FlatTerm -- ^ The input 'FlatTerm'
+              -> Bool     -- ^ 'True' if valid, 'False' otherwise.
 validFlatTerm ts =
    either (const False) (const True) $ do
      ts' <- validateTerm TopLevelSingle ts
@@ -462,7 +462,7 @@ validFlatTerm ts =
        _  -> Left "trailing data"
 
 -- | A data type used for tracking the position we're at
--- as we traverse a @'FlatTerm'@ and make sure it's valid.
+-- as we traverse a 'FlatTerm' and make sure it's valid.
 data Loc = TopLevelSingle
          | TopLevelSequence
          | InString   Int     Loc
@@ -476,7 +476,7 @@ data Loc = TopLevelSingle
          | InTagged   Word64  Loc
   deriving Show
 
--- | Validate an arbitrary @'FlatTerm'@ at an arbitrary location.
+-- | Validate an arbitrary 'FlatTerm' at an arbitrary location.
 validateTerm :: Loc -> FlatTerm -> Either String FlatTerm
 validateTerm _loc (TkInt       _   : ts) = return ts
 validateTerm _loc (TkInteger   _   : ts) = return ts
@@ -570,8 +570,8 @@ maxInt32    = fromIntegral (maxBound :: Int32)
 minInt32    = fromIntegral (minBound :: Int32)
 maxWord32   = fromIntegral (maxBound :: Word32)
 
--- | Do a careful check to ensure an @'Int'@ is in the
--- range of a @'Word32'@.
+-- | Do a careful check to ensure an 'Int' is in the
+-- range of a 'Word32'.
 intIsValidWord32 :: Int -> Bool
 intIsValidWord32 n = b1 && b2
   where

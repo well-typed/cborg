@@ -14,8 +14,7 @@
 -- Stability   : experimental
 -- Portability : non-portable (GHC extensions)
 --
--- Tools for writing out CBOR @'Encoding'@ values in
--- a variety of forms.
+-- Functions for writing out CBOR 'Encoding' values in a variety of forms.
 --
 module Codec.CBOR.Write
   ( toBuilder          -- :: Encoding -> B.Builder
@@ -60,28 +59,28 @@ import           Codec.CBOR.Magic
 
 --------------------------------------------------------------------------------
 
--- | Turn an @'Encoding'@ into a lazy @'L.ByteString'@ in CBOR binary
+-- | Turn an 'Encoding' into a lazy 'L.ByteString' in CBOR binary
 -- format.
 --
 -- @since 0.2.0.0
-toLazyByteString :: Encoding     -- ^ The @'Encoding'@ of a CBOR value.
+toLazyByteString :: Encoding     -- ^ The 'Encoding' of a CBOR value.
                  -> L.ByteString -- ^ The encoded CBOR value.
 toLazyByteString = B.toLazyByteString . toBuilder
 
--- | Turn an @'Encoding'@ into a strict @'S.ByteString'@ in CBOR binary
+-- | Turn an 'Encoding' into a strict 'S.ByteString' in CBOR binary
 -- format.
 --
 -- @since 0.2.0.0
-toStrictByteString :: Encoding     -- ^ The @'Encoding'@ of a CBOR value.
+toStrictByteString :: Encoding     -- ^ The 'Encoding' of a CBOR value.
                    -> S.ByteString -- ^ The encoded value.
 toStrictByteString = L.toStrict . B.toLazyByteString . toBuilder
 
--- | Turn an @'Encoding'@ into a @'L.ByteString'@ @'B.Builder'@ in CBOR
+-- | Turn an 'Encoding' into a 'L.ByteString' 'B.Builder' in CBOR
 -- binary format.
 --
 -- @since 0.2.0.0
-toBuilder :: Encoding  -- ^ The @'Encoding'@ of a CBOR value.
-          -> B.Builder -- ^ The encoded value as a @'B.Builder'@.
+toBuilder :: Encoding  -- ^ The 'Encoding' of a CBOR value.
+          -> B.Builder -- ^ The encoded value as a 'B.Builder'.
 toBuilder =
     \(Encoding vs0) -> BI.builder (buildStep (vs0 TkEnd))
 
