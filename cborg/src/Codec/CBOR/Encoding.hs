@@ -49,6 +49,7 @@ module Codec.CBOR.Encoding
   , encodeFloat16            -- :: Float -> Encoding
   , encodeFloat              -- :: Float -> Encoding
   , encodeDouble             -- :: Double -> Encoding
+  , encodePreEncoded         -- :: B.ByteString -> Encoding
   ) where
 
 #include "cbor.h"
@@ -126,6 +127,9 @@ data Tokens =
     | TkFloat32  {-# UNPACK #-} !Float        Tokens
     | TkFloat64  {-# UNPACK #-} !Double       Tokens
     | TkBreak                                 Tokens
+
+    -- Special
+    | TkEncoded  {-# UNPACK #-} !B.ByteString Tokens
 
     | TkEnd
     deriving (Show,Eq)
@@ -348,3 +352,19 @@ encodeFloat = Encoding . TkFloat32
 -- @since 0.2.0.0
 encodeDouble :: Double -> Encoding
 encodeDouble = Encoding . TkFloat64
+
+-- | Include pre-encoded valid CBOR data into the 'Encoding'.
+--
+-- The data is included into the output as-is without any additional wrapper.
+--
+-- This should be used with care. The data /must/ be a valid CBOR encoding, but
+-- this is /not/ checked.
+--
+-- This is useful when you have CBOR data that you know is already valid, e.g.
+-- previously validated and stored on disk, and you wish to include it without
+-- having to decode and re-encode it.
+--
+-- @since 0.2.2.0
+encodePreEncoded :: B.ByteString -> Encoding
+encodePreEncoded = Encoding . TkEncoded
+
