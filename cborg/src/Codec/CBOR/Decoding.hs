@@ -156,19 +156,6 @@ data DecodeAction s a
     | ConsumeMapLen  (Int#  -> ST s (DecodeAction s a))
     | ConsumeTag     (Word# -> ST s (DecodeAction s a))
 
-    | ConsumeWordCanonical    (Word# -> ST s (DecodeAction s a))
-    | ConsumeWord8Canonical   (Word# -> ST s (DecodeAction s a))
-    | ConsumeWord16Canonical  (Word# -> ST s (DecodeAction s a))
-    | ConsumeWord32Canonical  (Word# -> ST s (DecodeAction s a))
-    | ConsumeNegWordCanonical (Word# -> ST s (DecodeAction s a))
-    | ConsumeIntCanonical     (Int#  -> ST s (DecodeAction s a))
-    | ConsumeInt8Canonical    (Int#  -> ST s (DecodeAction s a))
-    | ConsumeInt16Canonical   (Int#  -> ST s (DecodeAction s a))
-    | ConsumeInt32Canonical   (Int#  -> ST s (DecodeAction s a))
-    | ConsumeListLenCanonical (Int#  -> ST s (DecodeAction s a))
-    | ConsumeMapLenCanonical  (Int#  -> ST s (DecodeAction s a))
-    | ConsumeTagCanonical     (Word# -> ST s (DecodeAction s a))
-
 -- 64bit variants for 32bit machines
 #if defined(ARCH_32bit)
     | ConsumeWord64    (Word64# -> ST s (DecodeAction s a))
@@ -177,13 +164,6 @@ data DecodeAction s a
     | ConsumeListLen64 (Int64#  -> ST s (DecodeAction s a))
     | ConsumeMapLen64  (Int64#  -> ST s (DecodeAction s a))
     | ConsumeTag64     (Word64# -> ST s (DecodeAction s a))
-
-    | ConsumeWord64Canonical    (Word64# -> ST s (DecodeAction s a))
-    | ConsumeNegWord64Canonical (Word64# -> ST s (DecodeAction s a))
-    | ConsumeInt64Canonical     (Int64#  -> ST s (DecodeAction s a))
-    | ConsumeListLen64Canonical (Int64#  -> ST s (DecodeAction s a))
-    | ConsumeMapLen64Canonical  (Int64#  -> ST s (DecodeAction s a))
-    | ConsumeTag64Canonical     (Word64# -> ST s (DecodeAction s a))
 #endif
 
     | ConsumeInteger       (Integer   -> ST s (DecodeAction s a))
@@ -195,16 +175,6 @@ data DecodeAction s a
     | ConsumeUtf8ByteArray (ByteArray -> ST s (DecodeAction s a))
     | ConsumeBool          (Bool      -> ST s (DecodeAction s a))
     | ConsumeSimple        (Word#     -> ST s (DecodeAction s a))
-
-    | ConsumeIntegerCanonical       (Integer -> ST s (DecodeAction s a))
-    | ConsumeFloat16Canonical       (Float#  -> ST s (DecodeAction s a))
-    | ConsumeFloatCanonical         (Float#  -> ST s (DecodeAction s a))
-    | ConsumeDoubleCanonical        (Double# -> ST s (DecodeAction s a))
-    | ConsumeBytesCanonical         (ByteString-> ST s (DecodeAction s a))
-    | ConsumeByteArrayCanonical     (ByteArray -> ST s (DecodeAction s a))
-    | ConsumeStringCanonical        (Text      -> ST s (DecodeAction s a))
-    | ConsumeUtf8ByteArrayCanonical (ByteArray -> ST s (DecodeAction s a))
-    | ConsumeSimpleCanonical        (Word#   -> ST s (DecodeAction s a))
 
     | ConsumeBytesIndef   (ST s (DecodeAction s a))
     | ConsumeStringIndef  (ST s (DecodeAction s a))
@@ -223,6 +193,39 @@ data DecodeAction s a
 #else
     | PeekByteOffset (Int#      -> ST s (DecodeAction s a))
 #endif
+
+      -- All the canonical variants
+    | ConsumeWordCanonical    (Word# -> ST s (DecodeAction s a))
+    | ConsumeWord8Canonical   (Word# -> ST s (DecodeAction s a))
+    | ConsumeWord16Canonical  (Word# -> ST s (DecodeAction s a))
+    | ConsumeWord32Canonical  (Word# -> ST s (DecodeAction s a))
+    | ConsumeNegWordCanonical (Word# -> ST s (DecodeAction s a))
+    | ConsumeIntCanonical     (Int#  -> ST s (DecodeAction s a))
+    | ConsumeInt8Canonical    (Int#  -> ST s (DecodeAction s a))
+    | ConsumeInt16Canonical   (Int#  -> ST s (DecodeAction s a))
+    | ConsumeInt32Canonical   (Int#  -> ST s (DecodeAction s a))
+    | ConsumeListLenCanonical (Int#  -> ST s (DecodeAction s a))
+    | ConsumeMapLenCanonical  (Int#  -> ST s (DecodeAction s a))
+    | ConsumeTagCanonical     (Word# -> ST s (DecodeAction s a))
+
+#if defined(ARCH_32bit)
+    | ConsumeWord64Canonical    (Word64# -> ST s (DecodeAction s a))
+    | ConsumeNegWord64Canonical (Word64# -> ST s (DecodeAction s a))
+    | ConsumeInt64Canonical     (Int64#  -> ST s (DecodeAction s a))
+    | ConsumeListLen64Canonical (Int64#  -> ST s (DecodeAction s a))
+    | ConsumeMapLen64Canonical  (Int64#  -> ST s (DecodeAction s a))
+    | ConsumeTag64Canonical     (Word64# -> ST s (DecodeAction s a))
+#endif
+
+    | ConsumeIntegerCanonical       (Integer -> ST s (DecodeAction s a))
+    | ConsumeFloat16Canonical       (Float#  -> ST s (DecodeAction s a))
+    | ConsumeFloatCanonical         (Float#  -> ST s (DecodeAction s a))
+    | ConsumeDoubleCanonical        (Double# -> ST s (DecodeAction s a))
+    | ConsumeBytesCanonical         (ByteString-> ST s (DecodeAction s a))
+    | ConsumeByteArrayCanonical     (ByteArray -> ST s (DecodeAction s a))
+    | ConsumeStringCanonical        (Text      -> ST s (DecodeAction s a))
+    | ConsumeUtf8ByteArrayCanonical (ByteArray -> ST s (DecodeAction s a))
+    | ConsumeSimpleCanonical        (Word#   -> ST s (DecodeAction s a))
 
     | Fail String
     | Done a
