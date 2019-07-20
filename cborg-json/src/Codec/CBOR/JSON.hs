@@ -54,8 +54,8 @@ decodeValue lenient = do
       TypeNull    -> Null   <$  decodeNull
       TypeString  -> String <$> decodeString
 
-      TypeListLen      -> decodeListLen >>= flip (decodeListN lenient) []
-      TypeListLenIndef -> decodeListLenIndef >> (decodeListIndef lenient) []
+      TypeListLen      -> decodeListLen >>= decodeListN lenient
+      TypeListLenIndef -> decodeListLenIndef >> decodeListIndef lenient []
       TypeMapLen       -> decodeMapLen >>= flip (decodeMapN lenient) HM.empty
 
       _           -> fail $ "unexpected CBOR token type for a JSON value: "
@@ -67,12 +67,10 @@ decodeNumberIntegral = Number . fromInteger <$> decodeInteger
 decodeNumberFloating :: Decoder s Value
 decodeNumberFloating = Number . Scientific.fromFloatDigits <$> decodeDouble
 
-decodeListN :: Bool -> Int -> [Value] -> Decoder s Value
-decodeListN !lenient !n acc =
-    case n of
-      0 -> return $! Array (V.fromList (reverse acc))
-      _ -> do !t <- decodeValue lenient
-              decodeListN lenient (n-1) (t : acc)
+decodeListN :: Bool -> Int -> Decoder s Value
+decodeListN !lenient !n = do
+  vec <- V.replicateM n (decodeValue lenient) 
+  return $! Array vec
 
 decodeListIndef :: Bool -> [Value] -> Decoder s Value
 decodeListIndef !lenient acc = do
