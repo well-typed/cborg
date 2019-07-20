@@ -10,6 +10,7 @@ import qualified Tests.ByteOffset as ByteOffset
 import qualified Tests.Canonical  as Canonical
 import qualified Tests.Regress    as Regress
 import qualified Tests.UTF8       as UTF8
+import qualified Tests.PreEncoded as PreEncoded
 
 main :: IO ()
 main = defaultMain tests
@@ -25,4 +26,5 @@ tests =
     , Canonical.testTree
     , Regress.testTree
     , UTF8.testTree
+    , PreEncoded.testTree
     ]
