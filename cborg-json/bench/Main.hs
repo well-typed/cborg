@@ -31,7 +31,7 @@ fetchLargeJSON = do
 loadLargeJSONBytes :: IO LBS.ByteString
 loadLargeJSONBytes = do
     fetchLargeJSON
-    GZip.decompress <$> LBS.readFile dataFile
+    fmap GZip.decompress (LBS.readFile dataFile)
 
 loadLargeJSON :: IO Aeson.Value
 loadLargeJSON = do
@@ -41,7 +41,7 @@ loadLargeJSON = do
 
 loadLargeCBORBytes :: IO LBS.ByteString
 loadLargeCBORBytes =
-    toLazyByteString . encodeValue <$> loadLargeJSON
+    fmap (toLazyByteString . encodeValue) loadLargeJSON
 
 main :: IO ()
 main = defaultMain benchmarks
