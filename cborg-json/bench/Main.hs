@@ -19,7 +19,7 @@ dataFile :: FilePath
 dataFile = "bench/data.json.gz"
 
 dataFileURL :: FilePath
-dataFileURL = "https://github.com/well-typed/cborg/raw/master/cborg-json/bench/data.json.gz"
+dataFileURL = "https://raw.githubusercontent.com/well-typed/cborg/master/cborg-json/bench/data.json.gz"
 
 fetchLargeJSON :: IO ()
 fetchLargeJSON = do
