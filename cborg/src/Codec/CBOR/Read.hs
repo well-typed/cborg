@@ -99,8 +99,8 @@ instance Exception DeserialiseFailure where
 -- of type @a@.
 data IDecode s a
   = -- | The decoder has consumed the available input and needs more
-    -- to continue. Provide @'Just'@ if more input is available and
-    -- @'Nothing'@ otherwise, and you will get a new @'IDecode'@.
+    -- to continue. Provide 'Just' if more input is available and
+    -- 'Nothing' otherwise, and you will get a new 'IDecode'.
     Partial (Maybe BS.ByteString -> ST s (IDecode s a))
 
     -- | The decoder has successfully finished. Except for the output
@@ -109,14 +109,14 @@ data IDecode s a
   | Done !BS.ByteString {-# UNPACK #-} !ByteOffset a
 
     -- | The decoder ran into an error. The decoder either used
-    -- @'fail'@ or was not provided enough input. Contains any
+    -- 'fail' or was not provided enough input. Contains any
     -- unconsumed input, the number of bytes consumed, and a
-    -- @'DeserialiseFailure'@ exception describing the reason why the
+    -- 'DeserialiseFailure' exception describing the reason why the
     -- failure occurred.
   | Fail !BS.ByteString {-# UNPACK #-} !ByteOffset DeserialiseFailure
 
--- | Given a @'Decoder'@ and some @'LBS.ByteString'@ representing
--- an encoded CBOR value, return @'Either'@ the decoded CBOR value
+-- | Given a 'Decoder' and some 'LBS.ByteString' representing
+-- an encoded CBOR value, return 'Either' the decoded CBOR value
 -- or an error. In addition to the decoded value return any remaining input
 -- content.
 --
@@ -128,8 +128,8 @@ deserialiseFromBytes d lbs =
     fmap f $ runIDecode (deserialiseIncremental d) lbs
   where f (rest, _, x) = (rest, x)
 
--- | Given a @'Decoder'@ and some @'LBS.ByteString'@ representing
--- an encoded CBOR value, return @'Either'@ the decoded CBOR value
+-- | Given a 'Decoder' and some 'LBS.ByteString' representing
+-- an encoded CBOR value, return 'Either' the decoded CBOR value
 -- or an error. In addition to the decoded value return any remaining input
 -- content and the number of bytes consumed.
 --
@@ -157,7 +157,7 @@ runIDecode d lbs =
     go  LBS.Empty          (Partial  k)    = k Nothing   >>= go LBS.Empty
     go (LBS.Chunk bs lbs') (Partial  k)    = k (Just bs) >>= go lbs'
 
--- | Run a @'Decoder'@ incrementally, returning a continuation
+-- | Run a 'Decoder' incrementally, returning a continuation
 -- representing the result of the incremental decode.
 --
 -- @since 0.2.0.0

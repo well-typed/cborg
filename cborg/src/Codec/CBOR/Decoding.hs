@@ -13,7 +13,7 @@
 -- Portability : non-portable (GHC extensions)
 --
 -- High level API for decoding values that were encoded with the
--- "Codec.CBOR.Encoding" module, using a @'Monad'@
+-- "Codec.CBOR.Encoding" module, using a 'Monad'
 -- based interface.
 --
 module Codec.CBOR.Decoding
@@ -129,8 +129,8 @@ import           Prelude hiding (decodeFloat)
 
 -- | A continuation-based decoder, used for decoding values that were
 -- previously encoded using the "Codec.CBOR.Encoding"
--- module. As @'Decoder'@ has a @'Monad'@ instance, you can easily
--- write @'Decoder'@s monadically for building your deserialisation
+-- module. As 'Decoder' has a 'Monad' instance, you can easily
+-- write 'Decoder's monadically for building your deserialisation
 -- logic.
 --
 -- @since 0.2.0.0
@@ -156,19 +156,6 @@ data DecodeAction s a
     | ConsumeMapLen  (Int#  -> ST s (DecodeAction s a))
     | ConsumeTag     (Word# -> ST s (DecodeAction s a))
 
-    | ConsumeWordCanonical    (Word# -> ST s (DecodeAction s a))
-    | ConsumeWord8Canonical   (Word# -> ST s (DecodeAction s a))
-    | ConsumeWord16Canonical  (Word# -> ST s (DecodeAction s a))
-    | ConsumeWord32Canonical  (Word# -> ST s (DecodeAction s a))
-    | ConsumeNegWordCanonical (Word# -> ST s (DecodeAction s a))
-    | ConsumeIntCanonical     (Int#  -> ST s (DecodeAction s a))
-    | ConsumeInt8Canonical    (Int#  -> ST s (DecodeAction s a))
-    | ConsumeInt16Canonical   (Int#  -> ST s (DecodeAction s a))
-    | ConsumeInt32Canonical   (Int#  -> ST s (DecodeAction s a))
-    | ConsumeListLenCanonical (Int#  -> ST s (DecodeAction s a))
-    | ConsumeMapLenCanonical  (Int#  -> ST s (DecodeAction s a))
-    | ConsumeTagCanonical     (Word# -> ST s (DecodeAction s a))
-
 -- 64bit variants for 32bit machines
 #if defined(ARCH_32bit)
     | ConsumeWord64    (Word64# -> ST s (DecodeAction s a))
@@ -177,13 +164,6 @@ data DecodeAction s a
     | ConsumeListLen64 (Int64#  -> ST s (DecodeAction s a))
     | ConsumeMapLen64  (Int64#  -> ST s (DecodeAction s a))
     | ConsumeTag64     (Word64# -> ST s (DecodeAction s a))
-
-    | ConsumeWord64Canonical    (Word64# -> ST s (DecodeAction s a))
-    | ConsumeNegWord64Canonical (Word64# -> ST s (DecodeAction s a))
-    | ConsumeInt64Canonical     (Int64#  -> ST s (DecodeAction s a))
-    | ConsumeListLen64Canonical (Int64#  -> ST s (DecodeAction s a))
-    | ConsumeMapLen64Canonical  (Int64#  -> ST s (DecodeAction s a))
-    | ConsumeTag64Canonical     (Word64# -> ST s (DecodeAction s a))
 #endif
 
     | ConsumeInteger       (Integer   -> ST s (DecodeAction s a))
@@ -195,16 +175,6 @@ data DecodeAction s a
     | ConsumeUtf8ByteArray (ByteArray -> ST s (DecodeAction s a))
     | ConsumeBool          (Bool      -> ST s (DecodeAction s a))
     | ConsumeSimple        (Word#     -> ST s (DecodeAction s a))
-
-    | ConsumeIntegerCanonical       (Integer -> ST s (DecodeAction s a))
-    | ConsumeFloat16Canonical       (Float#  -> ST s (DecodeAction s a))
-    | ConsumeFloatCanonical         (Float#  -> ST s (DecodeAction s a))
-    | ConsumeDoubleCanonical        (Double# -> ST s (DecodeAction s a))
-    | ConsumeBytesCanonical         (ByteString-> ST s (DecodeAction s a))
-    | ConsumeByteArrayCanonical     (ByteArray -> ST s (DecodeAction s a))
-    | ConsumeStringCanonical        (Text      -> ST s (DecodeAction s a))
-    | ConsumeUtf8ByteArrayCanonical (ByteArray -> ST s (DecodeAction s a))
-    | ConsumeSimpleCanonical        (Word#   -> ST s (DecodeAction s a))
 
     | ConsumeBytesIndef   (ST s (DecodeAction s a))
     | ConsumeStringIndef  (ST s (DecodeAction s a))
@@ -223,6 +193,39 @@ data DecodeAction s a
 #else
     | PeekByteOffset (Int#      -> ST s (DecodeAction s a))
 #endif
+
+      -- All the canonical variants
+    | ConsumeWordCanonical    (Word# -> ST s (DecodeAction s a))
+    | ConsumeWord8Canonical   (Word# -> ST s (DecodeAction s a))
+    | ConsumeWord16Canonical  (Word# -> ST s (DecodeAction s a))
+    | ConsumeWord32Canonical  (Word# -> ST s (DecodeAction s a))
+    | ConsumeNegWordCanonical (Word# -> ST s (DecodeAction s a))
+    | ConsumeIntCanonical     (Int#  -> ST s (DecodeAction s a))
+    | ConsumeInt8Canonical    (Int#  -> ST s (DecodeAction s a))
+    | ConsumeInt16Canonical   (Int#  -> ST s (DecodeAction s a))
+    | ConsumeInt32Canonical   (Int#  -> ST s (DecodeAction s a))
+    | ConsumeListLenCanonical (Int#  -> ST s (DecodeAction s a))
+    | ConsumeMapLenCanonical  (Int#  -> ST s (DecodeAction s a))
+    | ConsumeTagCanonical     (Word# -> ST s (DecodeAction s a))
+
+#if defined(ARCH_32bit)
+    | ConsumeWord64Canonical    (Word64# -> ST s (DecodeAction s a))
+    | ConsumeNegWord64Canonical (Word64# -> ST s (DecodeAction s a))
+    | ConsumeInt64Canonical     (Int64#  -> ST s (DecodeAction s a))
+    | ConsumeListLen64Canonical (Int64#  -> ST s (DecodeAction s a))
+    | ConsumeMapLen64Canonical  (Int64#  -> ST s (DecodeAction s a))
+    | ConsumeTag64Canonical     (Word64# -> ST s (DecodeAction s a))
+#endif
+
+    | ConsumeIntegerCanonical       (Integer -> ST s (DecodeAction s a))
+    | ConsumeFloat16Canonical       (Float#  -> ST s (DecodeAction s a))
+    | ConsumeFloatCanonical         (Float#  -> ST s (DecodeAction s a))
+    | ConsumeDoubleCanonical        (Double# -> ST s (DecodeAction s a))
+    | ConsumeBytesCanonical         (ByteString-> ST s (DecodeAction s a))
+    | ConsumeByteArrayCanonical     (ByteArray -> ST s (DecodeAction s a))
+    | ConsumeStringCanonical        (Text      -> ST s (DecodeAction s a))
+    | ConsumeUtf8ByteArrayCanonical (ByteArray -> ST s (DecodeAction s a))
+    | ConsumeSimpleCanonical        (Word#   -> ST s (DecodeAction s a))
 
     | Fail String
     | Done a
@@ -301,7 +304,7 @@ instance Fail.MonadFail (Decoder s) where
 liftST :: ST s a -> Decoder s a
 liftST m = Decoder $ \k -> m >>= k
 
--- | Given a @'Decoder'@, give us the @'DecodeAction'@
+-- | Given a 'Decoder', give us the 'DecodeAction'
 --
 -- @since 0.2.0.0
 getDecodeAction :: Decoder s a -> ST s (DecodeAction s a)
@@ -313,10 +316,10 @@ getDecodeAction (Decoder k) = k (\x -> return (Done x))
 -- <https://tools.ietf.org/html/rfc7049#section-3.9>
 --
 -- In general in CBOR there can be multiple representations for the same value,
--- for example the integer @0@ represented in 8, 16, 32 or 64 bits. This
--- library always encodeds values in the shortest representation but on
+-- for example the integer @0@ can be represented in 8, 16, 32 or 64 bits. This
+-- library always encoded values in the shortest representation but on
 -- decoding allows any valid encoding. For some applications it is useful or
--- important to only decode the canonical encoding. The decoder primitves here
+-- important to only decode the canonical encoding. The decoder primitives here
 -- are to allow applications to implement canonical decoding.
 --
 -- It is important to note that achieving a canonical representation is /not/
@@ -330,7 +333,7 @@ getDecodeAction (Decoder k) = k (\x -> return (Done x))
 -- This /does not/ enforce a canonical encoding. The decoder above will allow
 -- set elements in any order. The use of @Set.fromList@ forgets the order.
 -- To enforce that the decoder only accepts the canonical encoding it will
--- have to check that the elemets in the list are /strictly/ increasing.
+-- have to check that the elements in the list are /strictly/ increasing.
 -- Similar issues arise in many other data types, wherever there is redundancy
 -- in the external representation.
 --
@@ -344,35 +347,35 @@ getDecodeAction (Decoder k) = k (\x -> return (Done x))
 -- Read input tokens of various types
 --
 
--- | Decode a @'Word'@.
+-- | Decode a 'Word'.
 --
 -- @since 0.2.0.0
 decodeWord :: Decoder s Word
 decodeWord = Decoder (\k -> return (ConsumeWord (\w# -> k (W# w#))))
 {-# INLINE decodeWord #-}
 
--- | Decode a @'Word8'@.
+-- | Decode a 'Word8'.
 --
 -- @since 0.2.0.0
 decodeWord8 :: Decoder s Word8
 decodeWord8 = Decoder (\k -> return (ConsumeWord8 (\w# -> k (W8# w#))))
 {-# INLINE decodeWord8 #-}
 
--- | Decode a @'Word16'@.
+-- | Decode a 'Word16'.
 --
 -- @since 0.2.0.0
 decodeWord16 :: Decoder s Word16
 decodeWord16 = Decoder (\k -> return (ConsumeWord16 (\w# -> k (W16# w#))))
 {-# INLINE decodeWord16 #-}
 
--- | Decode a @'Word32'@.
+-- | Decode a 'Word32'.
 --
 -- @since 0.2.0.0
 decodeWord32 :: Decoder s Word32
 decodeWord32 = Decoder (\k -> return (ConsumeWord32 (\w# -> k (W32# w#))))
 {-# INLINE decodeWord32 #-}
 
--- | Decode a @'Word64'@.
+-- | Decode a 'Word64'.
 --
 -- @since 0.2.0.0
 decodeWord64 :: Decoder s Word64
@@ -384,14 +387,14 @@ decodeWord64 =
   Decoder (\k -> return (ConsumeWord64 (\w64# -> k (W64# w64#))))
 #endif
 
--- | Decode a negative @'Word'@.
+-- | Decode a negative 'Word'.
 --
 -- @since 0.2.0.0
 decodeNegWord :: Decoder s Word
 decodeNegWord = Decoder (\k -> return (ConsumeNegWord (\w# -> k (W# w#))))
 {-# INLINE decodeNegWord #-}
 
--- | Decode a negative @'Word64'@.
+-- | Decode a negative 'Word64'.
 --
 -- @since 0.2.0.0
 decodeNegWord64 :: Decoder s Word64
@@ -403,35 +406,35 @@ decodeNegWord64 =
   Decoder (\k -> return (ConsumeNegWord64 (\w64# -> k (W64# w64#))))
 #endif
 
--- | Decode an @'Int'@.
+-- | Decode an 'Int'.
 --
 -- @since 0.2.0.0
 decodeInt :: Decoder s Int
 decodeInt = Decoder (\k -> return (ConsumeInt (\n# -> k (I# n#))))
 {-# INLINE decodeInt #-}
 
--- | Decode an @'Int8'@.
+-- | Decode an 'Int8'.
 --
 -- @since 0.2.0.0
 decodeInt8 :: Decoder s Int8
 decodeInt8 = Decoder (\k -> return (ConsumeInt8 (\w# -> k (I8# w#))))
 {-# INLINE decodeInt8 #-}
 
--- | Decode an @'Int16'@.
+-- | Decode an 'Int16'.
 --
 -- @since 0.2.0.0
 decodeInt16 :: Decoder s Int16
 decodeInt16 = Decoder (\k -> return (ConsumeInt16 (\w# -> k (I16# w#))))
 {-# INLINE decodeInt16 #-}
 
--- | Decode an @'Int32'@.
+-- | Decode an 'Int32'.
 --
 -- @since 0.2.0.0
 decodeInt32 :: Decoder s Int32
 decodeInt32 = Decoder (\k -> return (ConsumeInt32 (\w# -> k (I32# w#))))
 {-# INLINE decodeInt32 #-}
 
--- | Decode an @'Int64'@.
+-- | Decode an 'Int64'.
 --
 -- @since 0.2.0.0
 decodeInt64 :: Decoder s Int64
@@ -443,35 +446,35 @@ decodeInt64 =
   Decoder (\k -> return (ConsumeInt64 (\n64# -> k (I64# n64#))))
 #endif
 
--- | Decode canonical representation of a @'Word'@.
+-- | Decode canonical representation of a 'Word'.
 --
 -- @since 0.2.0.0
 decodeWordCanonical :: Decoder s Word
 decodeWordCanonical = Decoder (\k -> return (ConsumeWordCanonical (\w# -> k (W# w#))))
 {-# INLINE decodeWordCanonical #-}
 
--- | Decode canonical representation of a @'Word8'@.
+-- | Decode canonical representation of a 'Word8'.
 --
 -- @since 0.2.0.0
 decodeWord8Canonical :: Decoder s Word8
 decodeWord8Canonical = Decoder (\k -> return (ConsumeWord8Canonical (\w# -> k (W8# w#))))
 {-# INLINE decodeWord8Canonical #-}
 
--- | Decode canonical representation of a @'Word16'@.
+-- | Decode canonical representation of a 'Word16'.
 --
 -- @since 0.2.0.0
 decodeWord16Canonical :: Decoder s Word16
 decodeWord16Canonical = Decoder (\k -> return (ConsumeWord16Canonical (\w# -> k (W16# w#))))
 {-# INLINE decodeWord16Canonical #-}
 
--- | Decode canonical representation of a @'Word32'@.
+-- | Decode canonical representation of a 'Word32'.
 --
 -- @since 0.2.0.0
 decodeWord32Canonical :: Decoder s Word32
 decodeWord32Canonical = Decoder (\k -> return (ConsumeWord32Canonical (\w# -> k (W32# w#))))
 {-# INLINE decodeWord32Canonical #-}
 
--- | Decode canonical representation of a @'Word64'@.
+-- | Decode canonical representation of a 'Word64'.
 --
 -- @since 0.2.0.0
 decodeWord64Canonical :: Decoder s Word64
@@ -483,14 +486,14 @@ decodeWord64Canonical =
   Decoder (\k -> return (ConsumeWord64Canonical (\w64# -> k (W64# w64#))))
 #endif
 
--- | Decode canonical representation of a negative @'Word'@.
+-- | Decode canonical representation of a negative 'Word'.
 --
 -- @since 0.2.0.0
 decodeNegWordCanonical :: Decoder s Word
 decodeNegWordCanonical = Decoder (\k -> return (ConsumeNegWordCanonical (\w# -> k (W# w#))))
 {-# INLINE decodeNegWordCanonical #-}
 
--- | Decode canonical representation of a negative @'Word64'@.
+-- | Decode canonical representation of a negative 'Word64'.
 --
 -- @since 0.2.0.0
 decodeNegWord64Canonical :: Decoder s Word64
@@ -502,35 +505,35 @@ decodeNegWord64Canonical =
   Decoder (\k -> return (ConsumeNegWord64Canonical (\w64# -> k (W64# w64#))))
 #endif
 
--- | Decode canonical representation of an @'Int'@.
+-- | Decode canonical representation of an 'Int'.
 --
 -- @since 0.2.0.0
 decodeIntCanonical :: Decoder s Int
 decodeIntCanonical = Decoder (\k -> return (ConsumeIntCanonical (\n# -> k (I# n#))))
 {-# INLINE decodeIntCanonical #-}
 
--- | Decode canonical representation of an @'Int8'@.
+-- | Decode canonical representation of an 'Int8'.
 --
 -- @since 0.2.0.0
 decodeInt8Canonical :: Decoder s Int8
 decodeInt8Canonical = Decoder (\k -> return (ConsumeInt8Canonical (\w# -> k (I8# w#))))
 {-# INLINE decodeInt8Canonical #-}
 
--- | Decode canonical representation of an @'Int16'@.
+-- | Decode canonical representation of an 'Int16'.
 --
 -- @since 0.2.0.0
 decodeInt16Canonical :: Decoder s Int16
 decodeInt16Canonical = Decoder (\k -> return (ConsumeInt16Canonical (\w# -> k (I16# w#))))
 {-# INLINE decodeInt16Canonical #-}
 
--- | Decode canonical representation of an @'Int32'@.
+-- | Decode canonical representation of an 'Int32'.
 --
 -- @since 0.2.0.0
 decodeInt32Canonical :: Decoder s Int32
 decodeInt32Canonical = Decoder (\k -> return (ConsumeInt32Canonical (\w# -> k (I32# w#))))
 {-# INLINE decodeInt32Canonical #-}
 
--- | Decode canonical representation of an @'Int64'@.
+-- | Decode canonical representation of an 'Int64'.
 --
 -- @since 0.2.0.0
 decodeInt64Canonical :: Decoder s Int64
@@ -542,35 +545,35 @@ decodeInt64Canonical =
   Decoder (\k -> return (ConsumeInt64Canonical (\n64# -> k (I64# n64#))))
 #endif
 
--- | Decode an @'Integer'@.
+-- | Decode an 'Integer'.
 --
 -- @since 0.2.0.0
 decodeInteger :: Decoder s Integer
 decodeInteger = Decoder (\k -> return (ConsumeInteger (\n -> k n)))
 {-# INLINE decodeInteger #-}
 
--- | Decode a @'Float'@.
+-- | Decode a 'Float'.
 --
 -- @since 0.2.0.0
 decodeFloat :: Decoder s Float
 decodeFloat = Decoder (\k -> return (ConsumeFloat (\f# -> k (F# f#))))
 {-# INLINE decodeFloat #-}
 
--- | Decode a @'Double'@.
+-- | Decode a 'Double'.
 --
 -- @since 0.2.0.0
 decodeDouble :: Decoder s Double
 decodeDouble = Decoder (\k -> return (ConsumeDouble (\f# -> k (D# f#))))
 {-# INLINE decodeDouble #-}
 
--- | Decode a string of bytes as a @'ByteString'@.
+-- | Decode a string of bytes as a 'ByteString'.
 --
 -- @since 0.2.0.0
 decodeBytes :: Decoder s ByteString
 decodeBytes = Decoder (\k -> return (ConsumeBytes (\bs -> k bs)))
 {-# INLINE decodeBytes #-}
 
--- | Decode canonical representation of a string of bytes as a @'ByteString'@.
+-- | Decode canonical representation of a string of bytes as a 'ByteString'.
 --
 -- @since 0.2.1.0
 decodeBytesCanonical :: Decoder s ByteString
@@ -607,14 +610,14 @@ decodeByteArrayCanonical :: Decoder s ByteArray
 decodeByteArrayCanonical = Decoder (\k -> return (ConsumeByteArrayCanonical k))
 {-# INLINE decodeByteArrayCanonical #-}
 
--- | Decode a textual string as a piece of @'Text'@.
+-- | Decode a textual string as a piece of 'Text'.
 --
 -- @since 0.2.0.0
 decodeString :: Decoder s Text
 decodeString = Decoder (\k -> return (ConsumeString (\str -> k str)))
 {-# INLINE decodeString #-}
 
--- | Decode canonical representation of a textual string as a piece of @'Text'@.
+-- | Decode canonical representation of a textual string as a piece of 'Text'.
 --
 -- @since 0.2.1.0
 decodeStringCanonical :: Decoder s Text
@@ -697,14 +700,14 @@ decodeMapLenIndef :: Decoder s ()
 decodeMapLenIndef = Decoder (\k -> return (ConsumeMapLenIndef (k ())))
 {-# INLINE decodeMapLenIndef #-}
 
--- | Decode an arbitrary tag and return it as a @'Word'@.
+-- | Decode an arbitrary tag and return it as a 'Word'.
 --
 -- @since 0.2.0.0
 decodeTag :: Decoder s Word
 decodeTag = Decoder (\k -> return (ConsumeTag (\w# -> k (W# w#))))
 {-# INLINE decodeTag #-}
 
--- | Decode an arbitrary 64-bit tag and return it as a @'Word64'@.
+-- | Decode an arbitrary 64-bit tag and return it as a 'Word64'.
 --
 -- @since 0.2.0.0
 decodeTag64 :: Decoder s Word64
@@ -717,7 +720,7 @@ decodeTag64 =
 #endif
 
 -- | Decode canonical representation of an arbitrary tag and return it as a
--- @'Word'@.
+-- 'Word'.
 --
 -- @since 0.2.0.0
 decodeTagCanonical :: Decoder s Word
@@ -725,7 +728,7 @@ decodeTagCanonical = Decoder (\k -> return (ConsumeTagCanonical (\w# -> k (W# w#
 {-# INLINE decodeTagCanonical #-}
 
 -- | Decode canonical representation of an arbitrary 64-bit tag and return it as
--- a @'Word64'@.
+-- a 'Word64'.
 --
 -- @since 0.2.0.0
 decodeTag64Canonical :: Decoder s Word64
@@ -751,7 +754,7 @@ decodeNull :: Decoder s ()
 decodeNull = Decoder (\k -> return (ConsumeNull (k ())))
 {-# INLINE decodeNull #-}
 
--- | Decode a 'simple' CBOR value and give back a @'Word8'@. You
+-- | Decode a 'simple' CBOR value and give back a 'Word8'. You
 -- probably don't ever need to use this.
 --
 -- @since 0.2.0.0
@@ -759,28 +762,28 @@ decodeSimple :: Decoder s Word8
 decodeSimple = Decoder (\k -> return (ConsumeSimple (\w# -> k (W8# w#))))
 {-# INLINE decodeSimple #-}
 
--- | Decode canonical representation of an @'Integer'@.
+-- | Decode canonical representation of an 'Integer'.
 --
 -- @since 0.2.0.0
 decodeIntegerCanonical :: Decoder s Integer
 decodeIntegerCanonical = Decoder (\k -> return (ConsumeIntegerCanonical (\n -> k n)))
 {-# INLINE decodeIntegerCanonical #-}
 
--- | Decode canonical representation of a half-precision @'Float'@.
+-- | Decode canonical representation of a half-precision 'Float'.
 --
 -- @since 0.2.0.0
 decodeFloat16Canonical :: Decoder s Float
 decodeFloat16Canonical = Decoder (\k -> return (ConsumeFloat16Canonical (\f# -> k (F# f#))))
 {-# INLINE decodeFloat16Canonical #-}
 
--- | Decode canonical representation of a @'Float'@.
+-- | Decode canonical representation of a 'Float'.
 --
 -- @since 0.2.0.0
 decodeFloatCanonical :: Decoder s Float
 decodeFloatCanonical = Decoder (\k -> return (ConsumeFloatCanonical (\f# -> k (F# f#))))
 {-# INLINE decodeFloatCanonical #-}
 
--- | Decode canonical representation of a @'Double'@.
+-- | Decode canonical representation of a 'Double'.
 --
 -- @since 0.2.0.0
 decodeDoubleCanonical :: Decoder s Double
@@ -788,7 +791,7 @@ decodeDoubleCanonical = Decoder (\k -> return (ConsumeDoubleCanonical (\f# -> k 
 {-# INLINE decodeDoubleCanonical #-}
 
 -- | Decode canonical representation of a 'simple' CBOR value and give back a
--- @'Word8'@. You probably don't ever need to use this.
+-- 'Word8'. You probably don't ever need to use this.
 --
 -- @since 0.2.0.0
 decodeSimpleCanonical :: Decoder s Word8
@@ -799,7 +802,7 @@ decodeSimpleCanonical = Decoder (\k -> return (ConsumeSimpleCanonical (\w# -> k 
 -- Specialised read operations: expect a token with a specific value
 --
 
--- | Attempt to decode a word with @'decodeWord'@, and ensure the word
+-- | Attempt to decode a word with 'decodeWord', and ensure the word
 -- is exactly as expected, or fail.
 --
 -- @since 0.2.0.0
@@ -808,7 +811,7 @@ decodeWordOf :: Word -- ^ Expected value of the decoded word
 decodeWordOf = decodeWordOfHelper decodeWord
 {-# INLINE decodeWordOf #-}
 
--- | Attempt to decode a list length using @'decodeListLen'@, and
+-- | Attempt to decode a list length using 'decodeListLen', and
 -- ensure it is exactly the specified length, or fail.
 --
 -- @since 0.2.0.0
@@ -816,7 +819,7 @@ decodeListLenOf :: Int -> Decoder s ()
 decodeListLenOf = decodeListLenOfHelper decodeListLen
 {-# INLINE decodeListLenOf #-}
 
--- | Attempt to decode canonical representation of a word with @'decodeWordCanonical'@,
+-- | Attempt to decode canonical representation of a word with 'decodeWordCanonical',
 -- and ensure the word is exactly as expected, or fail.
 --
 -- @since 0.2.0.0
@@ -826,7 +829,7 @@ decodeWordCanonicalOf = decodeWordOfHelper decodeWordCanonical
 {-# INLINE decodeWordCanonicalOf #-}
 
 -- | Attempt to decode canonical representation of a list length using
--- @'decodeListLenCanonical'@, and ensure it is exactly the specified length, or
+-- 'decodeListLenCanonical', and ensure it is exactly the specified length, or
 -- fail.
 --
 -- @since 0.2.0.0
@@ -852,7 +855,7 @@ decodeWordOfHelper decodeFun = \n -> do
 -- Branching operations
 
 -- | Attempt to decode a token for the length of a finite, known list,
--- or an indefinite list. If @'Nothing'@ is returned, then an
+-- or an indefinite list. If 'Nothing' is returned, then an
 -- indefinite length list occurs afterwords. If @'Just' x@ is
 -- returned, then a list of length @x@ is encoded.
 --
@@ -866,7 +869,7 @@ decodeListLenOrIndef =
 {-# INLINE decodeListLenOrIndef #-}
 
 -- | Attempt to decode a token for the length of a finite, known map,
--- or an indefinite map. If @'Nothing'@ is returned, then an
+-- or an indefinite map. If 'Nothing' is returned, then an
 -- indefinite length map occurs afterwords. If @'Just' x@ is returned,
 -- then a map of length @x@ is encoded.
 --
@@ -880,8 +883,8 @@ decodeMapLenOrIndef =
 {-# INLINE decodeMapLenOrIndef #-}
 
 -- | Attempt to decode a @Break@ token, and if that was
--- successful, return @'True'@. If the token was of any
--- other type, return @'False'@.
+-- successful, return 'True'. If the token was of any
+-- other type, return 'False'.
 --
 -- @since 0.2.0.0
 decodeBreakOr :: Decoder s Bool
@@ -892,7 +895,7 @@ decodeBreakOr = Decoder (\k -> return (ConsumeBreakOr (\b -> k b)))
 -- Special operations
 
 -- | Peek at the current token we're about to decode, and return a
--- @'TokenType'@ specifying what it is.
+-- 'TokenType' specifying what it is.
 --
 -- @since 0.2.0.0
 peekTokenType :: Decoder s TokenType

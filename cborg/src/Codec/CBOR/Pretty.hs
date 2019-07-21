@@ -42,7 +42,7 @@ import           Control.Applicative
 
 newtype PP a = PP (Tokens -> Int -> ShowS -> Either String (Tokens,Int,ShowS,a))
 
--- | Pretty prints an @'Encoding'@ in an annotated, hexadecimal format
+-- | Pretty prints an 'Encoding' in an annotated, hexadecimal format
 -- that maps CBOR values to their types. The output format is similar
 -- to the format used on http://cbor.me/.
 --
