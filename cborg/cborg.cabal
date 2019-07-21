@@ -127,6 +127,7 @@ test-suite tests
   build-depends:
     array                   >= 0.4     && < 0.6,
     base                    >= 4.7     && < 5.0,
+    base-orphans,
     bytestring              >= 0.10.4  && < 0.11,
     text                    >= 1.1     && < 1.3,
     cborg,
