@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP       #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE BangPatterns #-}
 
 -- |
 -- Module      : Codec.CBOR.FlatTerm
@@ -36,6 +37,7 @@ module Codec.CBOR.FlatTerm
   , toFlatTerm    -- :: Encoding -> FlatTerm
   , fromFlatTerm  -- :: Decoder s a -> FlatTerm -> Either String a
   , validFlatTerm -- :: FlatTerm -> Bool
+  , decodeTermToken -- Decoder s TermToken
   ) where
 
 #include "cbor.h"
@@ -43,6 +45,7 @@ module Codec.CBOR.FlatTerm
 import           Codec.CBOR.Encoding (Encoding(..))
 import qualified Codec.CBOR.Encoding as Enc
 import           Codec.CBOR.Decoding as Dec
+import qualified Codec.CBOR.Read     as Read
 import qualified Codec.CBOR.ByteArray        as BA
 import qualified Codec.CBOR.ByteArray.Sliced as BAS
 
@@ -60,7 +63,11 @@ import           Data.Word
 import           Data.Text (Text)
 import qualified Data.Text.Encoding as TE
 import           Data.ByteString (ByteString)
+import qualified Data.ByteString as BS
 import           Control.Monad.ST
+import qualified Control.Monad.ST.Lazy as ST.Lazy
+
+import Prelude hiding (encodeFloat, decodeFloat)
 
 
 --------------------------------------------------------------------------------
@@ -141,7 +148,121 @@ convFlatTerm (Enc.TkFloat16  f  ts) = TkFloat16   f : convFlatTerm ts
 convFlatTerm (Enc.TkFloat32  f  ts) = TkFloat32   f : convFlatTerm ts
 convFlatTerm (Enc.TkFloat64  f  ts) = TkFloat64   f : convFlatTerm ts
 convFlatTerm (Enc.TkBreak       ts) = TkBreak       : convFlatTerm ts
+convFlatTerm (Enc.TkEncoded  bs ts) = decodePreEncoded bs
+                                                   ++ convFlatTerm ts
 convFlatTerm  Enc.TkEnd             = []
+
+--------------------------------------------------------------------------------
+
+decodePreEncoded :: BS.ByteString -> FlatTerm
+decodePreEncoded bs0 =
+    ST.Lazy.runST (provideInput bs0)
+  where
+    provideInput :: BS.ByteString -> ST.Lazy.ST s FlatTerm
+    provideInput bs
+      | BS.null bs = return []
+      | otherwise  = do
+          next <- ST.Lazy.strictToLazyST $ do
+              -- This will always be a 'Partial' here because decodeTermToken
+              -- always starts by requesting initial input. Only decoders that
+              -- fail or return a value without looking at their input can give
+              -- a different initial result.
+              Read.Partial k <- Read.deserialiseIncremental decodeTermToken
+              k (Just bs)
+          collectOutput next
+
+    collectOutput :: Read.IDecode s TermToken -> ST.Lazy.ST s FlatTerm
+    collectOutput (Read.Fail _ _ err) = fail $ "toFlatTerm: encodePreEncoded "
+                                            ++ "used with invalid CBOR: "
+                                            ++ show err
+    collectOutput (Read.Partial    k) = ST.Lazy.strictToLazyST (k Nothing)
+                                        >>= collectOutput
+    collectOutput (Read.Done bs' _ x) = do xs <- provideInput bs'
+                                           return (x : xs)
+
+decodeTermToken :: Decoder s TermToken
+decodeTermToken = do
+    tkty <- peekTokenType
+    case tkty of
+      TypeUInt   -> do w <- decodeWord
+                       return $! fromWord w
+                    where
+                      fromWord :: Word -> TermToken
+                      fromWord w
+                        | w <= fromIntegral (maxBound :: Int)
+                                    = TkInt     (fromIntegral w)
+                        | otherwise = TkInteger (fromIntegral w)
+
+      TypeUInt64 -> do w <- decodeWord64
+                       return $! fromWord64 w
+                    where
+                      fromWord64 w
+                        | w <= fromIntegral (maxBound :: Int)
+                                    = TkInt     (fromIntegral w)
+                        | otherwise = TkInteger (fromIntegral w)
+
+      TypeNInt   -> do w <- decodeNegWord
+                       return $! fromNegWord w
+                    where
+                      fromNegWord w
+                        | w <= fromIntegral (maxBound :: Int)
+                                    = TkInt     (-1 - fromIntegral w)
+                        | otherwise = TkInteger (-1 - fromIntegral w)
+
+      TypeNInt64 -> do w <- decodeNegWord64
+                       return $! fromNegWord64 w
+                    where
+                      fromNegWord64 w
+                        | w <= fromIntegral (maxBound :: Int)
+                                    = TkInt     (-1 - fromIntegral w)
+                        | otherwise = TkInteger (-1 - fromIntegral w)
+
+      TypeInteger -> do !x <- decodeInteger
+                        return (TkInteger x)
+      TypeFloat16 -> do !x <- decodeFloat
+                        return (TkFloat16 x)
+      TypeFloat32 -> do !x <- decodeFloat
+                        return (TkFloat32 x)
+      TypeFloat64 -> do !x <- decodeDouble
+                        return (TkFloat64 x)
+
+      TypeBytes        -> do !x <- decodeBytes
+                             return (TkBytes x)
+      TypeBytesIndef   -> do decodeBytesIndef
+                             return TkBytesBegin
+      TypeString       -> do !x <- decodeString
+                             return (TkString x)
+      TypeStringIndef  -> do decodeStringIndef
+                             return TkStringBegin
+
+      TypeListLen      -> do !x <- decodeListLen
+                             return $! TkListLen (fromIntegral x)
+      TypeListLen64    -> do !x <- decodeListLen
+                             return $! TkListLen (fromIntegral x)
+      TypeListLenIndef -> do decodeListLenIndef
+                             return TkListBegin
+      TypeMapLen       -> do !x <- decodeMapLen
+                             return $! TkMapLen (fromIntegral x)
+      TypeMapLen64     -> do !x <- decodeMapLen
+                             return $! TkMapLen (fromIntegral x)
+      TypeMapLenIndef  -> do decodeMapLenIndef
+                             return TkMapBegin
+
+      TypeTag          -> do !x <- decodeTag
+                             return $! TkTag (fromIntegral x)
+      TypeTag64        -> do !x <- decodeTag
+                             return $! TkTag (fromIntegral x)
+
+      TypeBool    -> do !x <- decodeBool
+                        return (TkBool x)
+      TypeNull    -> do decodeNull
+                        return TkNull
+      TypeSimple  -> do !x <- decodeSimple
+                        return (TkSimple x)
+      TypeBreak   -> do _ <- decodeBreakOr
+                        return TkBreak
+      TypeInvalid -> fail "invalid token encoding"
+
 
 --------------------------------------------------------------------------------
 
