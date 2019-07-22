@@ -163,6 +163,10 @@ decodePreEncoded bs0 =
       | BS.null bs = return []
       | otherwise  = do
           next <- ST.Lazy.strictToLazyST $ do
+              -- This will always be a 'Partial' here because decodeTermToken
+              -- always starts by requesting initial input. Only decoders that
+              -- fail or return a value without looking at their input can give
+              -- a different initial result.
               Read.Partial k <- Read.deserialiseIncremental decodeTermToken
               k (Just bs)
           collectOutput next
