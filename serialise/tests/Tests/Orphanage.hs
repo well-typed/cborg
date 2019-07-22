@@ -1,10 +1,9 @@
 {-# LANGUAGE CPP                #-}
 {-# LANGUAGE FlexibleContexts   #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE DeriveDataTypeable #-}
 module Tests.Orphanage where
 
-#if !MIN_VERSION_base(4,8,0) && !MIN_VERSION_QuickCheck(2,10,0)
+#if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
 import           Data.Monoid as Monoid
 #endif
@@ -16,7 +15,6 @@ import qualified Data.Semigroup as Semigroup
 import           GHC.Fingerprint.Type
 import           Data.Ord
 #if !MIN_VERSION_QuickCheck(2,10,0)
-import           Data.Typeable
 import           Foreign.C.Types
 import           System.Exit (ExitCode(..))
 
@@ -26,7 +24,10 @@ import           Test.QuickCheck.Gen
 import           Test.QuickCheck.Arbitrary
 
 import qualified Data.Vector.Primitive      as Vector.Primitive
--- import qualified Data.ByteString.Short      as BSS
+#if !MIN_VERSION_quickcheck_instances(0,3,17)
+import qualified Data.ByteString.Short      as BSS
+#endif
+
 
 --------------------------------------------------------------------------------
 -- QuickCheck Orphans
@@ -178,21 +179,6 @@ instance Arbitrary ExitCode where
 
   shrink (ExitFailure x) = ExitSuccess : [ ExitFailure x' | x' <- shrink x ]
   shrink _        = []
-#endif
-
-#if !MIN_VERSION_base(4,8,0)
-deriving instance Typeable Const
-deriving instance Typeable ZipList
-deriving instance Typeable Down
-deriving instance Typeable Monoid.Sum
-deriving instance Typeable Monoid.All
-deriving instance Typeable Monoid.Any
-deriving instance Typeable Monoid.Product
-deriving instance Typeable Monoid.Dual
-deriving instance Typeable Fingerprint
-
-deriving instance Show a => Show (Const a b)
-deriving instance Eq a   => Eq   (Const a b)
 #endif
 
 #if !MIN_VERSION_quickcheck_instances(0,3,17)

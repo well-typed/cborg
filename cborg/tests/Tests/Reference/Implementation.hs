@@ -1,5 +1,4 @@
-{-# LANGUAGE CPP, BangPatterns, MagicHash, UnboxedTuples, RankNTypes, ScopedTypeVariables #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE CPP, BangPatterns #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      : Codec.CBOR
@@ -20,15 +19,21 @@ module Tests.Reference.Implementation (
     deserialise,
 
     Term(..),
-    reservedTag,
-    reservedSimple,
-    eqTerm,
+    Token(..),
     canonicaliseTerm,
+    isCanonicalTerm,
 
     UInt(..),
     fromUInt,
     toUInt,
     canonicaliseUInt,
+
+    Simple(..),
+    fromSimple,
+    toSimple,
+    reservedSimple,
+    unassignedSimple,
+    reservedTag,
 
     Decoder,
     runDecoder,
@@ -37,11 +42,11 @@ module Tests.Reference.Implementation (
     decodeTerm,
     decodeTokens,
     decodeToken,
-
-    canonicalNaN,
+    decodeTagged,
 
     diagnosticNotation,
 
+    Encoder,
     encodeTerm,
     encodeToken,
 
@@ -58,16 +63,12 @@ module Tests.Reference.Implementation (
     prop_word32ToFromNet,
     prop_word64ToFromNet,
     prop_halfToFromFloat,
-
-    arbitraryFullRangeIntegral,
     ) where
 
 
 import qualified Control.Monad.Fail as Fail
 import           Data.Bits
 import           Data.Word
-import           Data.Int
-import           Numeric.Half (Half(..))
 import qualified Numeric.Half as Half
 import           Data.List
 import           Numeric
@@ -77,8 +78,6 @@ import qualified Data.ByteString.Lazy as LBS
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import           Data.Monoid ((<>))
-import           Foreign
-import           System.IO.Unsafe
 import           Control.Monad (ap)
 
 import           Test.QuickCheck.Arbitrary
@@ -88,6 +87,8 @@ import           Test.QuickCheck.Gen
 import           Data.Monoid (Monoid(..))
 import           Control.Applicative
 #endif
+
+import           Tests.Reference.Generators
 
 
 serialise :: Term -> LBS.ByteString
@@ -117,7 +118,9 @@ instance Monad Decoder where
   d >>= f  = Decoder (\ws -> case runDecoder d ws of
                                Nothing       -> Nothing
                                Just (x, ws') -> runDecoder (f x) ws')
+#if !MIN_VERSION_base(4,13,0)
   fail = Fail.fail
+#endif
 
 instance Fail.MonadFail Decoder where
   fail _   = Decoder (\_ -> Nothing)
@@ -211,6 +214,18 @@ instance Arbitrary UInt where
         , UInt32    <$> arbitraryBoundedIntegral
         , UInt64    <$> arbitraryBoundedIntegral
         ]
+  shrink (UIntSmall n) = [ UIntSmall n' | n' <- shrink n ]
+  shrink (UInt8  n)    = [ UInt8  n'    | n' <- shrink n ]
+                      ++ [ UIntSmall (fromIntegral n) | n <= 23 ]
+  shrink (UInt16 n)    = [ UInt16 n'    | n' <- shrink n ]
+                      ++ [ UInt8 (fromIntegral n)
+                         | n <= fromIntegral (maxBound :: Word8) ]
+  shrink (UInt32 n)    = [ UInt32 n'    | n' <- shrink n ]
+                      ++ [ UInt16 (fromIntegral n)
+                         | n <= fromIntegral (maxBound :: Word16) ]
+  shrink (UInt64 n)    = [ UInt64 n'    | n' <- shrink n ]
+                      ++ [ UInt32 (fromIntegral n)
+                         | n <= fromIntegral (maxBound :: Word32) ]
 
 instance Arbitrary AdditionalInformation where
   arbitrary =
@@ -302,6 +317,36 @@ prop_TokenHeader2 =
               extraused = take (8 - length unused) extra
         ]
 
+data Simple = SimpleSmall Word  --  0 .. 23
+            | SimpleLarge Word8 --  0 .. 255, but  0..23 are non-canonical
+                                --            and 24..31 are reserved
+  deriving (Eq, Show)
+
+fromSimple :: Simple -> Word8
+fromSimple (SimpleSmall w) = fromIntegral w
+fromSimple (SimpleLarge w) = w
+
+toSimple :: Word8 -> Simple
+toSimple w | w <= 23   = SimpleSmall (fromIntegral w)
+           | otherwise = SimpleLarge w
+
+reservedSimple :: Word8 -> Bool
+reservedSimple w = w >= 24 && w <= 31
+
+unassignedSimple :: Word8 -> Bool
+unassignedSimple w = w < 20 || w > 31
+
+instance Arbitrary Simple where
+  arbitrary = oneof [ SimpleSmall <$> choose (0, 23)
+                    , SimpleLarge <$> choose (0, 31)
+                    , SimpleLarge <$> choose (32, 255)
+                    ]
+  shrink (SimpleSmall n) = [ SimpleSmall n' | n' <- shrink n ]
+  shrink (SimpleLarge n) = [ SimpleSmall (fromIntegral n')
+                           | n' <- shrink n, n' <= 23 ]
+                        ++ [ SimpleLarge n' | n' <- shrink n ]
+
+
 data Token =
      MT0_UnsignedInt UInt
    | MT1_NegativeInt UInt
@@ -314,10 +359,10 @@ data Token =
    | MT5_MapLen      UInt
    | MT5_MapLenIndef
    | MT6_Tag     UInt
-   | MT7_Simple  Word8
-   | MT7_Float16 Half
-   | MT7_Float32 Float
-   | MT7_Float64 Double
+   | MT7_Simple  Simple
+   | MT7_Float16 HalfSpecials
+   | MT7_Float32 FloatSpecials
+   | MT7_Float64 DoubleSpecials
    | MT7_Break
   deriving (Show, Eq)
 
@@ -339,9 +384,9 @@ instance Arbitrary Token where
       , pure MT5_MapLenIndef
       , MT6_Tag     <$> arbitrary
       , MT7_Simple  <$> arbitrary
-      , MT7_Float16 . getFloatSpecials <$> arbitrary
-      , MT7_Float32 . getFloatSpecials <$> arbitrary
-      , MT7_Float64 . getFloatSpecials <$> arbitrary
+      , MT7_Float16 <$> arbitrary
+      , MT7_Float32 <$> arbitrary
+      , MT7_Float64 <$> arbitrary
       , pure MT7_Break
       ]
     where
@@ -436,11 +481,11 @@ packToken (TokenHeader mt ai) extra = case (mt, ai) of
     --   | 27          | IEEE 754 Double-Precision Float (64 bits follow) |
     --   | 28-30       | (Unassigned)                                     |
     --   | 31          | "break" stop code for indefinite-length items    |
-    (MajorType7, AiValue (UIntSmall w)) -> return (MT7_Simple (fromIntegral w))
-    (MajorType7, AiValue (UInt8     w)) -> return (MT7_Simple (fromIntegral w))
-    (MajorType7, AiValue (UInt16    w)) -> return (MT7_Float16 (wordToHalf w))
-    (MajorType7, AiValue (UInt32    w)) -> return (MT7_Float32 (wordToFloat w))
-    (MajorType7, AiValue (UInt64    w)) -> return (MT7_Float64 (wordToDouble w))
+    (MajorType7, AiValue (UIntSmall w)) -> return (MT7_Simple (SimpleSmall w))
+    (MajorType7, AiValue (UInt8     w)) -> return (MT7_Simple (SimpleLarge w))
+    (MajorType7, AiValue (UInt16    w)) -> return (MT7_Float16 (HalfSpecials (wordToHalf w)))
+    (MajorType7, AiValue (UInt32    w)) -> return (MT7_Float32 (FloatSpecials (wordToFloat w)))
+    (MajorType7, AiValue (UInt64    w)) -> return (MT7_Float64 (DoubleSpecials (wordToDouble w)))
     (MajorType7, AiIndefLen)            -> return (MT7_Break)
     _                                   -> fail "invalid token header"
 
@@ -464,12 +509,16 @@ unpackToken tok = (\(mt, ai, ws) -> (TokenHeader mt ai, ws)) $ case tok of
     (MT5_MapLen      n)    -> (MajorType5, AiValue n,  [])
     MT5_MapLenIndef        -> (MajorType5, AiIndefLen, [])
     (MT6_Tag     n)        -> (MajorType6, AiValue n,  [])
-    (MT7_Simple  n)
-               | n <= 23   -> (MajorType7, AiValue (UIntSmall (fromIntegral n)), [])
-               | otherwise -> (MajorType7, AiValue (UInt8     n), [])
-    (MT7_Float16 f)        -> (MajorType7, AiValue (UInt16 (halfToWord f)),   [])
-    (MT7_Float32 f)        -> (MajorType7, AiValue (UInt32 (floatToWord f)),  [])
-    (MT7_Float64 f)        -> (MajorType7, AiValue (UInt64 (doubleToWord f)), [])
+    (MT7_Simple
+        (SimpleSmall n))   -> (MajorType7, AiValue (UIntSmall (fromIntegral n)), [])
+    (MT7_Simple
+        (SimpleLarge n))   -> (MajorType7, AiValue (UInt8  n), [])
+    (MT7_Float16
+        (HalfSpecials f))  -> (MajorType7, AiValue (UInt16 (halfToWord f)),   [])
+    (MT7_Float32
+        (FloatSpecials f)) -> (MajorType7, AiValue (UInt32 (floatToWord f)),  [])
+    (MT7_Float64
+        (DoubleSpecials f))-> (MajorType7, AiValue (UInt64 (doubleToWord f)), [])
     MT7_Break              -> (MajorType7, AiIndefLen, [])
 
 
@@ -497,9 +546,6 @@ decodeUTF8 = either (fail . show) (return . T.unpack) . T.decodeUtf8' . BS.pack
 encodeUTF8 :: [Char] -> [Word8]
 encodeUTF8 = BS.unpack . T.encodeUtf8 . T.pack
 
-reservedSimple :: Word8 -> Bool
-reservedSimple w = w >= 20 && w <= 31
-
 reservedTag :: Word64 -> Bool
 reservedTag w = w <= 5
 
@@ -507,14 +553,7 @@ prop_Token :: Token -> Bool
 prop_Token token =
     let ws = encodeToken token
         Just (token', []) = runDecoder decodeToken ws
-     in token `eqToken` token'
-
--- NaNs are so annoying...
-eqToken :: Token -> Token -> Bool
-eqToken (MT7_Float16 f) (MT7_Float16 f') | isNaN f && isNaN f' = True
-eqToken (MT7_Float32 f) (MT7_Float32 f') | isNaN f && isNaN f' = True
-eqToken (MT7_Float64 f) (MT7_Float64 f') | isNaN f && isNaN f' = True
-eqToken a b = a == b
+     in token == token'
 
 data Term = TUInt   UInt
           | TNInt   UInt
@@ -532,10 +571,10 @@ data Term = TUInt   UInt
           | TFalse
           | TNull
           | TUndef
-          | TSimple  Word8
-          | TFloat16 Half
-          | TFloat32 Float
-          | TFloat64 Double
+          | TSimple  Simple
+          | TFloat16 HalfSpecials
+          | TFloat32 FloatSpecials
+          | TFloat64 DoubleSpecials
   deriving (Show, Eq)
 
 instance Arbitrary Term where
@@ -557,7 +596,7 @@ instance Arbitrary Term where
         , (1, pure TTrue)
         , (1, pure TNull)
         , (1, pure TUndef)
-        , (1, TSimple  <$> arbitrary `suchThat` (not . reservedSimple))
+        , (1, TSimple  <$> arbitrary `suchThat` (unassignedSimple . fromSimple))
         , (1, TFloat16 <$> arbitrary)
         , (1, TFloat32 <$> arbitrary)
         , (1, TFloat64 <$> arbitrary)
@@ -598,7 +637,8 @@ instance Arbitrary Term where
   shrink TNull  = []
   shrink TUndef = []
 
-  shrink (TSimple  w) = [ TSimple  w' | w' <- shrink w, not (reservedSimple w) ]
+  shrink (TSimple  n) = [ TSimple  n' | n' <- shrink n
+                                      , unassignedSimple (fromSimple n') ]
   shrink (TFloat16 f) = [ TFloat16 f' | f' <- shrink f ]
   shrink (TFloat32 f) = [ TFloat32 f' | f' <- shrink f ]
   shrink (TFloat64 f) = [ TFloat64 f' | f' <- shrink f ]
@@ -627,11 +667,14 @@ decodeTermFrom tk =
 
       MT6_Tag     tag    -> decodeTagged tag
 
-      MT7_Simple  20     -> return TFalse
-      MT7_Simple  21     -> return TTrue
-      MT7_Simple  22     -> return TNull
-      MT7_Simple  23     -> return TUndef
-      MT7_Simple  w      -> return (TSimple w)
+      MT7_Simple  n
+        | n' == 20       -> return TFalse
+        | n' == 21       -> return TTrue
+        | n' == 22       -> return TNull
+        | n' == 23       -> return TUndef
+        | otherwise      -> return (TSimple n)
+        where
+          n' = fromSimple n
       MT7_Float16 f      -> return (TFloat16 f)
       MT7_Float32 f      -> return (TFloat32 f)
       MT7_Float64 f      -> return (TFloat64 f)
@@ -779,10 +822,10 @@ encodeTerm (TMapI   kvs)   = encodeToken MT5_MapLenIndef
                           <> encodeToken MT7_Break
 encodeTerm (TTagged tag t) = encodeToken (MT6_Tag tag)
                           <> encodeTerm t
-encodeTerm  TFalse         = encodeToken (MT7_Simple 20)
-encodeTerm  TTrue          = encodeToken (MT7_Simple 21)
-encodeTerm  TNull          = encodeToken (MT7_Simple 22)
-encodeTerm  TUndef         = encodeToken (MT7_Simple 23)
+encodeTerm  TFalse         = encodeToken (MT7_Simple (SimpleSmall 20))
+encodeTerm  TTrue          = encodeToken (MT7_Simple (SimpleSmall 21))
+encodeTerm  TNull          = encodeToken (MT7_Simple (SimpleSmall 22))
+encodeTerm  TUndef         = encodeToken (MT7_Simple (SimpleSmall 23))
 encodeTerm (TSimple  w)    = encodeToken (MT7_Simple w)
 encodeTerm (TFloat16 f)    = encodeToken (MT7_Float16 f)
 encodeTerm (TFloat32 f)    = encodeToken (MT7_Float32 f)
@@ -795,22 +838,10 @@ prop_Term :: Term -> Bool
 prop_Term term =
     let ws = encodeTerm term
         Just (term', []) = runDecoder decodeTerm ws
-     in term `eqTerm` term'
+     in term == term'
 
--- NaNs are so annoying...
-eqTerm :: Term -> Term -> Bool
-eqTerm (TArray  ts)  (TArray  ts')   = and (zipWith eqTerm ts ts')
-eqTerm (TArrayI ts)  (TArrayI ts')   = and (zipWith eqTerm ts ts')
-eqTerm (TMap    ts)  (TMap    ts')   = and (zipWith eqTermPair ts ts')
-eqTerm (TMapI   ts)  (TMapI   ts')   = and (zipWith eqTermPair ts ts')
-eqTerm (TTagged w t) (TTagged w' t') = w == w' && eqTerm t t'
-eqTerm (TFloat16 f)  (TFloat16 f') | isNaN f && isNaN f' = True
-eqTerm (TFloat32 f)  (TFloat32 f') | isNaN f && isNaN f' = True
-eqTerm (TFloat64 f)  (TFloat64 f') | isNaN f && isNaN f' = True
-eqTerm a b = a == b
-
-eqTermPair :: (Term, Term) -> (Term, Term) -> Bool
-eqTermPair (a,b) (a',b') = eqTerm a a' && eqTerm b b'
+isCanonicalTerm :: Term -> Bool
+isCanonicalTerm t = canonicaliseTerm t == t
 
 canonicaliseTerm :: Term -> Term
 canonicaliseTerm (TUInt n) = TUInt (canonicaliseUInt n)
@@ -821,13 +852,10 @@ canonicaliseTerm (TBigInt n)
   | n <  0 && n >= -1 - fromIntegral (maxBound :: Word64)
                            = TNInt (toUInt (fromIntegral (-1 - n)))
   | otherwise              = TBigInt n
-canonicaliseTerm (TFloat16 f)   = TFloat16 (canonicaliseHalf f)
-canonicaliseTerm (TFloat32 f)   = if isNaN f
-                                  then TFloat16 canonicalNaN
-                                  else TFloat32 f
-canonicaliseTerm (TFloat64 f)   = if isNaN f
-                                  then TFloat16 canonicalNaN
-                                  else TFloat64 f
+canonicaliseTerm (TSimple  n)   = TSimple  (canonicaliseSimple n)
+canonicaliseTerm (TFloat16 f)   = canonicaliseFloat TFloat16 f
+canonicaliseTerm (TFloat32 f)   = canonicaliseFloat TFloat32 f
+canonicaliseTerm (TFloat64 f)   = canonicaliseFloat TFloat64 f
 canonicaliseTerm (TBytess  wss) = TBytess  (filter (not . null) wss)
 canonicaliseTerm (TStrings css) = TStrings (filter (not . null) css)
 canonicaliseTerm (TArray  ts) = TArray  (map canonicaliseTerm ts)
@@ -840,16 +868,17 @@ canonicaliseTerm t = t
 canonicaliseUInt :: UInt -> UInt
 canonicaliseUInt = toUInt . fromUInt
 
-canonicaliseHalf :: Half -> Half
-canonicaliseHalf f
-  | isNaN f   = canonicalNaN
-  | otherwise = f
+canonicaliseSimple :: Simple -> Simple
+canonicaliseSimple = toSimple . fromSimple
+
+canonicaliseFloat :: RealFloat t => (t -> Term) -> t -> Term
+canonicaliseFloat tfloatNN f
+  | isNaN f   = TFloat16 canonicalNaN
+  | otherwise = tfloatNN f
 
 canonicaliseTermPair :: (Term, Term) -> (Term, Term)
 canonicaliseTermPair (x,y) = (canonicaliseTerm x, canonicaliseTerm y)
 
-canonicalNaN :: Half
-canonicalNaN = Half 0x7e00
 
 -------------------------------------------------------------------------------
 
@@ -873,11 +902,11 @@ diagnosticNotation = \t -> showsTerm t ""
       TFalse         -> showString "false"
       TNull          -> showString "null"
       TUndef         -> showString "undefined"
-      TSimple  n     -> showString "simple" . surround '(' ')' (shows n)
+      TSimple  n     -> showString "simple" . surround '(' ')' (shows (fromSimple n))
       -- convert to float to work around https://github.com/ekmett/half/issues/2
-      TFloat16 f     -> showFloatCompat (float2Double (Half.fromHalf f))
-      TFloat32 f     -> showFloatCompat (float2Double f)
-      TFloat64 f     -> showFloatCompat f
+      TFloat16 f     -> showFloatCompat (float2Double (Half.fromHalf (getHalfSpecials f)))
+      TFloat32 f     -> showFloatCompat (float2Double (getFloatSpecials f))
+      TFloat64 f     -> showFloatCompat (getDoubleSpecials f)
 
     surround a b x = showChar a . x . showChar b
 
@@ -973,36 +1002,6 @@ prop_word64ToFromNet w7 w6 w5 w4 w3 w2 w1 w0 =
     word64ToNet (word64FromNet w7 w6 w5 w4 w3 w2 w1 w0)
  == (w7, w6, w5, w4, w3, w2, w1, w0)
 
-wordToHalf :: Word16 -> Half
-wordToHalf = Half.Half . fromIntegral
-
-wordToFloat :: Word32 -> Float
-wordToFloat = toFloat
-
-wordToDouble :: Word64 -> Double
-wordToDouble = toFloat
-
-toFloat :: (Storable word, Storable float) => word -> float
-toFloat w =
-    unsafeDupablePerformIO $ alloca $ \buf -> do
-      poke (castPtr buf) w
-      peek buf
-
-halfToWord :: Half -> Word16
-halfToWord (Half.Half w) = fromIntegral w
-
-floatToWord :: Float -> Word32
-floatToWord = fromFloat
-
-doubleToWord :: Double -> Word64
-doubleToWord = fromFloat
-
-fromFloat :: (Storable word, Storable float) => float -> word
-fromFloat float =
-    unsafeDupablePerformIO $ alloca $ \buf -> do
-            poke (castPtr buf) float
-            peek buf
-
 -- Note: some NaNs do not roundtrip https://github.com/ekmett/half/issues/3
 -- but all the others had better
 prop_halfToFromFloat :: Bool
@@ -1011,64 +1010,4 @@ prop_halfToFromFloat =
   where
     roundTrip w =
       w == (Half.getHalf . Half.toHalf . Half.fromHalf . Half.Half $ w)
-
-instance Arbitrary Half where
-  arbitrary = Half.Half . fromIntegral <$> (arbitrary :: Gen Word16)
-
-newtype FloatSpecials n = FloatSpecials { getFloatSpecials :: n }
-  deriving (Show, Eq)
-
-instance (Arbitrary n, RealFloat n) => Arbitrary (FloatSpecials n) where
-  arbitrary =
-    frequency
-      [ (7, FloatSpecials <$> arbitrary)
-      , (1, pure (FloatSpecials (1/0)) )  -- +Infinity
-      , (1, pure (FloatSpecials (0/0)) )  --  NaN
-      , (1, pure (FloatSpecials (-1/0)) ) -- -Infinity
-      ]
-
-newtype LargeInteger = LargeInteger { getLargeInteger :: Integer }
-  deriving (Show, Eq)
-
-instance Arbitrary LargeInteger where
-  arbitrary =
-    sized $ \n ->
-      oneof $ take (1 + n `div` 10)
-        [ LargeInteger .          fromIntegral <$> (arbitrary :: Gen Int8)
-        , LargeInteger .          fromIntegral <$> choose (minBound, maxBound :: Int64)
-        , LargeInteger . bigger . fromIntegral <$> choose (minBound, maxBound :: Int64)
-        ]
-    where
-      bigger n = n * abs n
-
-
-arbitraryFullRangeIntegral :: forall a. (Bounded a,
-#if MIN_VERSION_base(4,7,0)
-                                         FiniteBits a,
-#else
-                                         Bits a,
-#endif
-                                         Integral a) => Gen a
-arbitraryFullRangeIntegral
-  | isSigned (undefined :: a)
-  = let maxBits = bitSize' (undefined :: a) - 1
-     in sized $ \s ->
-          let bound = fromIntegral (maxBound :: a)
-                      `shiftR` ((maxBits - s) `max` 0)
-           in fmap fromInteger $ choose (-bound, bound)
-
-  | otherwise
-  = let maxBits = bitSize' (undefined :: a)
-     in sized $ \s ->
-          let bound = fromIntegral (maxBound :: a)
-                      `shiftR` ((maxBits - s) `max` 0)
-           in fmap fromInteger $ choose (0, bound)
-
-  where
-    bitSize' =
-#if MIN_VERSION_base(4,7,0)
-      finiteBitSize
-#else
-      bitSize
-#endif
 

@@ -26,7 +26,7 @@ module Codec.CBOR.Magic
   , grabWord32        -- :: Ptr () -> Word
   , grabWord64        -- :: Ptr () -> Word64
 
-    -- * @'ByteString'@ utilities
+    -- * 'ByteString' utilities
   , eatTailWord8      -- :: ByteString -> Word
   , eatTailWord16     -- :: ByteString -> Word
   , eatTailWord32     -- :: ByteString -> Word
@@ -65,7 +65,7 @@ module Codec.CBOR.Magic
   , word32ToWord64    -- :: Word32 -> Word64
 #endif
 
-    -- * @'Integer'@ utilities
+    -- * 'Integer' utilities
   , nintegerFromBytes -- :: ByteString -> Integer
   , uintegerFromBytes -- :: ByteString -> Integer
 
@@ -87,6 +87,9 @@ import           GHC.ST (ST(ST))
 import           GHC.IO (IO(IO), unsafeDupablePerformIO)
 import           GHC.Word
 import           GHC.Int
+#if MIN_VERSION_base(4,11,0)
+import           GHC.Float (castWord32ToFloat, castWord64ToDouble)
+#endif
 import           Foreign.Ptr
 
 #if defined(OPTIMIZE_GMP)
@@ -104,7 +107,7 @@ import           Foreign.C (CUShort)
 
 import qualified Numeric.Half as Half
 
-#if !defined(HAVE_BYTESWAP_PRIMOPS) || !defined(MEM_UNALIGNED_OPS)
+#if !defined(HAVE_BYTESWAP_PRIMOPS) || !defined(MEM_UNALIGNED_OPS) || !defined(OPTIMIZE_GMP)
 import           Data.Bits ((.|.), unsafeShiftL)
 #endif
 
@@ -117,19 +120,19 @@ import           GHC.IntWord64 (wordToWord64#, word64ToWord#,
 
 --------------------------------------------------------------------------------
 
--- | Grab a 8-bit @'Word'@ given a @'Ptr'@ to some address.
+-- | Grab a 8-bit 'Word' given a 'Ptr' to some address.
 grabWord8 :: Ptr () -> Word8
 {-# INLINE grabWord8 #-}
 
--- | Grab a 16-bit @'Word'@ given a @'Ptr'@ to some address.
+-- | Grab a 16-bit 'Word' given a 'Ptr' to some address.
 grabWord16 :: Ptr () -> Word16
 {-# INLINE grabWord16 #-}
 
--- | Grab a 32-bit @'Word'@ given a @'Ptr'@ to some address.
+-- | Grab a 32-bit 'Word' given a 'Ptr' to some address.
 grabWord32 :: Ptr () -> Word32
 {-# INLINE grabWord32 #-}
 
--- | Grab a 64-bit @'Word64'@ given a @'Ptr'@ to some address.
+-- | Grab a 64-bit 'Word64' given a 'Ptr' to some address.
 grabWord64 :: Ptr () -> Word64
 {-# INLINE grabWord64 #-}
 
@@ -226,43 +229,43 @@ grabWord64 (Ptr ip#) =
 --------------------------------------------------------------------------------
 -- ByteString shennanigans
 
--- | Take the tail of a @'ByteString'@ (i.e. drop the first byte) and read the
--- resulting byte(s) as an 8-bit word value. The input @'ByteString'@ MUST be at
+-- | Take the tail of a 'ByteString' (i.e. drop the first byte) and read the
+-- resulting byte(s) as an 8-bit word value. The input 'ByteString' MUST be at
 -- least 2 bytes long: one byte to drop from the front, and one to read as a
--- @'Word'@ value. This is not checked, and failure to ensure this will result
+-- 'Word' value. This is not checked, and failure to ensure this will result
 -- in undefined behavior.
 eatTailWord8 :: ByteString -> Word8
 eatTailWord8 xs = withBsPtr grabWord8 (BS.unsafeTail xs)
 {-# INLINE eatTailWord8 #-}
 
--- | Take the tail of a @'ByteString'@ (i.e. drop the first byte) and read the
--- resulting byte(s) as a 16-bit word value. The input @'ByteString'@ MUST be at
+-- | Take the tail of a 'ByteString' (i.e. drop the first byte) and read the
+-- resulting byte(s) as a 16-bit word value. The input 'ByteString' MUST be at
 -- least 3 bytes long: one byte to drop from the front, and two to read as a
--- 16-bit @'Word'@ value. This is not checked, and failure to ensure this will
+-- 16-bit 'Word' value. This is not checked, and failure to ensure this will
 -- result in undefined behavior.
 eatTailWord16 :: ByteString -> Word16
 eatTailWord16 xs = withBsPtr grabWord16 (BS.unsafeTail xs)
 {-# INLINE eatTailWord16 #-}
 
--- | Take the tail of a @'ByteString'@ (i.e. drop the first byte) and read the
--- resulting byte(s) as a 32-bit word value. The input @'ByteString'@ MUST be at
+-- | Take the tail of a 'ByteString' (i.e. drop the first byte) and read the
+-- resulting byte(s) as a 32-bit word value. The input 'ByteString' MUST be at
 -- least 5 bytes long: one byte to drop from the front, and four to read as a
--- 32-bit @'Word'@ value. This is not checked, and failure to ensure this will
+-- 32-bit 'Word' value. This is not checked, and failure to ensure this will
 -- result in undefined behavior.
 eatTailWord32 :: ByteString -> Word32
 eatTailWord32 xs = withBsPtr grabWord32 (BS.unsafeTail xs)
 {-# INLINE eatTailWord32 #-}
 
--- | Take the tail of a @'ByteString'@ (i.e. drop the first byte) and read the
--- resulting byte(s) as a 64-bit word value. The input @'ByteString'@ MUST be at
+-- | Take the tail of a 'ByteString' (i.e. drop the first byte) and read the
+-- resulting byte(s) as a 64-bit word value. The input 'ByteString' MUST be at
 -- least 9 bytes long: one byte to drop from the front, and eight to read as a
--- 64-bit @'Word64'@ value. This is not checked, and failure to ensure this will
+-- 64-bit 'Word64' value. This is not checked, and failure to ensure this will
 -- result in undefined behavior.
 eatTailWord64 :: ByteString -> Word64
 eatTailWord64 xs = withBsPtr grabWord64 (BS.unsafeTail xs)
 {-# INLINE eatTailWord64 #-}
 
--- | Unsafely take a @'Ptr'@ to a @'ByteString'@ and do unholy things
+-- | Unsafely take a 'Ptr' to a 'ByteString' and do unholy things
 -- with it.
 withBsPtr :: (Ptr b -> a) -> ByteString -> a
 withBsPtr f (BS.PS x off _) =
@@ -273,7 +276,7 @@ withBsPtr f (BS.PS x off _) =
 --------------------------------------------------------------------------------
 -- Half floats
 
--- | Convert a @'Word16'@ to a half-sized @'Float'@.
+-- | Convert a 'Word16' to a half-sized 'Float'.
 wordToFloat16 :: Word16 -> Float
 wordToFloat16 = \x -> Half.fromHalf (Half.Half (cast x))
   where
@@ -281,7 +284,7 @@ wordToFloat16 = \x -> Half.fromHalf (Half.Half (cast x))
     cast = fromIntegral
 {-# INLINE wordToFloat16 #-}
 
--- | Convert a half-sized @'Float'@ to a @'Word'@.
+-- | Convert a half-sized 'Float' to a 'Word'.
 floatToWord16 :: Float -> Word16
 floatToWord16 = \x -> cast (Half.getHalf (Half.toHalf x))
   where
@@ -296,24 +299,22 @@ floatToWord16 = \x -> cast (Half.getHalf (Half.toHalf x))
 -- endian issues. A little endian machine cannot read a big-endian float direct
 -- from memory, so we read a word, bswap it and then convert to float.
 --
--- Currently there are no primops for casting word <-> float, see
+-- Prior to base 4.11, there are no primops for casting word <-> float, see
 -- https://ghc.haskell.org/trac/ghc/ticket/4092
 --
--- In this implementation, we're avoiding doing the extra indirection (and
--- closure allocation) of the runSTRep stuff, but we have to be very careful
--- here, we cannot allow the "constant" newByteArray# 8# realWorld# to be
--- floated out and shared and aliased across multiple concurrent calls. So we
--- do manual worker/wrapper with the worker not being inlined.
+-- In our fallback implementation, we're avoiding doing the extra indirection
+-- (and closure allocation) of the runSTRep stuff, but we have to be very
+-- careful here, we cannot allow the "constant" newByteArray# 8# realWorld# to
+-- be floated out and shared and aliased across multiple concurrent calls.
+-- So we do manual worker/wrapper with the worker not being inlined.
 
--- | Cast a @'Word32'@ to a @'Float'@.
+-- | Cast a 'Word32' to a 'Float'.
 wordToFloat32 :: Word32 -> Float
+#if MIN_VERSION_base(4,11,0)
+wordToFloat32 = GHC.Float.castWord32ToFloat
+#else
 wordToFloat32 (W32# w#) = F# (wordToFloat32# w#)
 {-# INLINE wordToFloat32 #-}
-
--- | Cast a @'Word64'@ to a @'Float'@.
-wordToFloat64 :: Word64 -> Double
-wordToFloat64 (W64# w#) = D# (wordToFloat64# w#)
-{-# INLINE wordToFloat64 #-}
 
 -- | Cast an unboxed word to an unboxed float.
 wordToFloat32# :: Word# -> Float#
@@ -325,6 +326,15 @@ wordToFloat32# w# =
             case readFloatArray# mba# 0# s'' of
               (# _, f# #) -> f#
 {-# NOINLINE wordToFloat32# #-}
+#endif
+
+-- | Cast a 'Word64' to a 'Float'.
+wordToFloat64 :: Word64 -> Double
+#if MIN_VERSION_base(4,11,0)
+wordToFloat64 = GHC.Float.castWord64ToDouble
+#else
+wordToFloat64 (W64# w#) = D# (wordToFloat64# w#)
+{-# INLINE wordToFloat64 #-}
 
 -- | Cast an unboxed word to an unboxed double.
 #if defined(ARCH_64bit)
@@ -340,6 +350,7 @@ wordToFloat64# w# =
             case readDoubleArray# mba# 0# s'' of
               (# _, f# #) -> f#
 {-# NOINLINE wordToFloat64# #-}
+#endif
 
 --------------------------------------------------------------------------------
 -- Casting words and ints
@@ -449,11 +460,11 @@ word32ToWord64 (W32# w#) = W64# (wordToWord64# w#)
 --------------------------------------------------------------------------------
 -- Integer utilities
 
--- | Create a negative @'Integer'@ out of a raw @'BS.ByteString'@.
+-- | Create a negative 'Integer' out of a raw 'BS.ByteString'.
 nintegerFromBytes :: BS.ByteString -> Integer
 nintegerFromBytes bs = -1 - uintegerFromBytes bs
 
--- | Create an @'Integer'@ out of a raw @'BS.ByteString'@.
+-- | Create an 'Integer' out of a raw 'BS.ByteString'.
 uintegerFromBytes :: BS.ByteString -> Integer
 
 #if defined(OPTIMIZE_GMP)
@@ -483,11 +494,11 @@ uintegerFromBytes bs =
 -- Mutable counters
 
 -- | An efficient, mutable counter. Designed to be used inside
--- @'ST'@ or other primitive monads, hence it carries an abstract
+-- 'ST' or other primitive monads, hence it carries an abstract
 -- rank-2 @s@ type parameter.
 data Counter s = Counter (MutableByteArray# s)
 
--- | Create a new counter with a starting @'Int'@ value.
+-- | Create a new counter with a starting 'Int' value.
 newCounter :: Int -> ST s (Counter s)
 newCounter (I# n#) =
     ST (\s ->
@@ -497,7 +508,7 @@ newCounter (I# n#) =
             s'' -> (# s'', Counter mba# #))
 {-# INLINE newCounter   #-}
 
--- | Read the current value of a @'Counter'@.
+-- | Read the current value of a 'Counter'.
 readCounter :: Counter s -> ST s Int
 readCounter (Counter mba#) =
     ST (\s ->
@@ -505,7 +516,7 @@ readCounter (Counter mba#) =
         (# s', n# #) -> (# s', I# n# #))
 {-# INLINE readCounter  #-}
 
--- | Write a new value into the @'Counter'@.
+-- | Write a new value into the 'Counter'.
 writeCounter :: Counter s -> Int -> ST s ()
 writeCounter (Counter mba#) (I# n#) =
     ST (\s ->
@@ -513,14 +524,14 @@ writeCounter (Counter mba#) (I# n#) =
         s' -> (# s', () #))
 {-# INLINE writeCounter #-}
 
--- | Increment a @'Counter'@ by one.
+-- | Increment a 'Counter' by one.
 incCounter :: Counter s -> ST s ()
 incCounter c = do
   x <- readCounter c
   writeCounter c (x+1)
 {-# INLINE incCounter #-}
 
--- | Decrement a @'Counter'@ by one.
+-- | Decrement a 'Counter' by one.
 decCounter :: Counter s -> ST s ()
 decCounter c = do
   x <- readCounter c
@@ -530,7 +541,7 @@ decCounter c = do
 --------------------------------------------------------------------------------
 -- Array support
 
--- | Copy a @'BS.ByteString'@ and create a primitive @'Prim.ByteArray'@ from it.
+-- | Copy a 'BS.ByteString' and create a primitive 'Prim.ByteArray' from it.
 copyByteStringToByteArray :: BS.ByteString -> Prim.ByteArray
 copyByteStringToByteArray (BS.PS fp off len) =
     unsafeDupablePerformIO $
@@ -542,12 +553,12 @@ copyByteStringToByteArray (BS.PS fp off len) =
 -- TODO FIXME: can do better here: can do non-copying for larger pinned arrays
 -- or copy directly into the builder buffer
 
--- | Copy a @'Prim.ByteArray'@ at a certain offset and length into a
--- @'BS.ByteString'@.
+-- | Copy a 'Prim.ByteArray' at a certain offset and length into a
+-- 'BS.ByteString'.
 copyByteArrayToByteString :: Prim.ByteArray
-                          -- ^ @'Prim.ByteArray'@ to copy from.
+                          -- ^ 'Prim.ByteArray' to copy from.
                           -> Int
-                          -- ^ Offset into the @'Prim.ByteArray'@ to start with.
+                          -- ^ Offset into the 'Prim.ByteArray' to start with.
                           -> Int
                           -- ^ Length of the data to copy.
                           -> BS.ByteString
@@ -558,11 +569,11 @@ copyByteArrayToByteString ba off len =
         copyByteArrayToPtr ba off ptr len
         return (BS.PS fp 0 len)
 
--- | Copy the data pointed to by a @'Ptr'@ into a @'MutableByteArray'.
+-- | Copy the data pointed to by a 'Ptr' into a @'MutableByteArray'.
 copyPtrToMutableByteArray :: Ptr a
-                          -- ^ @'Ptr'@ to buffer to copy from.
+                          -- ^ 'Ptr' to buffer to copy from.
                           -> MutableByteArray RealWorld
-                          -- ^ @'MutableByteArray'@ to copy into.
+                          -- ^ 'MutableByteArray' to copy into.
                           -> Int
                           -- ^ Offset to start copying from.
                           -> Int
@@ -573,11 +584,11 @@ copyPtrToMutableByteArray (Ptr addr#) (MutableByteArray mba#) (I# off#) (I# len#
       case copyAddrToByteArray# addr# mba# off# len# s of
         s' -> (# s', () #))
 
--- | Copy a @'ByteArray'@ into a @'Ptr'@ with a given offset and length.
+-- | Copy a 'ByteArray' into a 'Ptr' with a given offset and length.
 copyByteArrayToPtr :: ByteArray
-                   -- ^ @'ByteArray'@ to copy.
+                   -- ^ 'ByteArray' to copy.
                    -> Int
-                   -- ^ Offset into the @'ByteArray'@ of where to start copying.
+                   -- ^ Offset into the 'ByteArray' of where to start copying.
                    -> Ptr a
                    -- ^ Pointer to destination buffer.
                    -> Int

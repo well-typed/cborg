@@ -99,8 +99,8 @@ instance Exception DeserialiseFailure where
 -- of type @a@.
 data IDecode s a
   = -- | The decoder has consumed the available input and needs more
-    -- to continue. Provide @'Just'@ if more input is available and
-    -- @'Nothing'@ otherwise, and you will get a new @'IDecode'@.
+    -- to continue. Provide 'Just' if more input is available and
+    -- 'Nothing' otherwise, and you will get a new 'IDecode'.
     Partial (Maybe BS.ByteString -> ST s (IDecode s a))
 
     -- | The decoder has successfully finished. Except for the output
@@ -109,14 +109,14 @@ data IDecode s a
   | Done !BS.ByteString {-# UNPACK #-} !ByteOffset a
 
     -- | The decoder ran into an error. The decoder either used
-    -- @'fail'@ or was not provided enough input. Contains any
+    -- 'fail' or was not provided enough input. Contains any
     -- unconsumed input, the number of bytes consumed, and a
-    -- @'DeserialiseFailure'@ exception describing the reason why the
+    -- 'DeserialiseFailure' exception describing the reason why the
     -- failure occurred.
   | Fail !BS.ByteString {-# UNPACK #-} !ByteOffset DeserialiseFailure
 
--- | Given a @'Decoder'@ and some @'LBS.ByteString'@ representing
--- an encoded CBOR value, return @'Either'@ the decoded CBOR value
+-- | Given a 'Decoder' and some 'LBS.ByteString' representing
+-- an encoded CBOR value, return 'Either' the decoded CBOR value
 -- or an error. In addition to the decoded value return any remaining input
 -- content.
 --
@@ -128,8 +128,8 @@ deserialiseFromBytes d lbs =
     fmap f $ runIDecode (deserialiseIncremental d) lbs
   where f (rest, _, x) = (rest, x)
 
--- | Given a @'Decoder'@ and some @'LBS.ByteString'@ representing
--- an encoded CBOR value, return @'Either'@ the decoded CBOR value
+-- | Given a 'Decoder' and some 'LBS.ByteString' representing
+-- an encoded CBOR value, return 'Either' the decoded CBOR value
 -- or an error. In addition to the decoded value return any remaining input
 -- content and the number of bytes consumed.
 --
@@ -157,7 +157,7 @@ runIDecode d lbs =
     go  LBS.Empty          (Partial  k)    = k Nothing   >>= go LBS.Empty
     go (LBS.Chunk bs lbs') (Partial  k)    = k (Just bs) >>= go lbs'
 
--- | Run a @'Decoder'@ incrementally, returning a continuation
+-- | Run a 'Decoder' incrementally, returning a continuation
 -- representing the result of the incremental decode.
 --
 -- @since 0.2.0.0
@@ -169,9 +169,6 @@ deserialiseIncremental decoder = do
 ----------------------------------------------
 -- A monad for building incremental decoders
 --
-
--- | Simple alias for @'Int64'@, used to make types more descriptive.
-type ByteOffset = Int64
 
 newtype IncrementalDecoder s a = IncrementalDecoder {
        unIncrementalDecoder ::
@@ -245,6 +242,11 @@ data SlowPath s a
    | SlowConsumeTokenByteArray     {-# UNPACK #-} !ByteString (BA.ByteArray -> ST s (DecodeAction s a)) {-# UNPACK #-} !Int
    | SlowConsumeTokenString        {-# UNPACK #-} !ByteString (T.Text       -> ST s (DecodeAction s a)) {-# UNPACK #-} !Int
    | SlowConsumeTokenUtf8ByteArray {-# UNPACK #-} !ByteString (BA.ByteArray -> ST s (DecodeAction s a)) {-# UNPACK #-} !Int
+#if defined(ARCH_32bit)
+   | SlowPeekByteOffset            {-# UNPACK #-} !ByteString (Int64#       -> ST s (DecodeAction s a))
+#else
+   | SlowPeekByteOffset            {-# UNPACK #-} !ByteString (Int#         -> ST s (DecodeAction s a))
+#endif
    | SlowDecodeAction              {-# UNPACK #-} !ByteString (DecodeAction s a)
    | SlowFail                      {-# UNPACK #-} !ByteString String
 
@@ -596,9 +598,9 @@ go_fast !bs da@(ConsumeIntegerCanonical k) =
 go_fast !bs da@(ConsumeFloat16Canonical k) =
     case tryConsumeFloat (BS.unsafeHead bs) bs of
       DecodeFailure     -> go_fast_end bs da
-      DecodedToken sz (F# f#)
-        | isFloat16Canonical sz -> k f# >>= go_fast (BS.unsafeDrop sz bs)
-        | otherwise             -> go_fast_end bs da
+      DecodedToken sz f@(F# f#)
+        | isFloat16Canonical sz bs f -> k f# >>= go_fast (BS.unsafeDrop sz bs)
+        | otherwise                  -> go_fast_end bs da
 
 go_fast !bs da@(ConsumeFloatCanonical k) =
     case tryConsumeFloat (BS.unsafeHead bs) bs of
@@ -650,8 +652,8 @@ go_fast !bs da@(ConsumeSimpleCanonical k) =
     case tryConsumeSimple (BS.unsafeHead bs) bs of
       DecodeFailure           -> go_fast_end bs da
       DecodedToken sz (W# w#)
-        | isWordCanonical sz w# -> k w# >>= go_fast (BS.unsafeDrop sz bs)
-        | otherwise             -> go_fast_end bs da
+        | isSimpleCanonical sz w# -> k w# >>= go_fast (BS.unsafeDrop sz bs)
+        | otherwise               -> go_fast_end bs da
 
 go_fast !bs da@(ConsumeBytesIndef k) =
     case tryConsumeBytesIndef (BS.unsafeHead bs) of
@@ -700,6 +702,7 @@ go_fast !bs (PeekTokenType k) =
 
 go_fast !bs (PeekAvailable k) = k (case BS.length bs of I# len# -> len#) >>= go_fast bs
 
+go_fast !bs da@PeekByteOffset{} = go_fast_end bs da
 go_fast !bs da@D.Fail{} = go_fast_end bs da
 go_fast !bs da@D.Done{} = go_fast_end bs da
 
@@ -718,6 +721,8 @@ go_fast_end :: ByteString -> DecodeAction s a -> ST s (SlowPath s a)
 go_fast_end !bs (D.Fail msg)      = return $! SlowFail bs msg
 go_fast_end !bs (D.Done x)        = return $! FastDone bs x
 go_fast_end !bs (PeekAvailable k) = k (case BS.length bs of I# len# -> len#) >>= go_fast_end bs
+
+go_fast_end !bs (PeekByteOffset k) = return $! SlowPeekByteOffset bs k
 
 -- the next two cases only need the 1 byte token header
 go_fast_end !bs da | BS.null bs = return $! SlowDecodeAction bs da
@@ -1095,9 +1100,9 @@ go_fast_end !bs (ConsumeIntegerCanonical k) =
 go_fast_end !bs (ConsumeFloat16Canonical k) =
     case tryConsumeFloat (BS.unsafeHead bs) bs of
       DecodeFailure     -> return $! SlowFail bs "expected float"
-      DecodedToken sz (F# f#)
-        | isFloat16Canonical sz -> k f# >>= go_fast_end (BS.unsafeDrop sz bs)
-        | otherwise             -> return $! SlowFail bs "non-canonical float16"
+      DecodedToken sz f@(F# f#)
+        | isFloat16Canonical sz bs f -> k f# >>= go_fast_end (BS.unsafeDrop sz bs)
+        | otherwise                  -> return $! SlowFail bs "non-canonical float16"
 
 go_fast_end !bs (ConsumeFloatCanonical k) =
     case tryConsumeFloat (BS.unsafeHead bs) bs of
@@ -1156,8 +1161,8 @@ go_fast_end !bs (ConsumeSimpleCanonical k) =
     case tryConsumeSimple (BS.unsafeHead bs) bs of
       DecodeFailure           -> return $! SlowFail bs "expected simple"
       DecodedToken sz (W# w#)
-        | isWordCanonical sz w# -> k w# >>= go_fast_end (BS.unsafeDrop sz bs)
-        | otherwise             -> return $! SlowFail bs "non-canonical simple"
+        | isSimpleCanonical sz w# -> k w# >>= go_fast_end (BS.unsafeDrop sz bs)
+        | otherwise               -> return $! SlowFail bs "non-canonical simple"
 
 go_fast_end !bs (ConsumeBytesIndef k) =
     case tryConsumeBytesIndef (BS.unsafeHead bs) of
@@ -1259,6 +1264,11 @@ go_slow da bs !offset = do
       where
         !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
 
+    SlowPeekByteOffset bs' k ->
+      lift (k off#) >>= \daz -> go_slow daz bs' offset'
+      where
+        !offset'@(I64# off#) = offset + intToInt64 (BS.length bs - BS.length bs')
+
     SlowFail bs' msg -> decodeFail bs' offset' msg
       where
         !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
@@ -1355,6 +1365,12 @@ go_slow_overlapped da sz bs_cur bs_next !offset =
         (bstr, bs'') <- getTokenShortOrVarLen bs' offset' len
         let !ba = BA.fromByteString bstr
         lift (k ba) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len)
+
+      SlowPeekByteOffset bs_empty k ->
+        assert (BS.null bs_empty) $ do
+        lift (k off#) >>= \daz -> go_slow daz bs' offset'
+        where
+          !(I64# off#) = offset'
 
       SlowFail bs_unconsumed msg ->
         decodeFail (bs_unconsumed <> bs') offset'' msg
@@ -1482,22 +1498,32 @@ data LongToken a = Fits Bool {- canonical? -} !a
                  | TooLong Bool {- canonical? -} !Int
   deriving Show
 
+-- Canoncal NaN floats:
+--
+-- In these float/double canonical tests we check NaNs are canonical too.
+-- There are lots of bit values representing NaN, for each of the flat types.
+-- The rule from CBOR RFC 7049, section 3.9 is that the canonical NaN is the
+-- CBOR term f97e00 which is the canonical half-float representation. We do
+-- this by testing for the size being 3 (since tryConsumeFloat/Double only
+-- return 3 when the header byte is 0xf9) and the 16 bytes being 0x7e00.
+
 {-# INLINE isFloat16Canonical #-}
-isFloat16Canonical :: Int -> Bool
-isFloat16Canonical sz
-  | sz == 3   = True
-  | otherwise = False
+isFloat16Canonical :: Int -> BS.ByteString -> Float -> Bool
+isFloat16Canonical sz bs f
+  | sz /= 3   = False
+  | isNaN f   = eatTailWord16 bs == 0x7e00
+  | otherwise = True
 
 {-# INLINE isFloatCanonical #-}
 isFloatCanonical :: Int -> BS.ByteString -> Float -> Bool
 isFloatCanonical sz bs f
-  | isNaN f   = sz == 3 && "\xf9\x7e\x00" `BS.isPrefixOf` bs
+  | isNaN f   = sz == 3 && eatTailWord16 bs == 0x7e00
   | otherwise = sz == 5
 
 {-# INLINE isDoubleCanonical #-}
 isDoubleCanonical :: Int -> BS.ByteString -> Double -> Bool
 isDoubleCanonical sz bs f
-  | isNaN f   = sz == 3 && "\xf9\x7e\x00" `BS.isPrefixOf` bs
+  | isNaN f   = sz == 3 && eatTailWord16 bs == 0x7e00
   | otherwise = sz == 9
 
 {-# INLINE isWordCanonical #-}
@@ -1535,6 +1561,12 @@ isInt64Canonical sz i#
   where
     w# = int64ToWord64# i#
 #endif
+
+{-# INLINE isSimpleCanonical #-}
+isSimpleCanonical :: Int -> Word# -> Bool
+isSimpleCanonical 2 w# = isTrue# (w# `gtWord#` 0x17##)
+isSimpleCanonical _ _  = True -- only size 1 and 2 are possible here
+
 
 -- TODO FIXME: check with 7.10 and file ticket:
 -- a case analysis against 0x00 .. 0xff :: Word8 turns into a huge chain

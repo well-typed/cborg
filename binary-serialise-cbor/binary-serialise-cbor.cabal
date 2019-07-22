@@ -12,7 +12,8 @@ copyright:           2015-2017 Duncan Coutts,
 category:            Codec
 build-type:          Simple
 cabal-version:       1.21
-tested-with:         GHC == 7.10.3, GHC == 8.0.1
+tested-with:
+  GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5
 
 description:
   This package is a shim around @cborg@, exposing an interface compatible with
@@ -41,7 +42,7 @@ library
   exposed-modules: Data.Binary.Serialise.CBOR.Read
 
   build-depends:
-    base < 5,
+    base >= 4.8 && < 5,
     bytestring < 1.0,
     cborg     == 0.2.*,
     serialise == 0.2.*

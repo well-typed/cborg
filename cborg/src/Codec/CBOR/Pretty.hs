@@ -42,7 +42,7 @@ import           Control.Applicative
 
 newtype PP a = PP (Tokens -> Int -> ShowS -> Either String (Tokens,Int,ShowS,a))
 
--- | Pretty prints an @'Encoding'@ in an annotated, hexadecimal format
+-- | Pretty prints an 'Encoding' in an annotated, hexadecimal format
 -- that maps CBOR values to their types. The output format is similar
 -- to the format used on http://cbor.me/.
 --
@@ -103,7 +103,9 @@ instance Monad PP where
     Right (toks', ind', ss', x) -> let PP g' = g x
       in g' toks' ind' ss'
   return = pure
+#if !MIN_VERSION_base(4,13,0)
   fail = Fail.fail
+#endif
 
 instance Fail.MonadFail PP where
   fail s = PP $ \_ _ _ -> Left s
@@ -178,6 +180,7 @@ pprint = do
     TkFloat16  f  TkEnd -> ppTkFloat16 f
     TkFloat32  f  TkEnd -> ppTkFloat32 f
     TkFloat64  f  TkEnd -> ppTkFloat64 f
+    TkEncoded  _  TkEnd -> ppTkEncoded
     TkEnd               -> str "# End of input"
     _ -> fail $ unwords ["pprint: Unexpected token:", show term]
 
@@ -201,6 +204,9 @@ ppTkString t = str "# text" >> parens (shown t)
 
 ppTkStringBegin::               PP ()
 ppTkStringBegin = str "# text(*)" >> inc 3 >> indef pprint
+
+ppTkEncoded    ::               PP ()
+ppTkEncoded = str "# pre-encoded CBOR term"
 
 ppTkListLen    :: Word       -> PP ()
 ppTkListLen n = do
@@ -297,6 +303,7 @@ unconsToken (TkSimple w8   tks) = Just (TkSimple w8   TkEnd,tks)
 unconsToken (TkFloat16 f16 tks) = Just (TkFloat16 f16 TkEnd,tks)
 unconsToken (TkFloat32 f32 tks) = Just (TkFloat32 f32 TkEnd,tks)
 unconsToken (TkFloat64 f64 tks) = Just (TkFloat64 f64 TkEnd,tks)
+unconsToken (TkEncoded bs  tks) = Just (TkEncoded bs  TkEnd,tks)
 unconsToken (TkBreak       tks) = Just (TkBreak       TkEnd,tks)
 
 hexRep :: Tokens -> PP ()

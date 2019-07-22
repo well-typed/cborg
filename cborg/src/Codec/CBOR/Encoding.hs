@@ -10,14 +10,14 @@
 -- Portability : non-portable (GHC extensions)
 --
 -- High level API for encoding values, for later serialization into
--- CBOR binary format, using a @'Monoid'@ based interface.
+-- CBOR binary format, using a 'Monoid' based interface.
 --
 module Codec.CBOR.Encoding
   ( -- * Encoding implementation
     Encoding(..)             -- :: *
   , Tokens(..)               -- :: *
 
-    -- * @'Encoding'@ API for serialisation
+    -- * 'Encoding' API for serialisation
   , encodeWord               -- :: Word -> Encoding
   , encodeWord8              -- :: Word8 -> Encoding
   , encodeWord16             -- :: Word16 -> Encoding
@@ -49,6 +49,7 @@ module Codec.CBOR.Encoding
   , encodeFloat16            -- :: Float -> Encoding
   , encodeFloat              -- :: Float -> Encoding
   , encodeDouble             -- :: Double -> Encoding
+  , encodePreEncoded         -- :: B.ByteString -> Encoding
   ) where
 
 #include "cbor.h"
@@ -67,16 +68,16 @@ import           Prelude         hiding (encodeFloat)
 import {-# SOURCE #-} qualified Codec.CBOR.FlatTerm as FlatTerm
 
 -- | An intermediate form used during serialisation, specified as a
--- @'Monoid'@. It supports efficient concatenation, and is equivalent
--- to a specialised @'Data.Monoid.Endo' 'Tokens'@ type.
+-- 'Monoid'. It supports efficient concatenation, and is equivalent
+-- to a specialised 'Data.Monoid.Endo' 'Tokens' type.
 --
 -- It is used for the stage in serialisation where we flatten out the
 -- Haskell data structure but it is independent of any specific
 -- external binary or text format.
 --
--- Traditionally, to build any arbitrary @'Encoding'@ value, you specify
+-- Traditionally, to build any arbitrary 'Encoding' value, you specify
 -- larger structures from smaller ones and append the small ones together
--- using @'Data.Monoid.mconcat'@.
+-- using 'Data.Monoid.mconcat'.
 --
 -- @since 0.2.0.0
 newtype Encoding = Encoding (Tokens -> Tokens)
@@ -127,6 +128,9 @@ data Tokens =
     | TkFloat64  {-# UNPACK #-} !Double       Tokens
     | TkBreak                                 Tokens
 
+    -- Special
+    | TkEncoded  {-# UNPACK #-} !B.ByteString Tokens
+
     | TkEnd
     deriving (Show,Eq)
 
@@ -146,55 +150,55 @@ instance Monoid Encoding where
   mconcat = foldr (<>) mempty
   {-# INLINE mconcat #-}
 
--- | Encode a @'Word'@ in a flattened format.
+-- | Encode a 'Word' in a flattened format.
 --
 -- @since 0.2.0.0
 encodeWord :: Word -> Encoding
 encodeWord = Encoding . TkWord
 
--- | Encode a @'Word8'@ in a flattened format.
+-- | Encode a 'Word8' in a flattened format.
 --
 -- @since 0.2.0.0
 encodeWord8 :: Word8 -> Encoding
 encodeWord8 = Encoding . TkWord . fromIntegral
 
--- | Encode a @'Word16'@ in a flattened format.
+-- | Encode a 'Word16' in a flattened format.
 --
 -- @since 0.2.0.0
 encodeWord16 :: Word16 -> Encoding
 encodeWord16 = Encoding . TkWord . fromIntegral
 
--- | Encode a @'Word32'@ in a flattened format.
+-- | Encode a 'Word32' in a flattened format.
 --
 -- @since 0.2.0.0
 encodeWord32 :: Word32 -> Encoding
 encodeWord32 = Encoding . TkWord . fromIntegral
 
--- | Encode a @'Word64'@ in a flattened format.
+-- | Encode a 'Word64' in a flattened format.
 --
 -- @since 0.2.0.0
 encodeWord64 :: Word64 -> Encoding
 encodeWord64 = Encoding . TkWord64
 
--- | Encode an @'Int'@ in a flattened format.
+-- | Encode an 'Int' in a flattened format.
 --
 -- @since 0.2.0.0
 encodeInt :: Int -> Encoding
 encodeInt = Encoding . TkInt
 
--- | Encode an @'Int8'@ in a flattened format.
+-- | Encode an 'Int8' in a flattened format.
 --
 -- @since 0.2.0.0
 encodeInt8 :: Int8 -> Encoding
 encodeInt8 = Encoding . TkInt . fromIntegral
 
--- | Encode an @'Int16'@ in a flattened format.
+-- | Encode an 'Int16' in a flattened format.
 --
 -- @since 0.2.0.0
 encodeInt16 :: Int16 -> Encoding
 encodeInt16 = Encoding . TkInt . fromIntegral
 
--- | Encode an @'Int32'@ in a flattened format.
+-- | Encode an 'Int32' in a flattened format.
 --
 -- @since 0.2.0.0
 encodeInt32 :: Int32 -> Encoding
@@ -213,7 +217,7 @@ encodeInt64 = Encoding . TkInt64
 encodeInteger :: Integer -> Encoding
 encodeInteger n = Encoding (TkInteger n)
 
--- | Encode an arbitrary strict @'B.ByteString'@ in
+-- | Encode an arbitrary strict 'B.ByteString' in
 -- a flattened format.
 --
 -- @since 0.2.0.0
@@ -230,13 +234,13 @@ encodeByteArray = Encoding . TkByteArray
 -- indefinite length. In reality, this specifies a stream of many
 -- occurrences of `encodeBytes`, each specifying a single chunk of the
 -- overall string. After all the bytes desired have been encoded, you
--- should follow it with a break token (see @'encodeBreak'@).
+-- should follow it with a break token (see 'encodeBreak').
 --
 -- @since 0.2.0.0
 encodeBytesIndef :: Encoding
 encodeBytesIndef = Encoding TkBytesBegin
 
--- | Encode a @'T.Text'@ in a flattened format.
+-- | Encode a 'T.Text' in a flattened format.
 --
 -- @since 0.2.0.0
 encodeString :: T.Text -> Encoding
@@ -265,7 +269,7 @@ encodeListLen = Encoding . TkListLen
 -- | Encode a token specifying that this is the beginning of an
 -- indefinite list of unknown size. Tokens representing the list are
 -- expected afterwords, followed by a break token (see
--- @'encodeBreak'@) when the list has ended.
+-- 'encodeBreak') when the list has ended.
 --
 -- @since 0.2.0.0
 encodeListLenIndef :: Encoding
@@ -281,7 +285,7 @@ encodeMapLen = Encoding . TkMapLen
 -- | Encode a token specifying that this is the beginning of an
 -- indefinite map of unknown size. Tokens representing the map are
 -- expected afterwords, followed by a break token (see
--- @'encodeBreak'@) when the map has ended.
+-- 'encodeBreak') when the map has ended.
 --
 -- @since 0.2.0.0
 encodeMapLenIndef :: Encoding
@@ -294,19 +298,19 @@ encodeMapLenIndef = Encoding TkMapBegin
 encodeBreak :: Encoding
 encodeBreak = Encoding TkBreak
 
--- | Encode an arbitrary @'Word'@ tag.
+-- | Encode an arbitrary 'Word' tag.
 --
 -- @since 0.2.0.0
 encodeTag :: Word -> Encoding
 encodeTag = Encoding . TkTag
 
--- | Encode an arbitrary 64-bit @'Word64'@ tag.
+-- | Encode an arbitrary 64-bit 'Word64' tag.
 --
 -- @since 0.2.0.0
 encodeTag64 :: Word64 -> Encoding
 encodeTag64 = Encoding . TkTag64
 
--- | Encode a @'Bool'@.
+-- | Encode a 'Bool'.
 --
 -- @since 0.2.0.0
 encodeBool :: Bool -> Encoding
@@ -331,20 +335,35 @@ encodeNull = Encoding TkNull
 encodeSimple :: Word8 -> Encoding
 encodeSimple = Encoding . TkSimple
 
--- | Encode a small 16-bit @'Float'@ in a flattened format.
+-- | Encode a small 16-bit 'Float' in a flattened format.
 --
 -- @since 0.2.0.0
 encodeFloat16 :: Float -> Encoding
 encodeFloat16 = Encoding . TkFloat16
 
--- | Encode a full precision @'Float'@ in a flattened format.
+-- | Encode a full precision 'Float' in a flattened format.
 --
 -- @since 0.2.0.0
 encodeFloat :: Float -> Encoding
 encodeFloat = Encoding . TkFloat32
 
--- | Encode a @'Double'@ in a flattened format.
+-- | Encode a 'Double' in a flattened format.
 --
 -- @since 0.2.0.0
 encodeDouble :: Double -> Encoding
 encodeDouble = Encoding . TkFloat64
+
+-- | Include pre-encoded valid CBOR data into the 'Encoding'.
+--
+-- The data is included into the output as-is without any additional wrapper.
+--
+-- This should be used with care. The data /must/ be a valid CBOR encoding, but
+-- this is /not/ checked.
+--
+-- This is useful when you have CBOR data that you know is already valid, e.g.
+-- previously validated and stored on disk, and you wish to include it without
+-- having to decode and re-encode it.
+--
+-- @since 0.2.2.0
+encodePreEncoded :: B.ByteString -> Encoding
+encodePreEncoded = Encoding . TkEncoded

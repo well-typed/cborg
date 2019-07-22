@@ -407,7 +407,7 @@ instance Arbitrary a => Arbitrary (List a) where
         cnv = foldr Cons Nil
 
 newtype BytesByteArray = BytesBA CBOR.BA.ByteArray
-                       deriving (Eq, Ord, Show)
+                       deriving (Eq, Ord, Show, Typeable)
 
 instance Serialise BytesByteArray where
     encode (BytesBA ba) = encodeByteArray $ CBOR.BA.toSliced ba
@@ -417,7 +417,7 @@ instance Arbitrary BytesByteArray where
     arbitrary = BytesBA . fromList <$> arbitrary
 
 newtype Utf8ByteArray = Utf8BA CBOR.BA.ByteArray
-                      deriving (Eq, Ord, Show)
+                      deriving (Eq, Ord, Show, Typeable)
 
 instance Serialise Utf8ByteArray where
     encode (Utf8BA ba) = encodeUtf8ByteArray $ CBOR.BA.toSliced ba
