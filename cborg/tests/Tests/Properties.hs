@@ -51,6 +51,7 @@ import           Codec.CBOR.Read
 import           Codec.CBOR.Write
 import           Codec.CBOR.Decoding
 import           Codec.CBOR.Encoding
+import           Codec.CBOR.FlatTerm
 
 import           Test.Tasty (TestTree, testGroup, localOption)
 import           Test.Tasty.QuickCheck (testProperty, QuickCheckMaxSize(..))
@@ -131,29 +132,32 @@ serialiseRef :: forall t. Token t => t -> LBS.ByteString
 serialiseRef = LBS.pack . encodeRef
 
 serialiseImp :: forall t. Token t => Proxy t -> Imp t -> LBS.ByteString
-serialiseImp _ = toLazyByteString . encodeImp t
-  where
-    t  = Proxy :: Proxy t
+serialiseImp t = toLazyByteString . encodeImp t
+
+serialiseFlatTerm :: Token t => Proxy t -> Imp t -> FlatTerm
+serialiseFlatTerm t = toFlatTerm . encodeImp t
 
 deserialiseRef :: forall t. Token t => Proxy t -> LBS.ByteString -> t
-deserialiseRef _ bytes =
+deserialiseRef t bytes =
   case Ref.runDecoder (decodeRef t) (LBS.unpack bytes) of
     Just (x, trailing)
       | null trailing -> x
       | otherwise     -> error "deserialiseRef: trailing bytes"
     Nothing           -> error "deserialiseRef: decode failure"
-  where
-    t  = Proxy :: Proxy t
 
 deserialiseImp :: forall t. Token t => Proxy t -> LBS.ByteString -> Imp t
-deserialiseImp _ bytes =
+deserialiseImp t bytes =
     case deserialiseFromBytes (decodeImp t) bytes of
       Right (trailing, x)
         | LBS.null trailing -> x
         | otherwise         -> error "deserialiseImp: trailing data"
       Left _failure         -> error "deserialiseImp: decode failure"
-  where
-    t  = Proxy :: Proxy t
+
+deserialiseFlatTerm :: Token t => Proxy t -> FlatTerm -> Imp t
+deserialiseFlatTerm t toks =
+  case fromFlatTerm (decodeImp t) toks of
+    Left _   -> error "fromFlatTerm: decode failure"
+    Right x' -> x'
 
 
 --------------------------------------------------------------------------------
@@ -378,6 +382,39 @@ prop_decodeRefdecodeImp _ x =
     enc = serialiseRef x
     eq  = eqImp t
     t   = Proxy :: Proxy t
+
+
+-- | The property corresponding to the following variation of the commuting
+-- diagram.
+--
+-- This is a round trip property, but instead of using the normal encoding
+-- to and and decoding from bytes from bytes, we encode to and decode from a
+-- 'FlatTerm'.
+--
+-- So this is a round trip property, with the production implementation of the
+-- encoder and decoder, involving toFlatTerm and fromFlatTerm.
+--
+-- >    . . . . . . ▷. . . . . . . . . ▷.
+-- >    .            △ .              . .
+-- >    .            .  .            .  .
+-- >    .            .   .          .   .
+-- >    .            .    ▶FlatTerm▶    .
+-- >    .            .   ╱          ╲   .
+-- >    .            .  ╱enc      dec╲  .
+-- >    ▽            . ╱              ╲ ▽
+-- >    . . . . . .▷Imp────────────────▶Imp
+-- >                        canon
+--
+-- > dec_FlatTerm . enc_FlatTerm = canon_imp
+--
+prop_toFromFlatTerm :: forall t. Token t => Proxy t -> Imp t -> Bool
+prop_toFromFlatTerm _ x =
+
+    (deserialiseFlatTerm t . serialiseFlatTerm t) x  `eq` canonicaliseImp t x
+
+  where
+    eq   = eqImp t
+    t    = Proxy :: Proxy t
 
 
 --------------------------------------------------------------------------------
@@ -1188,5 +1225,26 @@ testTree =
     , testProperty "Tag64"   (prop_decodeRefdecodeImp (Proxy :: Proxy TokTag64))
     , testProperty "Simple"  (prop_decodeRefdecodeImp (Proxy :: Proxy Ref.Simple))
     , testProperty "Term"    (prop_decodeRefdecodeImp (Proxy :: Proxy Ref.Term))
+    ]
+  , testGroup "(fromFlatTerm dec_imp . toFlatTerm . enc_imp) imp = Right imp"
+    [ testProperty "Word8"   (prop_toFromFlatTerm (Proxy :: Proxy TokWord8))
+    , testProperty "Word16"  (prop_toFromFlatTerm (Proxy :: Proxy TokWord16))
+    , testProperty "Word32"  (prop_toFromFlatTerm (Proxy :: Proxy TokWord32))
+    , testProperty "Word64"  (prop_toFromFlatTerm (Proxy :: Proxy TokWord64))
+    , testProperty "Word"    (prop_toFromFlatTerm (Proxy :: Proxy TokWord))
+--  , testProperty "NegWord" (prop_toFromFlatTerm (Proxy :: Proxy TokNegWord))
+    , testProperty "Int8"    (prop_toFromFlatTerm (Proxy :: Proxy TokInt8))
+    , testProperty "Int16"   (prop_toFromFlatTerm (Proxy :: Proxy TokInt16))
+    , testProperty "Int32"   (prop_toFromFlatTerm (Proxy :: Proxy TokInt32))
+    , testProperty "Int64"   (prop_toFromFlatTerm (Proxy :: Proxy TokInt64))
+    , testProperty "Int"     (prop_toFromFlatTerm (Proxy :: Proxy TokInt))
+    , testProperty "Integer" (prop_toFromFlatTerm (Proxy :: Proxy TokInteger))
+    , testProperty "Half"    (prop_toFromFlatTerm (Proxy :: Proxy TokHalf))
+    , testProperty "Float"   (prop_toFromFlatTerm (Proxy :: Proxy TokFloat))
+    , testProperty "Double"  (prop_toFromFlatTerm (Proxy :: Proxy TokDouble))
+    , testProperty "Tag"     (prop_toFromFlatTerm (Proxy :: Proxy TokTag))
+    , testProperty "Tag64"   (prop_toFromFlatTerm (Proxy :: Proxy TokTag64))
+    , testProperty "Simple"  (prop_toFromFlatTerm (Proxy :: Proxy Ref.Simple))
+    , testProperty "Term"    (prop_toFromFlatTerm (Proxy :: Proxy Ref.Term))
     ]
   ]

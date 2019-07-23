@@ -14,7 +14,7 @@ import           Test.Tasty.QuickCheck (testProperty)
 
 import           Tests.Term () -- instance Arbitrary Term
 import           Tests.Reference.Generators
-                   (canonicalNaN, floatToWord, doubleToWord)
+                   (canonicalNaN, halfToWord, floatToWord, doubleToWord)
 
 
 -- | Use 'encodePreEncoded' but with a serialised term as the bytes.
@@ -75,7 +75,7 @@ eqFlatTerm x y = and (zipWith eqTermToken x y)
 
 -- NaNs strike again!
 eqTermToken :: TermToken -> TermToken -> Bool
-eqTermToken (TkFloat16 x) (TkFloat16 y) = floatToWord  x == floatToWord  y
+eqTermToken (TkFloat16 x) (TkFloat16 y) = halfToWord   x == halfToWord   y
 eqTermToken (TkFloat32 x) (TkFloat32 y) = floatToWord  x == floatToWord  y
 eqTermToken (TkFloat64 x) (TkFloat64 y) = doubleToWord x == doubleToWord y
 eqTermToken x y = x == y

@@ -58,7 +58,7 @@ import           GHC.Exts  (Word64#, Int64#)
 import           GHC.Word  (Word(W#), Word8(W8#))
 import           GHC.Exts  (Int(I#), Int#, Word#, Float#, Double#)
 import           GHC.Float (Float(F#), Double(D#), float2Double)
-
+import           Numeric.Half (Half(Half), toHalf, fromHalf)
 import           Data.Word
 import           Data.Text (Text)
 import qualified Data.Text.Encoding as TE
@@ -98,7 +98,7 @@ data TermToken
     | TkBool                    !Bool
     | TkNull
     | TkSimple   {-# UNPACK #-} !Word8
-    | TkFloat16  {-# UNPACK #-} !Float
+    | TkFloat16  {-# UNPACK #-} !Half
     | TkFloat32  {-# UNPACK #-} !Float
     | TkFloat64  {-# UNPACK #-} !Double
     deriving (Eq, Ord, Show)
@@ -144,13 +144,19 @@ convFlatTerm (Enc.TkBool     b  ts) = TkBool      b : convFlatTerm ts
 convFlatTerm (Enc.TkNull        ts) = TkNull        : convFlatTerm ts
 convFlatTerm (Enc.TkUndef       ts) = TkSimple   23 : convFlatTerm ts
 convFlatTerm (Enc.TkSimple   n  ts) = TkSimple    n : convFlatTerm ts
-convFlatTerm (Enc.TkFloat16  f  ts) = TkFloat16   f : convFlatTerm ts
+convFlatTerm (Enc.TkFloat16  f  ts) | isNaN f = tkCanonicalNaN : convFlatTerm ts
+convFlatTerm (Enc.TkFloat32  f  ts) | isNaN f = tkCanonicalNaN : convFlatTerm ts
+convFlatTerm (Enc.TkFloat64  f  ts) | isNaN f = tkCanonicalNaN : convFlatTerm ts
+convFlatTerm (Enc.TkFloat16  f  ts) = TkFloat16 (toHalf f) : convFlatTerm ts
 convFlatTerm (Enc.TkFloat32  f  ts) = TkFloat32   f : convFlatTerm ts
 convFlatTerm (Enc.TkFloat64  f  ts) = TkFloat64   f : convFlatTerm ts
 convFlatTerm (Enc.TkBreak       ts) = TkBreak       : convFlatTerm ts
 convFlatTerm (Enc.TkEncoded  bs ts) = decodePreEncoded bs
                                                    ++ convFlatTerm ts
 convFlatTerm  Enc.TkEnd             = []
+
+tkCanonicalNaN :: TermToken
+tkCanonicalNaN = TkFloat16 (Half 0x7e00)
 
 --------------------------------------------------------------------------------
 
@@ -220,7 +226,7 @@ decodeTermToken = do
       TypeInteger -> do !x <- decodeInteger
                         return (TkInteger x)
       TypeFloat16 -> do !x <- decodeFloat
-                        return (TkFloat16 x)
+                        return (TkFloat16 (toHalf x))
       TypeFloat32 -> do !x <- decodeFloat
                         return (TkFloat32 x)
       TypeFloat64 -> do !x <- decodeDouble
@@ -409,9 +415,9 @@ fromFlatTerm decoder ft =
     go ts (ConsumeMapLen64Canonical  _) = unexpected "decodeMapLen64Canonical"  ts
 #endif
 
-    go (TkFloat16 f : ts) (ConsumeFloat  k)        = k (unF# f) >>= go ts
+    go (TkFloat16 f : ts) (ConsumeFloat  k)        = k (unF# (fromHalf f)) >>= go ts
     go (TkFloat32 f : ts) (ConsumeFloat  k)        = k (unF# f) >>= go ts
-    go (TkFloat16 f : ts) (ConsumeDouble k)        = k (unD# (float2Double f)) >>= go ts
+    go (TkFloat16 f : ts) (ConsumeDouble k)        = k (unD# (float2Double (fromHalf f))) >>= go ts
     go (TkFloat32 f : ts) (ConsumeDouble k)        = k (unD# (float2Double f)) >>= go ts
     go (TkFloat64 f : ts) (ConsumeDouble k)        = k (unD# f) >>= go ts
     go (TkBytes  bs : ts) (ConsumeBytes  k)        = k bs >>= go ts
@@ -422,7 +428,7 @@ fromFlatTerm decoder ft =
     go (TkBool    b : ts) (ConsumeBool   k)        = k b >>= go ts
     go (TkSimple  n : ts) (ConsumeSimple k)        = k (unW8# n) >>= go ts
 
-    go (TkFloat16 f : ts) (ConsumeFloat16Canonical k)       = k (unF# f) >>= go ts
+    go (TkFloat16 f : ts) (ConsumeFloat16Canonical k)       = k (unF# (fromHalf f)) >>= go ts
     go (TkFloat32 f : ts) (ConsumeFloatCanonical   k)       = k (unF# f) >>= go ts
     go (TkFloat64 f : ts) (ConsumeDoubleCanonical  k)       = k (unD# f) >>= go ts
     go (TkBytes  bs : ts) (ConsumeBytesCanonical  k)        = k bs >>= go ts
