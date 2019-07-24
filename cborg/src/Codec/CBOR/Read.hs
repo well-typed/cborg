@@ -580,7 +580,7 @@ go_fast !bs da@(ConsumeUtf8ByteArray k) =
                                                    (BS.unsafeDrop sz bs) k len
 
 go_fast !bs da@(ConsumeBool k) =
-    case tryConsumeBool (BS.unsafeHead bs) of
+    case tryConsumeBool (BS.unsafeHead bs) bs of
       DecodeFailure     -> go_fast_end bs da
       DecodedToken sz b -> k b >>= go_fast (BS.unsafeDrop sz bs)
 
@@ -676,7 +676,7 @@ go_fast !bs da@(ConsumeMapLenIndef k) =
       DecodedToken sz _ -> k >>= go_fast (BS.unsafeDrop sz bs)
 
 go_fast !bs da@(ConsumeNull k) =
-    case tryConsumeNull (BS.unsafeHead bs) of
+    case tryConsumeNull (BS.unsafeHead bs) bs of
       DecodeFailure     -> go_fast_end bs da
       DecodedToken sz _ -> k >>= go_fast (BS.unsafeDrop sz bs)
 
@@ -1074,7 +1074,7 @@ go_fast_end !bs (ConsumeUtf8ByteArray k) =
                                                    (BS.unsafeDrop sz bs) k len
 
 go_fast_end !bs (ConsumeBool k) =
-    case tryConsumeBool (BS.unsafeHead bs) of
+    case tryConsumeBool (BS.unsafeHead bs) bs of
       DecodeFailure     -> return $! SlowFail bs "expected bool"
       DecodedToken sz b -> k b >>= go_fast_end (BS.unsafeDrop sz bs)
 
@@ -1185,7 +1185,7 @@ go_fast_end !bs (ConsumeMapLenIndef k) =
       DecodedToken sz _ -> k >>= go_fast_end (BS.unsafeDrop sz bs)
 
 go_fast_end !bs (ConsumeNull k) =
-    case tryConsumeNull (BS.unsafeHead bs) of
+    case tryConsumeNull (BS.unsafeHead bs) bs of
       DecodeFailure     -> return $! SlowFail bs "expected null"
       DecodedToken sz _ -> k >>= go_fast_end (BS.unsafeDrop sz bs)
 
@@ -2439,10 +2439,14 @@ tryConsumeDouble hdr !bs = case word8ToWord hdr of
 
 
 {-# INLINE tryConsumeBool #-}
-tryConsumeBool :: Word8 -> DecodedToken Bool
-tryConsumeBool hdr = case word8ToWord hdr of
+tryConsumeBool :: Word8 -> ByteString -> DecodedToken Bool
+tryConsumeBool hdr bs = case word8ToWord hdr of
   0xf4 -> DecodedToken 1 False
   0xf5 -> DecodedToken 1 True
+  0xf8 -> case word8ToWord (eatTailWord8 bs) of
+            20 -> DecodedToken 2 False
+            21 -> DecodedToken 2 True
+            _  -> DecodeFailure
   _    -> DecodeFailure
 
 
@@ -2494,9 +2498,12 @@ tryConsumeStringIndef hdr = case word8ToWord hdr of
 
 
 {-# INLINE tryConsumeNull #-}
-tryConsumeNull :: Word8 -> DecodedToken ()
-tryConsumeNull hdr = case word8ToWord hdr of
+tryConsumeNull :: Word8 -> ByteString -> DecodedToken ()
+tryConsumeNull hdr bs = case word8ToWord hdr of
   0xf6 -> DecodedToken 1 ()
+  0xf8 -> case word8ToWord (eatTailWord8 bs) of
+            22 -> DecodedToken 2 ()
+            _  -> DecodeFailure
   _    -> DecodeFailure
 
 
