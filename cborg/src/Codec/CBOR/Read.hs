@@ -1864,8 +1864,32 @@ tryConsumeInteger hdr !bs = case word8ToWord hdr of
           in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (-1 - toInteger w))
 #endif
 
-  0xc2 -> readBigUInt bs
-  0xc3 -> readBigNInt bs
+  0xc2 -> readBigUInt 1 bs
+  0xc3 -> readBigNInt 1 bs
+
+  0xd8 -> case word8ToWord (eatTailWord8 bs) of
+            2 -> readBigUInt 2 bs
+            3 -> readBigNInt 2 bs
+            _ -> DecodeFailure
+  0xd9 -> case word16ToWord (eatTailWord16 bs) of
+            2 -> readBigUInt 3 bs
+            3 -> readBigNInt 3 bs
+            _ -> DecodeFailure
+  0xda -> case word32ToWord (eatTailWord32 bs) of
+            2 -> readBigUInt 5 bs
+            3 -> readBigNInt 5 bs
+            _ -> DecodeFailure
+#if defined(ARCH_64bit)
+  0xdb -> case word64ToWord (eatTailWord64 bs) of
+            2 -> readBigUInt 9 bs
+            3 -> readBigNInt 9 bs
+            _ -> DecodeFailure
+#else
+  0xdb -> case word64ToWord (eatTailWord64 bs) of
+            Just 2 -> readBigUInt 9 bs
+            Just 3 -> readBigNInt 9 bs
+            _      -> DecodeFailure
+#endif
 
   _    -> DecodeFailure
 
@@ -2692,40 +2716,40 @@ adjustContCanonicalBigNIntNeedHeader k = ConsumeBytesCanonical $ \bs ->
 -- using the appropriate break-out codes as above.
 
 {-# INLINE readBigUInt #-}
-readBigUInt :: ByteString -> DecodedToken (BigIntToken a)
-readBigUInt bs
-    | let bs' = BS.unsafeTail bs
+readBigUInt :: Int -> ByteString -> DecodedToken (BigIntToken a)
+readBigUInt sz0 bs
+    | let bs' = BS.unsafeDrop sz0 bs
     , not (BS.null bs')
     , let !hdr = BS.unsafeHead bs'
     , BS.length bs' >= tokenSize hdr
     = case tryConsumeBytes hdr bs' of
         DecodeFailure                           -> DecodeFailure
-        DecodedToken sz (Fits canonical bstr)   -> DecodedToken (1+sz)
+        DecodedToken sz (Fits canonical bstr)   -> DecodedToken (sz0+sz)
           (BigIntToken (canonical && isBigIntRepCanonical bstr)
                        (uintegerFromBytes bstr))
         DecodedToken sz (TooLong canonical len) ->
-          DecodedToken (1+sz) (BigUIntNeedBody canonical len)
+          DecodedToken (sz0+sz) (BigUIntNeedBody canonical len)
 
     | otherwise
-    = DecodedToken 1 BigUIntNeedHeader
+    = DecodedToken sz0 BigUIntNeedHeader
 
 {-# INLINE readBigNInt #-}
-readBigNInt :: ByteString -> DecodedToken (BigIntToken a)
-readBigNInt bs
-    | let bs' = BS.unsafeTail bs
+readBigNInt :: Int -> ByteString -> DecodedToken (BigIntToken a)
+readBigNInt sz0 bs
+    | let bs' = BS.unsafeDrop sz0 bs
     , not (BS.null bs')
     , let !hdr = BS.unsafeHead bs'
     , BS.length bs' >= tokenSize hdr
     = case tryConsumeBytes hdr bs' of
         DecodeFailure                           -> DecodeFailure
-        DecodedToken sz (Fits canonical bstr)   -> DecodedToken (1+sz)
+        DecodedToken sz (Fits canonical bstr)   -> DecodedToken (sz0+sz)
           (BigIntToken (canonical && isBigIntRepCanonical bstr)
                        (nintegerFromBytes bstr))
         DecodedToken sz (TooLong canonical len) ->
-          DecodedToken (1+sz) (BigNIntNeedBody canonical len)
+          DecodedToken (sz0+sz) (BigNIntNeedBody canonical len)
 
     | otherwise
-    = DecodedToken 1 BigNIntNeedHeader
+    = DecodedToken sz0 BigNIntNeedHeader
 
 -- Binary representation of a big integer is canonical if it's at least 9 bytes
 -- long (as for smaller values the canonical representation is the same one as
