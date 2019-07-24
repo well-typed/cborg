@@ -70,7 +70,7 @@ import           Control.Exception
 import           Prelude hiding (fromIntegral)
 
 import qualified Codec.CBOR.ByteArray as BA
-import           Codec.CBOR.Decoding hiding (DecodeAction(Done, Fail))
+import           Codec.CBOR.Decoding hiding (DecodeAction(Done, Fail), peekTokenType)
 import           Codec.CBOR.Decoding (DecodeAction)
 import qualified Codec.CBOR.Decoding as D
 import           Codec.CBOR.Magic
@@ -697,7 +697,7 @@ go_fast !bs (ConsumeBreakOr k) =
 
 go_fast !bs (PeekTokenType k) =
     let !hdr  = BS.unsafeHead bs
-        !tkty = decodeTokenTypeTable `A.unsafeAt` word8ToInt hdr
+        !tkty = peekTokenType hdr bs
     in k tkty >>= go_fast bs
 
 go_fast !bs (PeekAvailable k) = k (case BS.length bs of I# len# -> len#) >>= go_fast bs
@@ -734,7 +734,7 @@ go_fast_end !bs (ConsumeBreakOr k) =
 
 go_fast_end !bs (PeekTokenType k) =
     let !hdr  = BS.unsafeHead bs
-        !tkty = decodeTokenTypeTable `A.unsafeAt` word8ToInt hdr
+        !tkty = peekTokenType hdr bs
     in k tkty >>= go_fast_end bs
 
 -- all the remaining cases have to decode the current token
@@ -1486,6 +1486,45 @@ decodeTokenTypeTable =
 
 encodeHeader :: Word8 -> Word8 -> Word8
 encodeHeader mt ai = mt `shiftL` 5 .|. ai
+
+{-# INLINE peekTokenType #-}
+peekTokenType :: Word8 -> ByteString -> TokenType
+peekTokenType hdr !bs =
+  let tkty = decodeTokenTypeTable `A.unsafeAt` word8ToInt hdr in
+  case tkty of
+    -- We have to handle some corner cases of non-canonical encodings of
+    -- known simple values or tags. If we don't handle these cases here then
+    -- we report the wrong token type and the higher level code has to handle
+    -- the the non-canonical encodings, which is too error prone.
+    TypeSimple -> handleKnownSimple tkty
+    TypeTag    -> handleKnownTag tkty
+    TypeTag64  -> handleKnownTag tkty
+    _          -> tkty
+  where
+    handleKnownSimple tkty =
+      case word8ToWord hdr of
+        0xf8 -> case word8ToWord (eatTailWord8 bs) of
+                  20 -> TypeBool
+                  21 -> TypeBool
+                  22 -> TypeNull
+                  _  -> tkty
+        _    -> tkty
+
+    handleKnownTag tkty =
+      case word8ToWord hdr of
+        0xd8 -> knownTag tkty (word8ToWord  (eatTailWord8  bs))
+        0xd9 -> knownTag tkty (word16ToWord (eatTailWord16 bs))
+        0xda -> knownTag tkty (word32ToWord (eatTailWord32 bs))
+#if defined(ARCH_64bit)
+        0xdb -> knownTag tkty (word64ToWord (eatTailWord64 bs))
+#else
+        0xdb -> maybe tkty (knownTag tkty) (word64ToWord (eatTailWord64 bs))
+#endif
+        _    -> tkty
+
+    knownTag _    2 = TypeInteger
+    knownTag _    3 = TypeInteger
+    knownTag tkty _ = tkty
 
 data DecodedToken a = DecodedToken !Int !a | DecodeFailure
   deriving Show
