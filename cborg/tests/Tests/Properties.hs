@@ -54,7 +54,8 @@ import           Codec.CBOR.Encoding
 import           Codec.CBOR.FlatTerm
 
 import           Test.Tasty (TestTree, testGroup, localOption)
-import           Test.Tasty.QuickCheck (testProperty, QuickCheckMaxSize(..))
+import           Test.Tasty.QuickCheck
+                  ( testProperty, QuickCheckMaxSize(..), QuickCheckTests(..) )
 import           Test.QuickCheck
 import           System.Random (Random)
 
@@ -382,6 +383,40 @@ prop_decodeRefdecodeImp _ x =
     enc = serialiseRef x
     eq  = eqImp t
     t   = Proxy :: Proxy t
+
+
+-- | A property based on the following part of the commuting diagram.
+--
+-- This checks that starting from the same byte string, the reference and real
+-- implementation agree on whether it is a valid CBOR term.
+--
+-- >    . . . . . .▷Ref . . . . . ▶Ref
+-- >    .            △ .         ╱ │
+-- >    .            .  .enc dec╱  │
+-- >    .            .   .     ╱   │
+-- >    .            .    ▶Enc▶    │from
+-- >    .            .   .     ╲   │
+-- >    .            .  .    dec╲  │
+-- >    ▽            . .         ╲ ▼
+-- >    . . . . . . ▷.. . . . . . ▶Imp
+--
+-- > dec_imp = from . dec_ref
+--
+prop_decodeRefdecodeImp2 :: [Ref.Token] -> Property
+prop_decodeRefdecodeImp2 x =
+    case ( deserialiseFromBytes (decodeImp t) (LBS.pack enc)
+         , Ref.runDecoder (decodeRef t) enc ) of
+
+      (Left _, Nothing)      -> label "not valid" True
+      (Right (trailing, y),
+       Just (y', trailing')) -> label "valid" $
+                                y `eq` fromRef y'
+                             && trailing == LBS.pack trailing'
+      _                      -> property False
+  where
+    enc = concatMap Ref.encodeToken x
+    eq  = eqImp t
+    t   = Proxy :: Proxy Ref.Term
 
 
 -- | The property corresponding to the following variation of the commuting
@@ -1226,6 +1261,12 @@ testTree =
     , testProperty "Simple"  (prop_decodeRefdecodeImp (Proxy :: Proxy Ref.Simple))
     , testProperty "Term"    (prop_decodeRefdecodeImp (Proxy :: Proxy Ref.Term))
     ]
+
+  , testGroup "dec_imp = from . dec_ref"
+    [ localOption (QuickCheckTests 10000) $
+      testProperty "Term"     prop_decodeRefdecodeImp2
+    ]
+
   , testGroup "(fromFlatTerm dec_imp . toFlatTerm . enc_imp) imp = Right imp"
     [ testProperty "Word8"   (prop_toFromFlatTerm (Proxy :: Proxy TokWord8))
     , testProperty "Word16"  (prop_toFromFlatTerm (Proxy :: Proxy TokWord16))
