@@ -182,9 +182,9 @@ decodeTerm = do
       TypeMapLen       -> decodeMapLen       >>= flip decodeMapN []
       TypeMapLen64     -> decodeMapLen       >>= flip decodeMapN []
       TypeMapLenIndef  -> decodeMapLenIndef  >>  decodeMapIndefLen []
-      TypeTag          -> do !x <- decodeTag64
+      TypeTag          -> do !x <- decodeTag
                              !y <- decodeTerm
-                             return (TTagged x y)
+                             return (TTagged (fromIntegral x) y)
       TypeTag64        -> do !x <- decodeTag64
                              !y <- decodeTerm
                              return (TTagged x y)
