@@ -11,6 +11,7 @@ import qualified Tests.Canonical  as Canonical
 import qualified Tests.Regress    as Regress
 import qualified Tests.UTF8       as UTF8
 import qualified Tests.PreEncoded as PreEncoded
+--import qualified Tests.FlatTerm   as FlatTerm
 
 main :: IO ()
 main = defaultMain tests
@@ -27,4 +28,5 @@ tests =
     , Regress.testTree
     , UTF8.testTree
     , PreEncoded.testTree
+--    , FlatTerm.testTree
     ]

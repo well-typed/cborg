@@ -152,8 +152,8 @@ data DecodeAction s a
     | ConsumeInt8    (Int#  -> ST s (DecodeAction s a))
     | ConsumeInt16   (Int#  -> ST s (DecodeAction s a))
     | ConsumeInt32   (Int#  -> ST s (DecodeAction s a))
-    | ConsumeListLen (Int#  -> ST s (DecodeAction s a))
-    | ConsumeMapLen  (Int#  -> ST s (DecodeAction s a))
+    | ConsumeListLen (Word# -> ST s (DecodeAction s a))
+    | ConsumeMapLen  (Word# -> ST s (DecodeAction s a))
     | ConsumeTag     (Word# -> ST s (DecodeAction s a))
 
 -- 64bit variants for 32bit machines
@@ -161,8 +161,8 @@ data DecodeAction s a
     | ConsumeWord64    (Word64# -> ST s (DecodeAction s a))
     | ConsumeNegWord64 (Word64# -> ST s (DecodeAction s a))
     | ConsumeInt64     (Int64#  -> ST s (DecodeAction s a))
-    | ConsumeListLen64 (Int64#  -> ST s (DecodeAction s a))
-    | ConsumeMapLen64  (Int64#  -> ST s (DecodeAction s a))
+    | ConsumeListLen64 (Word64# -> ST s (DecodeAction s a))
+    | ConsumeMapLen64  (Word64# -> ST s (DecodeAction s a))
     | ConsumeTag64     (Word64# -> ST s (DecodeAction s a))
 #endif
 
@@ -204,16 +204,16 @@ data DecodeAction s a
     | ConsumeInt8Canonical    (Int#  -> ST s (DecodeAction s a))
     | ConsumeInt16Canonical   (Int#  -> ST s (DecodeAction s a))
     | ConsumeInt32Canonical   (Int#  -> ST s (DecodeAction s a))
-    | ConsumeListLenCanonical (Int#  -> ST s (DecodeAction s a))
-    | ConsumeMapLenCanonical  (Int#  -> ST s (DecodeAction s a))
+    | ConsumeListLenCanonical (Word# -> ST s (DecodeAction s a))
+    | ConsumeMapLenCanonical  (Word# -> ST s (DecodeAction s a))
     | ConsumeTagCanonical     (Word# -> ST s (DecodeAction s a))
 
 #if defined(ARCH_32bit)
     | ConsumeWord64Canonical    (Word64# -> ST s (DecodeAction s a))
     | ConsumeNegWord64Canonical (Word64# -> ST s (DecodeAction s a))
     | ConsumeInt64Canonical     (Int64#  -> ST s (DecodeAction s a))
-    | ConsumeListLen64Canonical (Int64#  -> ST s (DecodeAction s a))
-    | ConsumeMapLen64Canonical  (Int64#  -> ST s (DecodeAction s a))
+    | ConsumeListLen64Canonical (Word64# -> ST s (DecodeAction s a))
+    | ConsumeMapLen64Canonical  (Word64# -> ST s (DecodeAction s a))
     | ConsumeTag64Canonical     (Word64# -> ST s (DecodeAction s a))
 #endif
 
@@ -659,15 +659,15 @@ decodeUtf8ByteArrayCanonical = Decoder (\k -> return (ConsumeUtf8ByteArrayCanoni
 -- | Decode the length of a list.
 --
 -- @since 0.2.0.0
-decodeListLen :: Decoder s Int
-decodeListLen = Decoder (\k -> return (ConsumeListLen (\n# -> k (I# n#))))
+decodeListLen :: Decoder s Word
+decodeListLen = Decoder (\k -> return (ConsumeListLen (\w# -> k (W# w#))))
 {-# INLINE decodeListLen #-}
 
 -- | Decode canonical representation of the length of a list.
 --
 -- @since 0.2.0.0
-decodeListLenCanonical :: Decoder s Int
-decodeListLenCanonical = Decoder (\k -> return (ConsumeListLenCanonical (\n# -> k (I# n#))))
+decodeListLenCanonical :: Decoder s Word
+decodeListLenCanonical = Decoder (\k -> return (ConsumeListLenCanonical (\w# -> k (W# w#))))
 {-# INLINE decodeListLenCanonical #-}
 
 -- | Decode a token marking the beginning of a list of indefinite
@@ -681,15 +681,15 @@ decodeListLenIndef = Decoder (\k -> return (ConsumeListLenIndef (k ())))
 -- | Decode the length of a map.
 --
 -- @since 0.2.0.0
-decodeMapLen :: Decoder s Int
-decodeMapLen = Decoder (\k -> return (ConsumeMapLen (\n# -> k (I# n#))))
+decodeMapLen :: Decoder s Word
+decodeMapLen = Decoder (\k -> return (ConsumeMapLen (\w# -> k (W# w#))))
 {-# INLINE decodeMapLen #-}
 
 -- | Decode canonical representation of the length of a map.
 --
 -- @since 0.2.0.0
-decodeMapLenCanonical :: Decoder s Int
-decodeMapLenCanonical = Decoder (\k -> return (ConsumeMapLenCanonical (\n# -> k (I# n#))))
+decodeMapLenCanonical :: Decoder s Word
+decodeMapLenCanonical = Decoder (\k -> return (ConsumeMapLenCanonical (\w# -> k (W# w#))))
 {-# INLINE decodeMapLenCanonical #-}
 
 -- | Decode a token marking the beginning of a map of indefinite
@@ -815,7 +815,7 @@ decodeWordOf = decodeWordOfHelper decodeWord
 -- ensure it is exactly the specified length, or fail.
 --
 -- @since 0.2.0.0
-decodeListLenOf :: Int -> Decoder s ()
+decodeListLenOf :: Word -> Decoder s ()
 decodeListLenOf = decodeListLenOfHelper decodeListLen
 {-# INLINE decodeListLenOf #-}
 
@@ -833,7 +833,7 @@ decodeWordCanonicalOf = decodeWordOfHelper decodeWordCanonical
 -- fail.
 --
 -- @since 0.2.0.0
-decodeListLenCanonicalOf :: Int -> Decoder s ()
+decodeListLenCanonicalOf :: Word -> Decoder s ()
 decodeListLenCanonicalOf = decodeListLenOfHelper decodeListLenCanonical
 {-# INLINE decodeListLenCanonicalOf #-}
 

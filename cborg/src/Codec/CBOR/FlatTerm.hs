@@ -37,7 +37,8 @@ module Codec.CBOR.FlatTerm
   , toFlatTerm    -- :: Encoding -> FlatTerm
   , fromFlatTerm  -- :: Decoder s a -> FlatTerm -> Either String a
   , validFlatTerm -- :: FlatTerm -> Bool
-  , decodeTermToken -- Decoder s TermToken
+  , decodeTermToken -- :: Decoder s TermToken
+  , encodeTermToken -- :: TermToken -> Encoding
   ) where
 
 #include "cbor.h"
@@ -270,6 +271,27 @@ decodeTermToken = do
       TypeInvalid -> fail "invalid token encoding"
 
 
+encodeTermToken :: TermToken -> Encoding
+encodeTermToken (TkInt     n)  = Enc.encodeInt     n
+encodeTermToken (TkInteger n)  = Enc.encodeInteger n
+encodeTermToken (TkBytes  bs)  = Enc.encodeBytes  bs
+encodeTermToken  TkBytesBegin  = Enc.encodeBytesIndef
+encodeTermToken (TkString  s)  = Enc.encodeString  s
+encodeTermToken  TkStringBegin = Enc.encodeStringIndef
+encodeTermToken (TkListLen n)  = Enc.encodeListLen n
+encodeTermToken  TkListBegin   = Enc.encodeListLenIndef
+encodeTermToken (TkMapLen  n)  = Enc.encodeMapLen  n
+encodeTermToken  TkMapBegin    = Enc.encodeMapLenIndef
+encodeTermToken  TkBreak       = Enc.encodeBreak
+encodeTermToken (TkTag     w)  = Enc.encodeTag64   w
+encodeTermToken (TkBool    b)  = Enc.encodeBool    b
+encodeTermToken  TkNull        = Enc.encodeNull
+encodeTermToken (TkSimple  w)  = Enc.encodeSimple  w
+encodeTermToken (TkFloat16 f)  = Enc.encodeFloat16 (fromHalf f)
+encodeTermToken (TkFloat32 f)  = Enc.encodeFloat   f
+encodeTermToken (TkFloat64 f)  = Enc.encodeDouble  f
+
+
 --------------------------------------------------------------------------------
 
 -- | Given a 'Dec.Decoder', decode a 'FlatTerm' back into
@@ -324,9 +346,9 @@ fromFlatTerm decoder ft =
     go (TkInt     n : ts) (ConsumeInteger k) = k (fromIntegral n) >>= go ts
     go (TkInteger n : ts) (ConsumeInteger k) = k n >>= go ts
     go (TkListLen n : ts) (ConsumeListLen k)
-        | n <= maxInt                        = k (unI# (fromIntegral n)) >>= go ts
+        | n <= maxInt                        = k (unW# (fromIntegral n)) >>= go ts
     go (TkMapLen  n : ts) (ConsumeMapLen  k)
-        | n <= maxInt                        = k (unI# (fromIntegral n)) >>= go ts
+        | n <= maxInt                        = k (unW# (fromIntegral n)) >>= go ts
     go (TkTag     n : ts) (ConsumeTag     k)
         | n <= maxWord                       = k (unW# (fromIntegral n)) >>= go ts
 
@@ -370,9 +392,9 @@ fromFlatTerm decoder ft =
     go (TkInt     n : ts) (ConsumeIntegerCanonical k) = k (fromIntegral n) >>= go ts
     go (TkInteger n : ts) (ConsumeIntegerCanonical k) = k n >>= go ts
     go (TkListLen n : ts) (ConsumeListLenCanonical k)
-        | n <= maxInt                        = k (unI# (fromIntegral n)) >>= go ts
+        | n <= maxInt                        = k (unW# (fromIntegral n)) >>= go ts
     go (TkMapLen  n : ts) (ConsumeMapLenCanonical  k)
-        | n <= maxInt                        = k (unI# (fromIntegral n)) >>= go ts
+        | n <= maxInt                        = k (unW# (fromIntegral n)) >>= go ts
     go (TkTag     n : ts) (ConsumeTagCanonical     k)
         | n <= maxWord                       = k (unW# (fromIntegral n)) >>= go ts
 

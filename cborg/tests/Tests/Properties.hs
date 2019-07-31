@@ -46,7 +46,7 @@ import qualified Numeric.Half as Half
 import           Data.Function (on)
 import           Data.Proxy
 
-import           Codec.CBOR.Term
+import           Codec.CBOR.Term (Term, encodeTerm, decodeTerm)
 import           Codec.CBOR.Read
 import           Codec.CBOR.Write
 import           Codec.CBOR.Decoding
@@ -64,6 +64,8 @@ import           Tests.Reference.Implementation (UInt(..))
 import           Tests.Reference.Generators
 import           Tests.Term
                    ( fromRefTerm, toRefTerm, eqTerm, canonicaliseTerm )
+import           Tests.FlatTerm
+                   ( fromRefToken, toRefToken, eqTermToken, canonicaliseTermToken )
 import           Tests.Util
 
 #if !MIN_VERSION_base(4,8,0)
@@ -152,7 +154,7 @@ deserialiseImp t bytes =
       Right (trailing, x)
         | LBS.null trailing -> x
         | otherwise         -> error "deserialiseImp: trailing data"
-      Left _failure         -> error "deserialiseImp: decode failure"
+      Left failure         -> error $ "deserialiseImp: decode failure: " ++ show failure
 
 deserialiseFlatTerm :: Token t => Proxy t -> FlatTerm -> Imp t
 deserialiseFlatTerm t toks =
@@ -1035,6 +1037,28 @@ instance Token Ref.Simple where
 
 
 --------------------------------------------------------------------------------
+-- Token class instances for Token type
+--
+
+instance Token Ref.Token where
+    type Imp Ref.Token = TermToken
+
+    eqImp _ = eqTermToken
+
+    fromRef = fromRefToken
+    toRef _ = toRefToken
+
+    canonicaliseImp _ = canonicaliseTermToken
+    canonicaliseRef   = Ref.canonicaliseToken
+
+    encodeImp _ = encodeTermToken
+    decodeImp _ = decodeTermToken
+
+    encodeRef   = Ref.encodeToken
+    decodeRef _ = Ref.decodeToken
+
+
+--------------------------------------------------------------------------------
 -- Token class instances for Term type
 --
 
@@ -1081,6 +1105,7 @@ testTree =
     , testProperty "Tag"     (prop_fromRefToRef (Proxy :: Proxy TokTag))
     , testProperty "Tag64"   (prop_fromRefToRef (Proxy :: Proxy TokTag64))
     , testProperty "Simple"  (prop_fromRefToRef (Proxy :: Proxy Ref.Simple))
+    , testProperty "Token"   (prop_fromRefToRef (Proxy :: Proxy Ref.Token))
     , testProperty "Term"    (prop_fromRefToRef (Proxy :: Proxy Ref.Term))
     ]
 
@@ -1103,6 +1128,7 @@ testTree =
     , testProperty "Tag"     (prop_toRefFromRef (Proxy :: Proxy TokTag))
     , testProperty "Tag64"   (prop_toRefFromRef (Proxy :: Proxy TokTag64))
     , testProperty "Simple"  (prop_toRefFromRef (Proxy :: Proxy Ref.Simple))
+    , testProperty "Token"   (prop_toRefFromRef (Proxy :: Proxy Ref.Token))
     , testProperty "Term"    (prop_toRefFromRef (Proxy :: Proxy Ref.Term))
     ]
 
@@ -1125,6 +1151,7 @@ testTree =
     , testProperty "Tag"     (prop_encodeRefdecodeRef (Proxy :: Proxy TokTag))
     , testProperty "Tag64"   (prop_encodeRefdecodeRef (Proxy :: Proxy TokTag64))
     , testProperty "Simple"  (prop_encodeRefdecodeRef (Proxy :: Proxy Ref.Simple))
+    , testProperty "Token"   (prop_encodeRefdecodeRef (Proxy :: Proxy Ref.Token))
     , testProperty "Term"    (prop_encodeRefdecodeRef (Proxy :: Proxy Ref.Term))
     ]
 
@@ -1147,6 +1174,7 @@ testTree =
     , testProperty "Tag"     (prop_encodeImpdecodeImp (Proxy :: Proxy TokTag))
     , testProperty "Tag64"   (prop_encodeImpdecodeImp (Proxy :: Proxy TokTag64))
     , testProperty "Simple"  (prop_encodeImpdecodeImp (Proxy :: Proxy Ref.Simple))
+    , testProperty "Token"   (prop_encodeImpdecodeImp (Proxy :: Proxy Ref.Token))
     , testProperty "Term"    (prop_encodeImpdecodeImp (Proxy :: Proxy Ref.Term))
     ]
 
@@ -1169,6 +1197,7 @@ testTree =
     , testProperty "Tag"     (prop_encodeImpdecodeImp_splits2 (Proxy :: Proxy TokTag))
     , testProperty "Tag64"   (prop_encodeImpdecodeImp_splits2 (Proxy :: Proxy TokTag64))
     , testProperty "Simple"  (prop_encodeImpdecodeImp_splits2 (Proxy :: Proxy Ref.Simple))
+    , testProperty "Token"   (prop_encodeImpdecodeImp_splits2 (Proxy :: Proxy Ref.Token))
     , localOption (QuickCheckMaxSize 100) $
       testProperty "Term"    (prop_encodeImpdecodeImp_splits2 (Proxy :: Proxy Ref.Term))
     ]
@@ -1192,6 +1221,7 @@ testTree =
     , testProperty "Tag"     (prop_encodeImpdecodeImp_splits3 (Proxy :: Proxy TokTag))
     , testProperty "Tag64"   (prop_encodeImpdecodeImp_splits3 (Proxy :: Proxy TokTag64))
     , testProperty "Simple"  (prop_encodeImpdecodeImp_splits3 (Proxy :: Proxy Ref.Simple))
+    , testProperty "Token"   (prop_encodeImpdecodeImp_splits3 (Proxy :: Proxy Ref.Token))
     , localOption (QuickCheckMaxSize 25) $
       testProperty "Term"    (prop_encodeImpdecodeImp_splits3 (Proxy :: Proxy Ref.Term))
     ]
@@ -1215,6 +1245,7 @@ testTree =
     , testProperty "Tag"     (prop_encodeRefencodeImp1 (Proxy :: Proxy TokTag))
     , testProperty "Tag64"   (prop_encodeRefencodeImp1 (Proxy :: Proxy TokTag64))
     , testProperty "Simple"  (prop_encodeRefencodeImp1 (Proxy :: Proxy Ref.Simple))
+    , testProperty "Token"   (prop_encodeRefencodeImp1 (Proxy :: Proxy Ref.Token))
     , testProperty "Term"    (prop_encodeRefencodeImp1 (Proxy :: Proxy Ref.Term))
     ]
 
@@ -1237,6 +1268,7 @@ testTree =
     , testProperty "Tag"     (prop_encodeRefencodeImp2 (Proxy :: Proxy TokTag))
     , testProperty "Tag64"   (prop_encodeRefencodeImp2 (Proxy :: Proxy TokTag64))
     , testProperty "Simple"  (prop_encodeRefencodeImp2 (Proxy :: Proxy Ref.Simple))
+    , testProperty "Token"   (prop_encodeRefencodeImp2 (Proxy :: Proxy Ref.Token))
     , testProperty "Term"    (prop_encodeRefencodeImp2 (Proxy :: Proxy Ref.Term))
     ]
 
@@ -1259,6 +1291,7 @@ testTree =
     , testProperty "Tag"     (prop_decodeRefdecodeImp (Proxy :: Proxy TokTag))
     , testProperty "Tag64"   (prop_decodeRefdecodeImp (Proxy :: Proxy TokTag64))
     , testProperty "Simple"  (prop_decodeRefdecodeImp (Proxy :: Proxy Ref.Simple))
+    , testProperty "Token"   (prop_decodeRefdecodeImp (Proxy :: Proxy Ref.Token))
     , testProperty "Term"    (prop_decodeRefdecodeImp (Proxy :: Proxy Ref.Term))
     ]
 
@@ -1286,6 +1319,7 @@ testTree =
     , testProperty "Tag"     (prop_toFromFlatTerm (Proxy :: Proxy TokTag))
     , testProperty "Tag64"   (prop_toFromFlatTerm (Proxy :: Proxy TokTag64))
     , testProperty "Simple"  (prop_toFromFlatTerm (Proxy :: Proxy Ref.Simple))
+    , testProperty "Token"   (prop_toFromFlatTerm (Proxy :: Proxy Ref.Token))
     , testProperty "Term"    (prop_toFromFlatTerm (Proxy :: Proxy Ref.Term))
     ]
   ]

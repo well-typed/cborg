@@ -107,7 +107,7 @@ mkBoundaryTest aName enc dec decCan =
 -- out of range, i.e. fails to decode them.
 lenBoundaryTest
   :: (Word -> Encoding)
-  -> (forall s. Decoder s Int)
+  -> (forall s. Decoder s Word)
   -> Length
   -> Property
 lenBoundaryTest enc dec a = if outsideRange
@@ -121,8 +121,8 @@ lenBoundaryTest enc dec a = if outsideRange
 mkLenBoundaryTest
   :: String
   -> (Word -> Encoding)
-  -> (forall s. Decoder s Int)
-  -> (forall s. Decoder s Int)
+  -> (forall s. Decoder s Word)
+  -> (forall s. Decoder s Word)
   -> [TestTree]
 mkLenBoundaryTest aName enc dec decCan =
   [ testProperty aName                     $ lenBoundaryTest enc dec

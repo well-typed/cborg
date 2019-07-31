@@ -18,8 +18,9 @@ module Tests.Reference.Implementation (
     serialise,
     deserialise,
 
-    Term(..),
     Token(..),
+    canonicaliseToken,
+    Term(..),
     canonicaliseTerm,
     isCanonicalTerm,
 
@@ -554,6 +555,22 @@ prop_Token token =
     let ws = encodeToken token
         Just (token', []) = runDecoder decodeToken ws
      in token == token'
+
+canonicaliseToken :: Token -> Token
+canonicaliseToken (MT0_UnsignedInt n)   = MT0_UnsignedInt (canonicaliseUInt n)
+canonicaliseToken (MT1_NegativeInt n)   = MT1_NegativeInt (canonicaliseUInt n)
+canonicaliseToken (MT2_ByteString n bs) = MT2_ByteString (canonicaliseUInt n) bs
+canonicaliseToken (MT3_String     n ws) = MT3_String     (canonicaliseUInt n) ws
+canonicaliseToken (MT4_ArrayLen   n)    = MT4_ArrayLen   (canonicaliseUInt n)
+canonicaliseToken (MT5_MapLen     n)    = MT5_MapLen     (canonicaliseUInt n)
+canonicaliseToken (MT6_Tag        n)    = MT6_Tag        (canonicaliseUInt n)
+canonicaliseToken (MT7_Simple     n)    = MT7_Simple (canonicaliseSimple n)
+canonicaliseToken (MT7_Float16 f) | isNaN f = MT7_Float16 canonicalNaN
+canonicaliseToken (MT7_Float32 f) | isNaN f = MT7_Float16 canonicalNaN
+canonicaliseToken (MT7_Float64 f) | isNaN f = MT7_Float16 canonicalNaN
+canonicaliseToken t = t
+
+-------------------------------------------------------------------------------
 
 data Term = TUInt   UInt
           | TNInt   UInt

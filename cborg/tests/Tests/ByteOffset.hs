@@ -342,7 +342,7 @@ decodeStringIndefLen acc = do
                     decodeStringIndefLen (str : acc)
 
 
-decodeListN :: Int -> [ATerm Offsets] -> Decoder s (TermF (ATerm Offsets))
+decodeListN :: Word -> [ATerm Offsets] -> Decoder s (TermF (ATerm Offsets))
 decodeListN !n acc =
     case n of
       0 -> return $! TList (reverse acc)
@@ -358,7 +358,7 @@ decodeListIndefLen acc = do
                     decodeListIndefLen (tm : acc)
 
 
-decodeMapN :: Int -> [(ATerm Offsets, ATerm Offsets)] -> Decoder s (TermF (ATerm Offsets))
+decodeMapN :: Word -> [(ATerm Offsets, ATerm Offsets)] -> Decoder s (TermF (ATerm Offsets))
 decodeMapN !n acc =
     case n of
       0 -> return $! TMap (reverse acc)

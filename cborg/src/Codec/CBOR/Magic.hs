@@ -44,14 +44,14 @@ module Codec.CBOR.Magic
   , word8ToWord       -- :: Word8  -> Word
   , word16ToWord      -- :: Word16 -> Word
   , word32ToWord      -- :: Word32 -> Word
-  , word64ToWord      -- :: Word64 -> Word
+  , word64ToWord      -- :: Word64 -> Word  (or Maybe Word on 32bit)
 
   -- int*ToInt conversions are missing because they are not needed.
 
-  , word8ToInt        -- :: Int8  -> Int
-  , word16ToInt       -- :: Int16 -> Int
-  , word32ToInt       -- :: Int32 -> Int
-  , word64ToInt       -- :: Int64 -> Int
+  , word8ToInt        -- :: Word8  -> Int
+  , word16ToInt       -- :: Word16 -> Int
+  , word32ToInt       -- :: Word32 -> Int
+  , word64ToInt       -- :: Word64 -> Maybe Int
 
   , intToInt64        -- :: Int   -> Int64
 #if defined(ARCH_32bit)

@@ -337,12 +337,12 @@ go_fast !bs da@(ConsumeInt32 k) =
 go_fast !bs da@(ConsumeListLen k) =
     case tryConsumeListLen (BS.unsafeHead bs) bs of
       DecodeFailure           -> go_fast_end bs da
-      DecodedToken sz (I# n#) -> k n# >>= go_fast (BS.unsafeDrop sz bs)
+      DecodedToken sz (W# w#) -> k w# >>= go_fast (BS.unsafeDrop sz bs)
 
 go_fast !bs da@(ConsumeMapLen k) =
     case tryConsumeMapLen (BS.unsafeHead bs) bs of
       DecodeFailure           -> go_fast_end bs da
-      DecodedToken sz (I# n#) -> k n# >>= go_fast (BS.unsafeDrop sz bs)
+      DecodedToken sz (W# w#) -> k w# >>= go_fast (BS.unsafeDrop sz bs)
 
 go_fast !bs da@(ConsumeTag k) =
     case tryConsumeTag (BS.unsafeHead bs) bs of
@@ -437,18 +437,16 @@ go_fast !bs da@(ConsumeInt32Canonical k) =
 go_fast !bs da@(ConsumeListLenCanonical k) =
     case tryConsumeListLen (BS.unsafeHead bs) bs of
       DecodeFailure           -> go_fast_end bs da
-      DecodedToken sz (I# n#)
-          -- List length can't be negative, cast it to Word#.
-        | isWordCanonical sz (int2Word# n#) -> k n# >>= go_fast (BS.unsafeDrop sz bs)
-        | otherwise                         -> go_fast_end bs da
+      DecodedToken sz (W# w#)
+        | isWordCanonical sz w# -> k w# >>= go_fast (BS.unsafeDrop sz bs)
+        | otherwise             -> go_fast_end bs da
 
 go_fast !bs da@(ConsumeMapLenCanonical k) =
     case tryConsumeMapLen (BS.unsafeHead bs) bs of
       DecodeFailure           -> go_fast_end bs da
-      DecodedToken sz (I# n#)
-          -- Map length can't be negative, cast it to Word#.
-        | isWordCanonical sz (int2Word# n#) -> k n# >>= go_fast (BS.unsafeDrop sz bs)
-        | otherwise                         -> go_fast_end bs da
+      DecodedToken sz (W# w#)
+        | isWordCanonical sz w# -> k w# >>= go_fast (BS.unsafeDrop sz bs)
+        | otherwise             -> go_fast_end bs da
 
 go_fast !bs da@(ConsumeTagCanonical k) =
     case tryConsumeTag (BS.unsafeHead bs) bs of
@@ -476,12 +474,12 @@ go_fast !bs da@(ConsumeInt64 k) =
 go_fast !bs da@(ConsumeListLen64 k) =
   case tryConsumeListLen64 (BS.unsafeHead bs) bs of
     DecodeFailure             -> go_fast_end bs da
-    DecodedToken sz (I64# i#) -> k i# >>= go_fast (BS.unsafeDrop sz bs)
+    DecodedToken sz (W64# w#) -> k w# >>= go_fast (BS.unsafeDrop sz bs)
 
 go_fast !bs da@(ConsumeMapLen64 k) =
   case tryConsumeMapLen64 (BS.unsafeHead bs) bs of
     DecodeFailure             -> go_fast_end bs da
-    DecodedToken sz (I64# i#) -> k i# >>= go_fast (BS.unsafeDrop sz bs)
+    DecodedToken sz (W64# w#) -> k w# >>= go_fast (BS.unsafeDrop sz bs)
 
 go_fast !bs da@(ConsumeTag64 k) =
   case tryConsumeTag64 (BS.unsafeHead bs) bs of
@@ -512,18 +510,16 @@ go_fast !bs da@(ConsumeInt64Canonical k) =
 go_fast !bs da@(ConsumeListLen64Canonical k) =
   case tryConsumeListLen64 (BS.unsafeHead bs) bs of
     DecodeFailure             -> go_fast_end bs da
-    DecodedToken sz (I64# i#)
-        -- List length can't be negative, cast it to Word64#.
-      | isWord64Canonical sz (int64ToWord64# i#) -> k i# >>= go_fast (BS.unsafeDrop sz bs)
-      | otherwise                                -> go_fast_end bs da
+    DecodedToken sz (W64# w#)
+      | isWord64Canonical sz w# -> k w# >>= go_fast (BS.unsafeDrop sz bs)
+      | otherwise               -> go_fast_end bs da
 
 go_fast !bs da@(ConsumeMapLen64Canonical k) =
   case tryConsumeMapLen64 (BS.unsafeHead bs) bs of
     DecodeFailure             -> go_fast_end bs da
-    DecodedToken sz (I64# i#)
-        -- Map length can't be negative, cast it to Word64#.
-      | isWord64Canonical sz (int64ToWord64# i#) -> k i# >>= go_fast (BS.unsafeDrop sz bs)
-      | otherwise                                -> go_fast_end bs da
+    DecodedToken sz (W64# w#)
+      | isWord64Canonical sz w# -> k w# >>= go_fast (BS.unsafeDrop sz bs)
+      | otherwise               -> go_fast_end bs da
 
 go_fast !bs da@(ConsumeTag64Canonical k) =
   case tryConsumeTag64 (BS.unsafeHead bs) bs of
@@ -818,12 +814,12 @@ go_fast_end !bs (ConsumeInt32 k) =
 go_fast_end !bs (ConsumeListLen k) =
     case tryConsumeListLen (BS.unsafeHead bs) bs of
       DecodeFailure           -> return $! SlowFail bs "expected list len"
-      DecodedToken sz (I# n#) -> k n# >>= go_fast_end (BS.unsafeDrop sz bs)
+      DecodedToken sz (W# w#) -> k w# >>= go_fast_end (BS.unsafeDrop sz bs)
 
 go_fast_end !bs (ConsumeMapLen k) =
     case tryConsumeMapLen (BS.unsafeHead bs) bs of
       DecodeFailure           -> return $! SlowFail bs "expected map len"
-      DecodedToken sz (I# n#) -> k n# >>= go_fast_end (BS.unsafeDrop sz bs)
+      DecodedToken sz (W# w#) -> k w# >>= go_fast_end (BS.unsafeDrop sz bs)
 
 go_fast_end !bs (ConsumeTag k) =
     case tryConsumeTag (BS.unsafeHead bs) bs of
@@ -921,18 +917,16 @@ go_fast_end !bs (ConsumeInt32Canonical k) =
 go_fast_end !bs (ConsumeListLenCanonical k) =
     case tryConsumeListLen (BS.unsafeHead bs) bs of
       DecodeFailure           -> return $! SlowFail bs "expected list len"
-      DecodedToken sz (I# n#)
-          -- List length can't be negative, cast it to Word#.
-        | isWordCanonical sz (int2Word# n#) -> k n# >>= go_fast_end (BS.unsafeDrop sz bs)
-        | otherwise                         -> return $! SlowFail bs "non-canonical list len"
+      DecodedToken sz (W# w#)
+        | isWordCanonical sz w# -> k w# >>= go_fast_end (BS.unsafeDrop sz bs)
+        | otherwise             -> return $! SlowFail bs "non-canonical list len"
 
 go_fast_end !bs (ConsumeMapLenCanonical k) =
     case tryConsumeMapLen (BS.unsafeHead bs) bs of
       DecodeFailure           -> return $! SlowFail bs "expected map len"
-      DecodedToken sz (I# n#)
-          -- Map length can't be negative, cast it to Word#.
-        | isWordCanonical sz (int2Word# n#) -> k n# >>= go_fast_end (BS.unsafeDrop sz bs)
-        | otherwise                         -> return $! SlowFail bs "non-canonical map len"
+      DecodedToken sz (W# w#)
+        | isWordCanonical sz w# -> k w# >>= go_fast_end (BS.unsafeDrop sz bs)
+        | otherwise             -> return $! SlowFail bs "non-canonical map len"
 
 go_fast_end !bs (ConsumeTagCanonical k) =
     case tryConsumeTag (BS.unsafeHead bs) bs of
@@ -960,12 +954,12 @@ go_fast_end !bs (ConsumeInt64 k) =
 go_fast_end !bs (ConsumeListLen64 k) =
   case tryConsumeListLen64 (BS.unsafeHead bs) bs of
     DecodeFailure             -> return $! SlowFail bs "expected list len 64"
-    DecodedToken sz (I64# i#) -> k i# >>= go_fast_end (BS.unsafeDrop sz bs)
+    DecodedToken sz (W64# w#) -> k w# >>= go_fast_end (BS.unsafeDrop sz bs)
 
 go_fast_end !bs (ConsumeMapLen64 k) =
   case tryConsumeMapLen64 (BS.unsafeHead bs) bs of
     DecodeFailure             -> return $! SlowFail bs "expected map len 64"
-    DecodedToken sz (I64# i#) -> k i# >>= go_fast_end (BS.unsafeDrop sz bs)
+    DecodedToken sz (W64# w#) -> k w# >>= go_fast_end (BS.unsafeDrop sz bs)
 
 go_fast_end !bs (ConsumeTag64 k) =
   case tryConsumeTag64 (BS.unsafeHead bs) bs of
@@ -996,20 +990,18 @@ go_fast_end !bs (ConsumeInt64Canonical k) =
 go_fast_end !bs (ConsumeListLen64Canonical k) =
   case tryConsumeListLen64 (BS.unsafeHead bs) bs of
     DecodeFailure             -> return $! SlowFail bs "expected list len 64"
-    DecodedToken sz (I64# i#)
-        -- List length can't be negative, cast it to Word64#.
-      | isWord64Canonical sz (int64ToWord64# i#) ->
-          k i# >>= go_fast_end (BS.unsafeDrop sz bs)
+    DecodedToken sz (W64# w#)
+      | isWord64Canonical sz w# ->
+          k w# >>= go_fast_end (BS.unsafeDrop sz bs)
       | otherwise ->
           return $! SlowFail bs "non-canonical list len 64"
 
 go_fast_end !bs (ConsumeMapLen64Canonical k) =
   case tryConsumeMapLen64 (BS.unsafeHead bs) bs of
     DecodeFailure             -> return $! SlowFail bs "expected map len 64"
-    DecodedToken sz (I64# i#)
-        -- Map length can't be negative, cast it to Word64#.
-      | isWord64Canonical sz (int64ToWord64# i#) ->
-          k i# >>= go_fast_end (BS.unsafeDrop sz bs)
+    DecodedToken sz (W64# w#)
+      | isWord64Canonical sz w# ->
+          k w# >>= go_fast_end (BS.unsafeDrop sz bs)
       | otherwise ->
           return $! SlowFail bs "non-canonical map len 64"
 
@@ -1967,7 +1959,7 @@ tryConsumeString hdr !bs = case word8ToWord hdr of
 
 
 {-# INLINE tryConsumeListLen #-}
-tryConsumeListLen :: Word8 -> ByteString -> DecodedToken Int
+tryConsumeListLen :: Word8 -> ByteString -> DecodedToken Word
 tryConsumeListLen hdr !bs = case word8ToWord hdr of
   -- List structures (type 4)
   0x80 -> DecodedToken 1 0
@@ -1994,23 +1986,24 @@ tryConsumeListLen hdr !bs = case word8ToWord hdr of
   0x95 -> DecodedToken 1 21
   0x96 -> DecodedToken 1 22
   0x97 -> DecodedToken 1 23
-  0x98 -> DecodedToken 2 (word8ToInt  (eatTailWord8 bs))
-  0x99 -> DecodedToken 3 (word16ToInt (eatTailWord16 bs))
+  0x98 -> DecodedToken 2 (word8ToWord  (eatTailWord8 bs))
+  0x99 -> DecodedToken 3 (word16ToWord (eatTailWord16 bs))
 #if defined(ARCH_64bit)
-  0x9a -> DecodedToken 5 (word32ToInt (eatTailWord32 bs))
+  0x9a -> DecodedToken 5 (word32ToWord (eatTailWord32 bs))
+  0x9b -> DecodedToken 9 (word64ToWord (eatTailWord64 bs))
 #else
-  0x9a -> case word32ToInt (eatTailWord32 bs) of
+  0x9a -> case word32ToWord (eatTailWord32 bs) of
             Just n  -> DecodedToken 5 n
             Nothing -> DecodeFailure
-#endif
-  0x9b -> case word64ToInt (eatTailWord64 bs) of
+  0x9b -> case word64ToWord (eatTailWord64 bs) of
             Just n  -> DecodedToken 9 n
             Nothing -> DecodeFailure
+#endif
   _    -> DecodeFailure
 
 
 {-# INLINE tryConsumeMapLen #-}
-tryConsumeMapLen :: Word8 -> ByteString -> DecodedToken Int
+tryConsumeMapLen :: Word8 -> ByteString -> DecodedToken Word
 tryConsumeMapLen hdr !bs = case word8ToWord hdr of
   -- Map structures (type 5)
   0xa0 -> DecodedToken 1 0
@@ -2037,18 +2030,19 @@ tryConsumeMapLen hdr !bs = case word8ToWord hdr of
   0xb5 -> DecodedToken 1 21
   0xb6 -> DecodedToken 1 22
   0xb7 -> DecodedToken 1 23
-  0xb8 -> DecodedToken 2 (word8ToInt  (eatTailWord8 bs))
-  0xb9 -> DecodedToken 3 (word16ToInt (eatTailWord16 bs))
+  0xb8 -> DecodedToken 2 (word8ToWord  (eatTailWord8 bs))
+  0xb9 -> DecodedToken 3 (word16ToWord (eatTailWord16 bs))
 #if defined(ARCH_64bit)
-  0xba -> DecodedToken 5 (word32ToInt (eatTailWord32 bs))
+  0xba -> DecodedToken 5 (word32ToWord (eatTailWord32 bs))
+  0xbb -> DecodedToken 9 (word64ToWord (eatTailWord64 bs))
 #else
-  0xba -> case word32ToInt (eatTailWord32 bs) of
+  0xba -> case word32ToWord (eatTailWord32 bs) of
             Just n  -> DecodedToken 5 n
             Nothing -> DecodeFailure
-#endif
-  0xbb -> case word64ToInt (eatTailWord64 bs) of
+  0xbb -> case word64ToWord (eatTailWord64 bs) of
             Just n  -> DecodedToken 9 n
             Nothing -> DecodeFailure
+#endif
   _    -> DecodeFailure
 
 
