@@ -1,13 +1,13 @@
 name:                cborg
-version:             0.2.1.0
-synopsis:            Concise Binary Object Representation
+version:             0.2.2.0
+synopsis:            Concise Binary Object Representation (CBOR)
 license:             BSD3
 license-file:        LICENSE.txt
 author:              Duncan Coutts
 maintainer:          duncan@community.haskell.org, ben@smart-cactus.org
 bug-reports:         https://github.com/well-typed/cborg/issues
-copyright:           2015-2017 Duncan Coutts,
-                     2015-2017 Well-Typed LLP,
+copyright:           2015-2019 Duncan Coutts,
+                     2015-2019 Well-Typed LLP,
                      2015 IRIS Connect Ltd
 category:            Codec
 build-type:          Simple
@@ -19,17 +19,21 @@ extra-source-files:
   ChangeLog.md
 
 description:
-  This package (formerly @binary-serialise-cbor@) provides an efficient
-  implementation of the Concise Binary Object Representation (CBOR), as
-  specified by [RFC 7049](https://tools.ietf.org/html/rfc7049).
+  This package provides an efficient implementation of the Concise
+  Binary Object Representation (CBOR), as specified by
+  [RFC 7049](https://tools.ietf.org/html/rfc7049).
   .
   If you are looking for a library for serialisation of Haskell values,
   have a look at the [serialise](/package/serialise) package, which is
   built upon this library.
   .
-  An implementation of the standard bijection between CBOR and JSON is provided
-  by the [cborg-json](/package/cborg-json) package. Also see [cbor-tool](/package/cbor-tool)
-  for a convenient command-line utility for working with CBOR data.
+  An implementation of the standard bijection between CBOR and JSON is
+  provided by the [cborg-json](/package/cborg-json) package. Also see
+  [cbor-tool](/package/cbor-tool) for a convenient command-line utility
+  for working with CBOR data.
+  .
+  This package was formerly known as @binary-serialise-cbor@.
+
 extra-source-files:
   src/cbits/cbor.h
   tests/test-vectors/appendix_a.json
