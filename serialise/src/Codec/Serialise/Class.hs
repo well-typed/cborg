@@ -1228,11 +1228,11 @@ decodeSomeTypeRep = do
     case tag of
       0 | len == 1 ->
               return $! SomeTypeRep (typeRep :: TypeRep Type)
-      1 | len == 2 -> do
+      1 | len == 3 -> do
               !con <- decode
               !ks <- decode
               return $! SomeTypeRep $ mkTrCon con ks
-      2 | len == 2 -> do
+      2 | len == 3 -> do
               SomeTypeRep f <- decodeSomeTypeRep
               SomeTypeRep x <- decodeSomeTypeRep
               case typeRepKind f of
@@ -1251,7 +1251,7 @@ decodeSomeTypeRep = do
                      [ "Applied type: " ++ show f
                      , "To argument:  " ++ show x
                      ]
-      3 | len == 2 -> do
+      3 | len == 3 -> do
               SomeTypeRep arg <- decodeSomeTypeRep
               SomeTypeRep res <- decodeSomeTypeRep
               case typeRepKind arg `eqTypeRep` (typeRep :: TypeRep Type) of
@@ -1260,7 +1260,9 @@ decodeSomeTypeRep = do
                       Just HRefl -> return $! SomeTypeRep $ Fun arg res
                       Nothing -> failure "Kind mismatch" []
                 Nothing -> failure "Kind mismatch" []
-      _ -> failure "unexpected tag" []
+      _ -> failure "unexpected tag"
+           [ "Tag: " ++ show tag
+           , "Len: " ++ show len ]
   where
     failure description info =
         fail $ unlines $ [ "Codec.CBOR.Class.decodeSomeTypeRep: "++description ]

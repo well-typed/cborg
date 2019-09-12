@@ -1,6 +1,10 @@
 {-# LANGUAGE CPP                #-}
+{-# LANGUAGE DataKinds          #-}
 {-# LANGUAGE FlexibleContexts   #-}
 {-# LANGUAGE StandaloneDeriving #-}
+#if MIN_VERSION_base(4,10,0)
+{-# LANGUAGE TypeApplications   #-}
+#endif
 module Tests.Orphanage where
 
 #if !MIN_VERSION_base(4,8,0)
@@ -10,6 +14,11 @@ import           Data.Monoid as Monoid
 
 #if MIN_VERSION_base(4,9,0) && !MIN_VERSION_QuickCheck(2,10,0)
 import qualified Data.Semigroup as Semigroup
+#endif
+
+#if MIN_VERSION_base(4,10,0)
+import           Data.Proxy
+import qualified Type.Reflection as Refl
 #endif
 
 import           GHC.Fingerprint.Type
@@ -197,3 +206,10 @@ instance Arbitrary (Proxy a) where
 
 instance Arbitrary Fingerprint where
   arbitrary = Fingerprint <$> arbitrary <*> arbitrary
+
+#if MIN_VERSION_base(4,10,0)
+data Kind a = Type a
+
+instance Arbitrary Refl.SomeTypeRep where
+  arbitrary = return (Refl.someTypeRep $ Proxy @([Either (Maybe Int) (Proxy ('Type String))]))
+#endif
