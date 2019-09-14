@@ -143,7 +143,6 @@ test-suite tests
     base64-bytestring       >= 1.0     && < 1.1,
     base16-bytestring       >= 0.1     && < 0.2,
     deepseq                 >= 1.0     && < 1.5,
-    fail                    >= 4.9.0.0 && < 4.10,
     half                    >= 0.2.2.3 && < 0.4,
     QuickCheck              >= 2.9     && < 2.14,
     random,
@@ -152,4 +151,6 @@ test-suite tests
     tasty-hunit             >= 0.9     && < 0.11,
     tasty-quickcheck        >= 0.8     && < 0.11,
     vector                  >= 0.10    && < 0.13
-
+  if !impl(ghc >= 8.0)
+    build-depends:
+      fail                    >= 4.9.0.0 && < 4.10
