@@ -1,5 +1,8 @@
 # Revision history for cborg-json
 
+* Add support for decoding half-precision and single-precision floating-point
+  numbers.
+
 ## 0.2.X.Y
 
  * Use replicateM to significantly speed up decoding. Now faster than Aeson!
