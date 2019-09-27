@@ -7,7 +7,7 @@ module Codec.CBOR.JSON
 
 import           Data.Monoid
 import           Control.Applicative
-import           Prelude
+import           Prelude hiding (decodeFloat)
 
 import           Codec.CBOR.Encoding
 import           Codec.CBOR.Decoding
@@ -49,6 +49,8 @@ decodeValue lenient = do
       TypeNInt    -> decodeNumberIntegral
       TypeNInt64  -> decodeNumberIntegral
       TypeInteger -> decodeNumberIntegral
+      TypeFloat16 -> decodeNumberFloat16
+      TypeFloat32 -> decodeNumberFloating
       TypeFloat64 -> decodeNumberFloating
       TypeBool    -> Bool   <$> decodeBool
       TypeNull    -> Null   <$  decodeNull
@@ -66,6 +68,13 @@ decodeNumberIntegral = Number . fromInteger <$> decodeInteger
 
 decodeNumberFloating :: Decoder s Value
 decodeNumberFloating = Number . Scientific.fromFloatDigits <$> decodeDouble
+
+decodeNumberFloat16 :: Decoder s Value
+decodeNumberFloat16 = do
+    f <- decodeFloat
+    if isNaN f || isInfinite f
+        then return Null
+        else return $ Number (Scientific.fromFloatDigits f)
 
 decodeListN :: Bool -> Int -> Decoder s Value
 decodeListN !lenient !n = do
