@@ -1152,6 +1152,12 @@ instance Serialise RuntimeRep where
       AddrRep       -> encodeListLen 1 <> encodeWord 9
       FloatRep      -> encodeListLen 1 <> encodeWord 10
       DoubleRep     -> encodeListLen 1 <> encodeWord 11
+#if MIN_VERSION_base(4,13,0)
+      Int8Rep       -> encodeListLen 1 <> encodeWord 12
+      Int16Rep      -> encodeListLen 1 <> encodeWord 13
+      Word8Rep      -> encodeListLen 1 <> encodeWord 14
+      Word16Rep     -> encodeListLen 1 <> encodeWord 15
+#endif
 
   decode = do
     len <- decodeListLen
@@ -1169,6 +1175,12 @@ instance Serialise RuntimeRep where
       9  | len == 1 -> pure AddrRep
       10 | len == 1 -> pure FloatRep
       11 | len == 1 -> pure DoubleRep
+#if MIN_VERSION_base(4,13,0)
+      12 | len == 1 -> pure Int8Rep
+      13 | len == 1 -> pure Int16Rep
+      14 | len == 1 -> pure Word8Rep
+      15 | len == 1 -> pure Word16Rep
+#endif
       _             -> fail "Data.Serialise.Binary.CBOR.getRuntimeRep: invalid tag"
 
 -- | @since 0.2.0.0
