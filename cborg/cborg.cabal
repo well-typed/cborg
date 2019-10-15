@@ -98,7 +98,7 @@ library
       integer-gmp
 
   if impl(ghc >= 8.0)
-    ghc-options: -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances
+    ghc-options: -Wcompat -Wnoncanonical-monad-instances
   else
     -- provide/emulate `Control.Monad.Fail` and `Data.Semigroups` API for pre-GHC8
     build-depends: fail == 4.9.*, semigroups >=0.18 && <0.20

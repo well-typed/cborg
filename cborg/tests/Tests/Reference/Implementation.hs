@@ -487,7 +487,7 @@ packToken (TokenHeader mt ai) extra = case (mt, ai) of
     (MajorType7, AiValue (UInt32    w)) -> return (MT7_Float32 (FloatSpecials (wordToFloat w)))
     (MajorType7, AiValue (UInt64    w)) -> return (MT7_Float64 (DoubleSpecials (wordToDouble w)))
     (MajorType7, AiIndefLen)            -> return (MT7_Break)
-    _                                   -> fail "invalid token header"
+    _                                   -> Left "invalid token header"
 
 
 encodeToken :: Encoder Token
@@ -541,7 +541,7 @@ lengthUInt :: [a] -> UInt
 lengthUInt = toUInt . fromIntegral . length
 
 decodeUTF8 :: [Word8] -> Either String [Char]
-decodeUTF8 = either (fail . show) (return . T.unpack) . T.decodeUtf8' . BS.pack
+decodeUTF8 = either (Left . show) (return . T.unpack) . T.decodeUtf8' . BS.pack
 
 encodeUTF8 :: [Char] -> [Word8]
 encodeUTF8 = BS.unpack . T.encodeUtf8 . T.pack
