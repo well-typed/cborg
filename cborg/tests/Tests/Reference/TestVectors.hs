@@ -41,7 +41,7 @@ instance FromJSON ExternalTestCase where
   parseJSON =
     withObject "cbor test" $ \obj -> do
       encoded64 <- T.encodeUtf8 <$> obj .: "cbor"
-      encoded   <- either (fail "invalid base64") return $
+      encoded   <- either fail return $
                    Base64.decode encoded64
       encoded16 <- T.encodeUtf8 <$> obj .: "hex"
       let encoded' = fst (Base16.decode encoded16)

@@ -85,7 +85,7 @@ library
       old-locale
 
   if impl(ghc >= 8.0)
-    ghc-options: -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances
+    ghc-options: -Wcompat -Wnoncanonical-monad-instances
 
 --------------------------------------------------------------------------------
 -- Tests
@@ -124,7 +124,7 @@ test-suite tests
     time                    >= 1.4     && < 1.10,
     containers              >= 0.5     && < 0.7,
     unordered-containers    >= 0.2     && < 0.3,
-    primitive               >= 0.5     && < 0.7,
+    primitive               >= 0.5     && < 0.8,
     cborg,
     serialise,
     QuickCheck              >= 2.9     && < 2.14,
@@ -210,7 +210,7 @@ benchmark micro
     criterion               >= 1.0     && < 1.6,
     cereal                  >= 0.5.2.0 && < 0.6,
     cereal-vector           >= 0.2     && < 0.3,
-    store                   >= 0.4     && < 0.6,
+    store                   >= 0.4     && < 0.7,
     semigroups              >= 0.18    && < 0.20
 
 benchmark versus
@@ -264,7 +264,7 @@ benchmark versus
     zlib                    >= 0.5     && < 0.7,
     pretty                  >= 1.0     && < 1.2,
     criterion               >= 1.0     && < 1.6,
-    store                   >= 0.4     && < 0.6,
+    store                   >= 0.4     && < 0.7,
     semigroups
 
   if flag(newtime15)
