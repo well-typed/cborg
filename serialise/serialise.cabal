@@ -249,6 +249,7 @@ benchmark versus
     bytestring              >= 0.10.4  && < 0.11,
     directory               >= 1.0     && < 1.4,
     ghc-prim                >= 0.3.1.0 && < 0.6,
+    fail                    >= 4.9.0.0 && < 4.10,
     text                    >= 1.1     && < 1.3,
     vector                  >= 0.10    && < 0.13,
     cborg,
