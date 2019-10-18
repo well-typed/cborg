@@ -8,7 +8,6 @@ import Macro.ReadShow ()
 import Text.ParserCombinators.ReadP as ReadP hiding (get)
 import qualified Text.ParserCombinators.ReadP as Parse
 import qualified Text.PrettyPrint          as Disp
-import qualified Data.Char as Char (isDigit, isAlphaNum, isSpace)
 import Text.PrettyPrint hiding (braces, (<>))
 
 import Data.List
@@ -19,6 +18,7 @@ import Data.Tree as Tree (Tree(..), flatten)
 import Data.Array (Array, accumArray, bounds, Ix(inRange), (!))
 import Data.Bits
 import Control.Monad
+import qualified Control.Monad.Fail as Fail
 import Control.Exception
 import qualified Data.ByteString.Lazy.Char8 as BS
 import System.FilePath (normalise, splitDirectories, takeExtension)
@@ -151,6 +151,8 @@ instance Monad ParseResult where
         ParseOk ws x >>= f = case f x of
                                ParseFailed err -> ParseFailed err
                                ParseOk ws' x' -> ParseOk (ws'++ws) x'
+
+instance Fail.MonadFail ParseResult where
         fail s = ParseFailed (FromString s Nothing)
 
 catchParseError :: ParseResult a -> (PError -> ParseResult a)
@@ -1200,7 +1202,7 @@ instance Text KnownExtension where
         Just ke ->
             return ke
         Nothing ->
-            fail ("Can't parse " ++ show extension ++ " as KnownExtension")
+            Fail.fail ("Can't parse " ++ show extension ++ " as KnownExtension")
 
 classifyExtension :: String -> Extension
 classifyExtension string
@@ -1844,6 +1846,9 @@ instance Monad m => Monad (StT s m) where
                         (a,s') <- f s
                         runStT (g a) s'
 
+instance Fail.MonadFail m => Fail.MonadFail (StT s m) where
+    fail s = StT (\_ -> Fail.fail s)
+
 get :: Monad m => StT s m s
 get = StT $ \s -> return (s, s)
 
@@ -1986,7 +1991,7 @@ parsePackageDescription file = do
         `catchParseError` \parseError -> case parseError of
         TabsError _   -> parseFail parseError
         _ | versionOk -> parseFail parseError
-          | otherwise -> fail message
+          | otherwise -> Fail.fail message
       where versionOk = cabalVersionNeeded <= cabalVersion
             message   = "This package requires at least Cabal version "
                      ++ display cabalVersionNeeded
@@ -2296,7 +2301,7 @@ parsePackageDescription file = do
     checkCondTreeFlags definedFlags ct = do
         let fv = nub $ freeVars ct
         unless (all (`elem` definedFlags) fv) $
-            fail $ "These flags are used without having been defined: "
+            Fail.fail $ "These flags are used without having been defined: "
                 ++ intercalate ", " [ n | FlagName n <- fv \\ definedFlags ]
 
     findIndentTabs :: String -> [(Int,Int)]
