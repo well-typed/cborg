@@ -210,15 +210,8 @@ benchmark micro
     criterion               >= 1.0     && < 1.6,
     cereal                  >= 0.5.2.0 && < 0.6,
     cereal-vector           >= 0.2     && < 0.3,
-    semigroups              >= 0.18    && < 0.20
-
-  -- Due to https://github.com/fpco/store/issues/146
-  if impl(ghc >= 8.0)
-    build-depends:
-      store                   >= 0.4     && < 0.7
-  else
-    build-depends:
-      store                   >= 0.4     && < 0.6
+    semigroups              >= 0.18    && < 0.20,
+    store                   >= 0.7.1   && < 0.8
 
 benchmark versus
   type:              exitcode-stdio-1.0
@@ -272,15 +265,8 @@ benchmark versus
     zlib                    >= 0.5     && < 0.7,
     pretty                  >= 1.0     && < 1.2,
     criterion               >= 1.0     && < 1.6,
+    store                   >= 0.7.1   && < 0.8,
     semigroups
-
-  -- Due to https://github.com/fpco/store/issues/146
-  if impl(ghc >= 8.0)
-    build-depends:
-      store                   >= 0.4     && < 0.7
-  else
-    build-depends:
-      store                   >= 0.4     && < 0.6
 
   if flag(newtime15)
     build-depends:
