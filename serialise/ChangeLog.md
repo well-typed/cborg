@@ -1,5 +1,14 @@
 # Revision history for serialise
 
+## 0.2.2.0  -- YYYY-mm-dd
+
+* Export `encodeContainerSkel`, `encodeMapSkel` and `decodeMapSkel` from
+  `Codec.Serialise.Class`
+
+* Fix Serialise instances for TypeRep and SomeTypeRep
+
+* Bounds bumps and GHC 8.8 compatibility
+
 ## 0.2.1.0  -- 2018-10-11
 
 * Bounds bumps and GHC 8.6 compatibility

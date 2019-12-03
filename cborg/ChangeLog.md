@@ -1,5 +1,9 @@
 # Revision history for cborg
 
+## 0.2.2.1  -- YYYY-mm-dd
+
+* Testsuite updates for GHC 8.8
+
 ## 0.2.2.0  -- 2019-07-31
 
 * Add peekByteOffset for the current ByteOffset in the input byte sequence.

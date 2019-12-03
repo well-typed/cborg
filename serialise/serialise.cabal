@@ -1,5 +1,5 @@
 name:                serialise
-version:             0.2.1.0
+version:             0.2.2.0
 synopsis:            A binary serialisation library for Haskell values.
 description:
   This package (formerly @binary-serialise-cbor@) provides pure, efficient

@@ -1,5 +1,5 @@
 name:                cborg-json
-version:             0.2.1.0
+version:             0.2.2.0
 synopsis:            A library for encoding JSON as CBOR
 description:         This package implements the bijection between JSON and
                      CBOR defined in the CBOR specification, RFC 7049.
