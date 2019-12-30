@@ -1,6 +1,6 @@
 # Revision history for cborg
 
-## 0.2.2.1  -- YYYY-mm-dd
+## 0.2.2.1  -- 2019-12-29
 
 * Testsuite updates for GHC 8.8
 

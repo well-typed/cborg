@@ -1,6 +1,6 @@
 # Revision history for cbor-tool
 
-## 0.2.2.0  -- YYYY-mm-dd
+## 0.2.2.0  -- 2019-12-29
 
 * Version bumps and support for GHC 8.8
 
