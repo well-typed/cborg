@@ -28,11 +28,13 @@ import           Data.Word
 import qualified Data.ByteString                     as S
 import qualified Data.Text                           as T
 
+import           Codec.CBOR.ByteArray.Sliced
 import           Codec.CBOR.Encoding
 import           Codec.CBOR.Write
 
 import qualified Control.Monad.Fail as Fail
 import           Control.Monad                       (replicateM_)
+import           GHC.Int (Int64)
 import           Numeric
 #if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
@@ -161,37 +163,82 @@ pprint = do
   hexRep term
   str " "
   case term of
-    TkInt      i  TkEnd -> ppTkInt i
-    TkInteger  i  TkEnd -> ppTkInteger i
-    TkWord     w  TkEnd -> ppTkWord w
-    TkBytes    bs TkEnd -> ppTkBytes bs
-    TkBytesBegin  TkEnd -> ppTkBytesBegin
-    TkString   t  TkEnd -> ppTkString t
-    TkStringBegin TkEnd -> ppTkStringBegin
-    TkListLen  w  TkEnd -> ppTkListLen w
-    TkListBegin   TkEnd -> ppTkListBegin
-    TkMapLen   w  TkEnd -> ppTkMapLen w
-    TkMapBegin    TkEnd -> ppTkMapBegin
-    TkBreak       TkEnd -> ppTkBreak
-    TkTag      w  TkEnd -> ppTkTag w
-    TkBool     b  TkEnd -> ppTkBool b
-    TkNull        TkEnd -> ppTkNull
-    TkSimple   w  TkEnd -> ppTkSimple w
-    TkFloat16  f  TkEnd -> ppTkFloat16 f
-    TkFloat32  f  TkEnd -> ppTkFloat32 f
-    TkFloat64  f  TkEnd -> ppTkFloat64 f
-    TkEncoded  _  TkEnd -> ppTkEncoded
-    TkEnd               -> str "# End of input"
-    _ -> fail $ unwords ["pprint: Unexpected token:", show term]
+    TkInt      i   TkEnd     -> ppTkInt i
+    TkInt      _   _         -> termFailure term
+    TkInt64    i   TkEnd     -> ppTkInt64 i
+    TkInt64    _   _         -> termFailure term
+    TkInteger  i   TkEnd     -> ppTkInteger i
+    TkInteger  _   _         -> termFailure term
+    TkWord64   w   TkEnd     -> ppTkWord64 w
+    TkWord64   _   _         -> termFailure term
+    TkWord     w   TkEnd     -> ppTkWord w
+    TkWord     _   _         -> termFailure term
+    TkBytes    bs  TkEnd     -> ppTkBytes bs
+    TkBytes    _   _         -> termFailure term
+    TkBytesBegin   TkEnd     -> ppTkBytesBegin
+    TkBytesBegin   _         -> termFailure term
+    TkByteArray ba TkEnd     -> ppTkByteArray ba
+    TkByteArray _   _        -> termFailure term
+    TkUtf8ByteArray ba TkEnd -> ppTkUtf8ByteArray ba
+    TkUtf8ByteArray _   _    -> termFailure term
+    TkString   t   TkEnd     -> ppTkString t
+    TkString   _   _         -> termFailure term
+    TkStringBegin  TkEnd     -> ppTkStringBegin
+    TkStringBegin  _         -> termFailure term
+    TkListLen  w   TkEnd     -> ppTkListLen w
+    TkListLen  _   _         -> termFailure term
+    TkListBegin    TkEnd     -> ppTkListBegin
+    TkListBegin    _         -> termFailure term
+    TkMapLen   w   TkEnd     -> ppTkMapLen w
+    TkMapLen   _   _         -> termFailure term
+    TkMapBegin     TkEnd     -> ppTkMapBegin
+    TkMapBegin     _         -> termFailure term
+    TkBreak        TkEnd     -> ppTkBreak
+    TkBreak        _         -> termFailure term
+    TkTag      w   TkEnd     -> ppTkTag w
+    TkTag      _   _         -> termFailure term
+    TkTag64    w   TkEnd     -> ppTkTag64 w
+    TkTag64    _   _         -> termFailure term
+    TkBool     b   TkEnd     -> ppTkBool b
+    TkBool     _   _         -> termFailure term
+    TkNull         TkEnd     -> ppTkNull
+    TkNull         _         -> termFailure term
+    TkUndef        TkEnd     -> ppTkUndef
+    TkUndef        _         -> termFailure term
+    TkSimple   w   TkEnd     -> ppTkSimple w
+    TkSimple   _   _         -> termFailure term
+    TkFloat16  f   TkEnd     -> ppTkFloat16 f
+    TkFloat16  _   _         -> termFailure term
+    TkFloat32  f   TkEnd     -> ppTkFloat32 f
+    TkFloat32  _   _         -> termFailure term
+    TkFloat64  f   TkEnd     -> ppTkFloat64 f
+    TkFloat64  _   _         -> termFailure term
+    TkEncoded  _   TkEnd     -> ppTkEncoded
+    TkEncoded  _   _         -> termFailure term
+    TkEnd                    -> str "# End of input"
+ where
+   termFailure t = fail $ unwords ["pprint: Unexpected token:", show t]
 
 ppTkInt        :: Int        -> PP ()
 ppTkInt i = str "# int" >> parens (shown i)
 
+ppTkInt64      :: Int64      -> PP ()
+ppTkInt64 i = str "# int" >> parens (shown i)
+
 ppTkInteger    :: Integer    -> PP ()
 ppTkInteger i = str "# integer" >> parens (shown i)
 
+ppTkWord64     :: Word64     -> PP ()
+ppTkWord64 w = str "# word" >> parens (shown w)
+
 ppTkWord       :: Word       -> PP ()
 ppTkWord w = str "# word" >> parens (shown w)
+
+ppTkByteArray  :: SlicedByteArray -> PP ()
+ppTkByteArray bs = str "# bytes" >> parens (shown $ sizeofSlicedByteArray bs)
+
+ppTkUtf8ByteArray  :: SlicedByteArray -> PP ()
+ppTkUtf8ByteArray bs = str "# text" >> parens (shown $ sizeofSlicedByteArray bs)
 
 ppTkBytes      :: S.ByteString -> PP ()
 ppTkBytes bs = str "# bytes" >> parens (shown (S.length bs))
@@ -199,7 +246,7 @@ ppTkBytes bs = str "# bytes" >> parens (shown (S.length bs))
 ppTkBytesBegin ::               PP ()
 ppTkBytesBegin = str "# bytes(*)" >> inc 3 >> indef pprint
 
-ppTkString     :: T.Text       -> PP ()
+ppTkString     :: T.Text     -> PP ()
 ppTkString t = str "# text" >> parens (shown t)
 
 ppTkStringBegin::               PP ()
@@ -250,8 +297,16 @@ ppTkMapBegin = str "# map(*)" >> inc 3 >> indef ppMapPairs
 ppTkBreak      ::               PP ()
 ppTkBreak = str "# break"
 
-ppTkTag        :: Word     -> PP ()
+ppTkTag        :: Word       -> PP ()
 ppTkTag w = do
+  str "# tag"
+  parens (shown w)
+  inc 3
+  pprint
+  dec 3
+
+ppTkTag64      :: Word64     -> PP ()
+ppTkTag64 w = do
   str "# tag"
   parens (shown w)
   inc 3
@@ -264,6 +319,9 @@ ppTkBool False = str "# bool" >> parens (str "false")
 
 ppTkNull       ::               PP ()
 ppTkNull = str "# null"
+
+ppTkUndef       ::              PP ()
+ppTkUndef = str "# undefined"
 
 ppTkSimple     :: Word8      -> PP ()
 ppTkSimple w = str "# simple" >> parens (shown w)
