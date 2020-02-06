@@ -134,7 +134,7 @@ import           Prelude hiding (decodeFloat)
 -- logic.
 --
 -- @since 0.2.0.0
-data Decoder s a = Decoder {
+newtype Decoder s a = Decoder {
        runDecoder :: forall r. (a -> ST s (DecodeAction s r)) -> ST s (DecodeAction s r)
      }
 
