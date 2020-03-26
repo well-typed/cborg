@@ -1158,6 +1158,10 @@ instance Serialise RuntimeRep where
       Word8Rep      -> encodeListLen 1 <> encodeWord 14
       Word16Rep     -> encodeListLen 1 <> encodeWord 15
 #endif
+#if MIN_VERSION_base(4,14,0)
+      Int32Rep      -> encodeListLen 1 <> encodeWord 16
+      Word32Rep     -> encodeListLen 1 <> encodeWord 17
+#endif
 
   decode = do
     len <- decodeListLen
@@ -1180,6 +1184,10 @@ instance Serialise RuntimeRep where
       13 | len == 1 -> pure Int16Rep
       14 | len == 1 -> pure Word8Rep
       15 | len == 1 -> pure Word16Rep
+#endif
+#if MIN_VERSION_base(4,14,0)
+      16 | len == 1 -> pure Int32Rep
+      17 | len == 1 -> pure Word32Rep
 #endif
       _             -> fail "Data.Serialise.Binary.CBOR.getRuntimeRep: invalid tag"
 
@@ -1288,7 +1296,6 @@ encodeTypeRep (Fun arg res)
  <> encodeWord 3
  <> encodeTypeRep arg
  <> encodeTypeRep res
-encodeTypeRep _ = error "Codec.CBOR.Class.encodeTypeRep: Impossible"
 
 -- | @since 0.2.0.0
 instance Typeable a => Serialise (TypeRep (a :: k)) where

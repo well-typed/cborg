@@ -1,5 +1,9 @@
 # Revision history for serialise
 
+## UNRELEASED  -- YYYY-MM-DD
+
+* Bounds bumps and GHC 8.10 compatibility
+
 ## 0.2.2.0  -- 2019-12-29
 
 * Export `encodeContainerSkel`, `encodeMapSkel` and `decodeMapSkel` from
