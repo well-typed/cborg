@@ -1,5 +1,11 @@
 # Revision history for cborg
 
+## 0.2.3.1  -- 2020-05-10
+
+* Bounds updates for GHC 8.10
+
+* `Decoder` is now a `newtype`.
+
 ## 0.2.2.1  -- 2019-12-29
 
 * Testsuite updates for GHC 8.8
