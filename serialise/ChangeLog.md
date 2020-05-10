@@ -1,6 +1,6 @@
 # Revision history for serialise
 
-## UNRELEASED  -- YYYY-MM-DD
+## 0.2.3.0  -- 2020-05-10
 
 * Bounds bumps and GHC 8.10 compatibility
 
