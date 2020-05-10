@@ -3,10 +3,10 @@
 # Having a simple script like this is a bit easier than a multi-package shell.nix
 # for doing rapid development.
 
-exec nix-shell -p 'pkgs.haskell.packages.ghc843.ghcWithPackages (p: with p; [
+exec nix-shell -p 'pkgs.haskell.packages.ghc881.ghcWithPackages (p: with p; [
   cabal-install
   vector unordered-containers scientific half
   aeson aeson-pretty
   tasty-quickcheck tasty-hunit quickcheck-instances
-  criterion store cereal-vector
+  cereal-vector
 ])' "$@"
