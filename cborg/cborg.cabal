@@ -1,5 +1,5 @@
 name:                cborg
-version:             0.2.2.1
+version:             0.2.3.0
 synopsis:            Concise Binary Object Representation (CBOR)
 license:             BSD3
 license-file:        LICENSE.txt
@@ -147,7 +147,7 @@ test-suite tests
     QuickCheck              >= 2.9     && < 2.15,
     random,
     scientific              >= 0.3     && < 0.4,
-    tasty                   >= 0.11    && < 1.3,
+    tasty                   >= 0.11    && < 1.4,
     tasty-hunit             >= 0.9     && < 0.11,
     tasty-quickcheck        >= 0.8     && < 0.11,
     vector                  >= 0.10    && < 0.13
