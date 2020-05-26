@@ -205,7 +205,7 @@ benchmark micro
     cborg,
     serialise,
 
-    aeson                   >= 0.7     && < 1.5,
+    aeson                   >= 0.7     && < 1.6,
     deepseq                 >= 1.0     && < 1.5,
     criterion               >= 1.0     && < 1.6,
     cereal                  >= 0.5.2.0 && < 0.6,
@@ -258,7 +258,7 @@ benchmark versus
     filepath                >= 1.0     && < 1.5,
     containers              >= 0.5     && < 0.7,
     deepseq                 >= 1.0     && < 1.5,
-    aeson                   >= 0.7     && < 1.5,
+    aeson                   >= 0.7     && < 1.6,
     cereal                  >= 0.5.2.0 && < 0.6,
     half                    >= 0.2.2.3 && < 0.4,
     tar                     >= 0.4     && < 0.6,
