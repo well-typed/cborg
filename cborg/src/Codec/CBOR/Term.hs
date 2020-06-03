@@ -1,5 +1,6 @@
-{-# LANGUAGE CPP          #-}
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP               #-}
+{-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE DeriveTraversable #-}
 
 -- |
 -- Module      : Codec.CBOR.Term
@@ -31,6 +32,8 @@ module Codec.CBOR.Term
   ( Term(..)    -- :: *
   , encodeTerm  -- :: Term -> Encoding
   , decodeTerm  -- :: Decoder Term
+  , TermF(..)   -- :: *
+  , termToF     -- :: (TermF a -> a) -> Term -> a
   ) where
 
 #include "cbor.h"
@@ -38,6 +41,7 @@ module Codec.CBOR.Term
 import           Codec.CBOR.Encoding hiding (Tokens(..))
 import           Codec.CBOR.Decoding
 
+import           Data.Bifunctor
 import           Data.Word
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as LT
@@ -80,6 +84,55 @@ data Term
   | TFloat   {-# UNPACK #-} !Float
   | TDouble  {-# UNPACK #-} !Double
   deriving (Eq, Ord, Show, Read)
+
+-- | A general CBOR term, represented as a functor. Useful with various
+-- recursion schemes such as @recursion-schemes@ or @uniplate@ or @data-fix@.
+--
+-- @since 0.2.3.0
+data TermF a
+  = TFInt     {-# UNPACK #-} !Int
+  | TFInteger                !Integer
+  | TFBytes                  !BS.ByteString
+  | TFBytesI                 !LBS.ByteString
+  | TFString                 !T.Text
+  | TFStringI                !LT.Text
+  | TFList                   ![a]
+  | TFListI                  ![a]
+  | TFMap                    ![(a, a)]
+  | TFMapI                   ![(a, a)]
+  | TFTagged  {-# UNPACK #-} !Word64 !a
+  | TFBool                   !Bool
+  | TFNull
+  | TFSimple  {-# UNPACK #-} !Word8
+  | TFHalf    {-# UNPACK #-} !Float
+  | TFFloat   {-# UNPACK #-} !Float
+  | TFDouble  {-# UNPACK #-} !Double
+  deriving (Eq, Ord, Show, Read, Functor, Foldable, Traversable)
+
+-- | Convert a 'Term' into some fixpoint of 'TermF'.
+--
+-- @since 0.2.3.0
+termToF :: (TermF a -> a) -> Term -> a
+termToF con t = con $ case t of
+  TInt     i  -> TFInt i
+  TInteger i  -> TFInteger i
+  TBytes   s  -> TFBytes s
+  TBytesI  s  -> TFBytesI s
+  TString  s  -> TFString s
+  TStringI s  -> TFStringI s
+  TList    l  -> TFList $ fmap rec l
+  TListI   l  -> TFListI $ fmap rec l
+  TMap     kv -> TFMap $ fmap (bimap rec rec) kv
+  TMapI    kv -> TFMapI $ fmap (bimap rec rec) kv
+  TTagged w f -> TFTagged w (rec f)
+  TBool b     -> TFBool b
+  TNull       -> TFNull
+  TSimple w   -> TFSimple w
+  THalf   d   -> TFHalf d
+  TFloat  d   -> TFFloat d
+  TDouble d   -> TFDouble d
+ where
+  rec = termToF con
 
 --------------------------------------------------------------------------------
 -- Main API
