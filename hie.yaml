@@ -1,0 +1,12 @@
+cradle:
+  cabal:
+    - path: "./cborg/src"
+      component: "lib:cborg"
+    - path: "./serialise/src"
+      component: "lib:serialise"
+    - path: "./cbor-tool/Main.hs"
+      component: "exe:cbor-tool"
+    - path: "./binary-serialise-cbor/src"
+      component: "lib:binary-serialise-cbor"
+    - path: "./cborg-json/src"
+      component: "lib:cborg-json"
