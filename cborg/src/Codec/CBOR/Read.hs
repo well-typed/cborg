@@ -1768,19 +1768,19 @@ tryConsumeInteger hdr !bs = case word8ToWord hdr of
 
   0x18 -> let !w@(W8# w#) = eatTailWord8 bs
               sz = 2
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (toInteger w))
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   $! toInteger w)
   0x19 -> let !w@(W16# w#) = eatTailWord16 bs
               sz = 3
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (toInteger w))
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   $! toInteger w)
   0x1a -> let !w@(W32# w#) = eatTailWord32 bs
               sz = 5
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (toInteger w))
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   $! toInteger w)
   0x1b -> let !w@(W64# w#) = eatTailWord64 bs
               sz = 9
 #if defined(ARCH_32bit)
-          in DecodedToken sz (BigIntToken (isWord64Canonical sz w#) (toInteger w))
+          in DecodedToken sz (BigIntToken (isWord64Canonical sz w#) $! toInteger w)
 #else
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (toInteger w))
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   $! toInteger w)
 #endif
 
   -- Negative integers (type 1)
@@ -1810,19 +1810,19 @@ tryConsumeInteger hdr !bs = case word8ToWord hdr of
   0x37 -> DecodedToken 1 (BigIntToken True (-24))
   0x38 -> let !w@(W8# w#) = eatTailWord8 bs
               sz = 2
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (-1 - toInteger w))
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   $! (-1 - toInteger w))
   0x39 -> let !w@(W16# w#) = eatTailWord16 bs
               sz = 3
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (-1 - toInteger w))
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   $! (-1 - toInteger w))
   0x3a -> let !w@(W32# w#) = eatTailWord32 bs
               sz = 5
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (-1 - toInteger w))
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   $! (-1 - toInteger w))
   0x3b -> let !w@(W64# w#) = eatTailWord64 bs
               sz = 9
 #if defined(ARCH_32bit)
-          in DecodedToken sz (BigIntToken (isWord64Canonical sz w#) (-1 - toInteger w))
+          in DecodedToken sz (BigIntToken (isWord64Canonical sz w#) $! (-1 - toInteger w))
 #else
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (-1 - toInteger w))
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   $! (-1 - toInteger w))
 #endif
 
   0xc2 -> readBigUInt bs
