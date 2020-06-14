@@ -1601,11 +1601,11 @@ tryConsumeWord hdr !bs = case word8ToWord hdr of
   0x15 -> DecodedToken 1 21
   0x16 -> DecodedToken 1 22
   0x17 -> DecodedToken 1 23
-  0x18 -> DecodedToken 2 (word8ToWord  (eatTailWord8 bs))
-  0x19 -> DecodedToken 3 (word16ToWord (eatTailWord16 bs))
-  0x1a -> DecodedToken 5 (word32ToWord (eatTailWord32 bs))
+  0x18 -> DecodedToken 2 $! word8ToWord  (eatTailWord8 bs)
+  0x19 -> DecodedToken 3 $! word16ToWord (eatTailWord16 bs)
+  0x1a -> DecodedToken 5 $! word32ToWord (eatTailWord32 bs)
 #if defined(ARCH_64bit)
-  0x1b -> DecodedToken 9 (word64ToWord (eatTailWord64 bs))
+  0x1b -> DecodedToken 9 $! word64ToWord (eatTailWord64 bs)
 #else
   0x1b -> case word64ToWord (eatTailWord64 bs) of
             Just n  -> DecodedToken 9 n
@@ -1642,11 +1642,11 @@ tryConsumeNegWord hdr !bs = case word8ToWord hdr of
   0x35 -> DecodedToken 1 21
   0x36 -> DecodedToken 1 22
   0x37 -> DecodedToken 1 23
-  0x38 -> DecodedToken 2 (word8ToWord  (eatTailWord8 bs))
-  0x39 -> DecodedToken 3 (word16ToWord (eatTailWord16 bs))
-  0x3a -> DecodedToken 5 (word32ToWord (eatTailWord32 bs))
+  0x38 -> DecodedToken 2 $! (word8ToWord  (eatTailWord8 bs))
+  0x39 -> DecodedToken 3 $! (word16ToWord (eatTailWord16 bs))
+  0x3a -> DecodedToken 5 $! (word32ToWord (eatTailWord32 bs))
 #if defined(ARCH_64bit)
-  0x3b -> DecodedToken 9 (word64ToWord (eatTailWord64 bs))
+  0x3b -> DecodedToken 9 $! (word64ToWord (eatTailWord64 bs))
 #else
   0x3b -> case word64ToWord (eatTailWord64 bs) of
             Just n  -> DecodedToken 9 n
@@ -1683,10 +1683,10 @@ tryConsumeInt hdr !bs = case word8ToWord hdr of
   0x15 -> DecodedToken 1 21
   0x16 -> DecodedToken 1 22
   0x17 -> DecodedToken 1 23
-  0x18 -> DecodedToken 2 (word8ToInt  (eatTailWord8 bs))
-  0x19 -> DecodedToken 3 (word16ToInt (eatTailWord16 bs))
+  0x18 -> DecodedToken 2 $! (word8ToInt  (eatTailWord8 bs))
+  0x19 -> DecodedToken 3 $! (word16ToInt (eatTailWord16 bs))
 #if defined(ARCH_64bit)
-  0x1a -> DecodedToken 5 (word32ToInt (eatTailWord32 bs))
+  0x1a -> DecodedToken 5 $! (word32ToInt (eatTailWord32 bs))
 #else
   0x1a -> case word32ToInt (eatTailWord32 bs) of
             Just n  -> DecodedToken 5 n
@@ -1721,10 +1721,10 @@ tryConsumeInt hdr !bs = case word8ToWord hdr of
   0x35 -> DecodedToken 1 (-22)
   0x36 -> DecodedToken 1 (-23)
   0x37 -> DecodedToken 1 (-24)
-  0x38 -> DecodedToken 2 (-1 - word8ToInt  (eatTailWord8 bs))
-  0x39 -> DecodedToken 3 (-1 - word16ToInt (eatTailWord16 bs))
+  0x38 -> DecodedToken 2 $! (-1 - word8ToInt  (eatTailWord8 bs))
+  0x39 -> DecodedToken 3 $! (-1 - word16ToInt (eatTailWord16 bs))
 #if defined(ARCH_64bit)
-  0x3a -> DecodedToken 5 (-1 - word32ToInt (eatTailWord32 bs))
+  0x3a -> DecodedToken 5 $! (-1 - word32ToInt (eatTailWord32 bs))
 #else
   0x3a -> case word32ToInt (eatTailWord32 bs) of
             Just n  -> DecodedToken 5 (-1 - n)
@@ -1768,19 +1768,19 @@ tryConsumeInteger hdr !bs = case word8ToWord hdr of
 
   0x18 -> let !w@(W8# w#) = eatTailWord8 bs
               sz = 2
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (toInteger w))
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   $! toInteger w)
   0x19 -> let !w@(W16# w#) = eatTailWord16 bs
               sz = 3
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (toInteger w))
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   $! toInteger w)
   0x1a -> let !w@(W32# w#) = eatTailWord32 bs
               sz = 5
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (toInteger w))
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   $! toInteger w)
   0x1b -> let !w@(W64# w#) = eatTailWord64 bs
               sz = 9
 #if defined(ARCH_32bit)
-          in DecodedToken sz (BigIntToken (isWord64Canonical sz w#) (toInteger w))
+          in DecodedToken sz (BigIntToken (isWord64Canonical sz w#) $! toInteger w)
 #else
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (toInteger w))
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   $! toInteger w)
 #endif
 
   -- Negative integers (type 1)
@@ -1810,19 +1810,19 @@ tryConsumeInteger hdr !bs = case word8ToWord hdr of
   0x37 -> DecodedToken 1 (BigIntToken True (-24))
   0x38 -> let !w@(W8# w#) = eatTailWord8 bs
               sz = 2
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (-1 - toInteger w))
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   $! (-1 - toInteger w))
   0x39 -> let !w@(W16# w#) = eatTailWord16 bs
               sz = 3
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (-1 - toInteger w))
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   $! (-1 - toInteger w))
   0x3a -> let !w@(W32# w#) = eatTailWord32 bs
               sz = 5
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (-1 - toInteger w))
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   $! (-1 - toInteger w))
   0x3b -> let !w@(W64# w#) = eatTailWord64 bs
               sz = 9
 #if defined(ARCH_32bit)
-          in DecodedToken sz (BigIntToken (isWord64Canonical sz w#) (-1 - toInteger w))
+          in DecodedToken sz (BigIntToken (isWord64Canonical sz w#) $! (-1 - toInteger w))
 #else
-          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   (-1 - toInteger w))
+          in DecodedToken sz (BigIntToken (isWordCanonical sz w#)   $! (-1 - toInteger w))
 #endif
 
   0xc2 -> readBigUInt bs
@@ -1974,10 +1974,10 @@ tryConsumeMapLen hdr !bs = case word8ToWord hdr of
   0xb5 -> DecodedToken 1 21
   0xb6 -> DecodedToken 1 22
   0xb7 -> DecodedToken 1 23
-  0xb8 -> DecodedToken 2 (word8ToInt  (eatTailWord8 bs))
-  0xb9 -> DecodedToken 3 (word16ToInt (eatTailWord16 bs))
+  0xb8 -> DecodedToken 2 $! (word8ToInt  (eatTailWord8 bs))
+  0xb9 -> DecodedToken 3 $! (word16ToInt (eatTailWord16 bs))
 #if defined(ARCH_64bit)
-  0xba -> DecodedToken 5 (word32ToInt (eatTailWord32 bs))
+  0xba -> DecodedToken 5 $! (word32ToInt (eatTailWord32 bs))
 #else
   0xba -> case word32ToInt (eatTailWord32 bs) of
             Just n  -> DecodedToken 5 n
@@ -2032,10 +2032,10 @@ tryConsumeListLenOrIndef hdr !bs = case word8ToWord hdr of
   0x95 -> DecodedToken 1 21
   0x96 -> DecodedToken 1 22
   0x97 -> DecodedToken 1 23
-  0x98 -> DecodedToken 2 (word8ToInt  (eatTailWord8 bs))
-  0x99 -> DecodedToken 3 (word16ToInt (eatTailWord16 bs))
+  0x98 -> DecodedToken 2 $! (word8ToInt  (eatTailWord8 bs))
+  0x99 -> DecodedToken 3 $! (word16ToInt (eatTailWord16 bs))
 #if defined(ARCH_64bit)
-  0x9a -> DecodedToken 5 (word32ToInt (eatTailWord32 bs))
+  0x9a -> DecodedToken 5 $! (word32ToInt (eatTailWord32 bs))
 #else
   0x9a -> case word32ToInt (eatTailWord32 bs) of
             Just n  -> DecodedToken 5 n
@@ -2077,10 +2077,10 @@ tryConsumeMapLenOrIndef hdr !bs = case word8ToWord hdr of
   0xb5 -> DecodedToken 1 21
   0xb6 -> DecodedToken 1 22
   0xb7 -> DecodedToken 1 23
-  0xb8 -> DecodedToken 2 (word8ToInt  (eatTailWord8 bs))
-  0xb9 -> DecodedToken 3 (word16ToInt (eatTailWord16 bs))
+  0xb8 -> DecodedToken 2 $! (word8ToInt  (eatTailWord8 bs))
+  0xb9 -> DecodedToken 3 $! (word16ToInt (eatTailWord16 bs))
 #if defined(ARCH_64bit)
-  0xba -> DecodedToken 5 (word32ToInt (eatTailWord32 bs))
+  0xba -> DecodedToken 5 $! (word32ToInt (eatTailWord32 bs))
 #else
   0xba -> case word32ToInt (eatTailWord32 bs) of
             Just n  -> DecodedToken 5 n
@@ -2122,11 +2122,11 @@ tryConsumeTag hdr !bs = case word8ToWord hdr of
   0xd5 -> DecodedToken 1 21
   0xd6 -> DecodedToken 1 22
   0xd7 -> DecodedToken 1 23
-  0xd8 -> DecodedToken 2 (word8ToWord  (eatTailWord8 bs))
-  0xd9 -> DecodedToken 3 (word16ToWord (eatTailWord16 bs))
-  0xda -> DecodedToken 5 (word32ToWord (eatTailWord32 bs))
+  0xd8 -> DecodedToken 2 $! (word8ToWord  (eatTailWord8 bs))
+  0xd9 -> DecodedToken 3 $! (word16ToWord (eatTailWord16 bs))
+  0xda -> DecodedToken 5 $! (word32ToWord (eatTailWord32 bs))
 #if defined(ARCH_64bit)
-  0xdb -> DecodedToken 9 (word64ToWord (eatTailWord64 bs))
+  0xdb -> DecodedToken 9 $! (word64ToWord (eatTailWord64 bs))
 #else
   0xdb -> case word64ToWord (eatTailWord64 bs) of
             Just n  -> DecodedToken 9 n
@@ -2166,10 +2166,10 @@ tryConsumeWord64 hdr !bs = case word8ToWord hdr of
   0x15 -> DecodedToken 1 21
   0x16 -> DecodedToken 1 22
   0x17 -> DecodedToken 1 23
-  0x18 -> DecodedToken 2 (word8ToWord64  (eatTailWord8  bs))
-  0x19 -> DecodedToken 3 (word16ToWord64 (eatTailWord16 bs))
-  0x1a -> DecodedToken 5 (word32ToWord64 (eatTailWord32 bs))
-  0x1b -> DecodedToken 9                 (eatTailWord64 bs)
+  0x18 -> DecodedToken 2 $! (word8ToWord64  (eatTailWord8  bs))
+  0x19 -> DecodedToken 3 $! (word16ToWord64 (eatTailWord16 bs))
+  0x1a -> DecodedToken 5 $! (word32ToWord64 (eatTailWord32 bs))
+  0x1b -> DecodedToken 9 $!                 (eatTailWord64 bs)
   _    -> DecodeFailure
 {-# INLINE tryConsumeWord64 #-}
 
@@ -2200,10 +2200,10 @@ tryConsumeNegWord64 hdr !bs = case word8ToWord hdr of
   0x35 -> DecodedToken 1 21
   0x36 -> DecodedToken 1 22
   0x37 -> DecodedToken 1 23
-  0x38 -> DecodedToken 2 (word8ToWord64  (eatTailWord8  bs))
-  0x39 -> DecodedToken 3 (word16ToWord64 (eatTailWord16 bs))
-  0x3a -> DecodedToken 5 (word32ToWord64 (eatTailWord32 bs))
-  0x3b -> DecodedToken 9                 (eatTailWord64 bs)
+  0x38 -> DecodedToken 2 $! (word8ToWord64  (eatTailWord8  bs))
+  0x39 -> DecodedToken 3 $! (word16ToWord64 (eatTailWord16 bs))
+  0x3a -> DecodedToken 5 $! (word32ToWord64 (eatTailWord32 bs))
+  0x3b -> DecodedToken 9 $!                 (eatTailWord64 bs)
   _    -> DecodeFailure
 {-# INLINE tryConsumeNegWord64 #-}
 
@@ -2234,9 +2234,9 @@ tryConsumeInt64 hdr !bs = case word8ToWord hdr of
   0x15 -> DecodedToken 1 21
   0x16 -> DecodedToken 1 22
   0x17 -> DecodedToken 1 23
-  0x18 -> DecodedToken 2 (word8ToInt64  (eatTailWord8  bs))
-  0x19 -> DecodedToken 3 (word16ToInt64 (eatTailWord16 bs))
-  0x1a -> DecodedToken 5 (word32ToInt64 (eatTailWord32 bs))
+  0x18 -> DecodedToken 2 $! (word8ToInt64  (eatTailWord8  bs))
+  0x19 -> DecodedToken 3 $! (word16ToInt64 (eatTailWord16 bs))
+  0x1a -> DecodedToken 5 $! (word32ToInt64 (eatTailWord32 bs))
   0x1b -> case word64ToInt64 (eatTailWord64 bs) of
             Just n  -> DecodedToken 9 n
             Nothing -> DecodeFailure
@@ -2266,9 +2266,9 @@ tryConsumeInt64 hdr !bs = case word8ToWord hdr of
   0x35 -> DecodedToken 1 (-22)
   0x36 -> DecodedToken 1 (-23)
   0x37 -> DecodedToken 1 (-24)
-  0x38 -> DecodedToken 2 (-1 - word8ToInt64  (eatTailWord8  bs))
-  0x39 -> DecodedToken 3 (-1 - word16ToInt64 (eatTailWord16 bs))
-  0x3a -> DecodedToken 5 (-1 - word32ToInt64 (eatTailWord32 bs))
+  0x38 -> DecodedToken 2 $! (-1 - word8ToInt64  (eatTailWord8  bs))
+  0x39 -> DecodedToken 3 $! (-1 - word16ToInt64 (eatTailWord16 bs))
+  0x3a -> DecodedToken 5 $! (-1 - word32ToInt64 (eatTailWord32 bs))
   0x3b -> case word64ToInt64 (eatTailWord64 bs) of
             Just n  -> DecodedToken 9 (-1 - n)
             Nothing -> DecodeFailure
@@ -2302,9 +2302,9 @@ tryConsumeListLen64 hdr !bs = case word8ToWord hdr of
   0x95 -> DecodedToken 1 21
   0x96 -> DecodedToken 1 22
   0x97 -> DecodedToken 1 23
-  0x98 -> DecodedToken 2 (word8ToInt64  (eatTailWord8  bs))
-  0x99 -> DecodedToken 3 (word16ToInt64 (eatTailWord16 bs))
-  0x9a -> DecodedToken 5 (word32ToInt64 (eatTailWord32 bs))
+  0x98 -> DecodedToken 2 $! (word8ToInt64  (eatTailWord8  bs))
+  0x99 -> DecodedToken 3 $! (word16ToInt64 (eatTailWord16 bs))
+  0x9a -> DecodedToken 5 $! (word32ToInt64 (eatTailWord32 bs))
   0x9b -> case word64ToInt64 (eatTailWord64 bs) of
             Just n  -> DecodedToken 9 n
             Nothing -> DecodeFailure
@@ -2338,9 +2338,9 @@ tryConsumeMapLen64 hdr !bs = case word8ToWord hdr of
   0xb5 -> DecodedToken 1 21
   0xb6 -> DecodedToken 1 22
   0xb7 -> DecodedToken 1 23
-  0xb8 -> DecodedToken 2 (word8ToInt64  (eatTailWord8  bs))
-  0xb9 -> DecodedToken 3 (word16ToInt64 (eatTailWord16 bs))
-  0xba -> DecodedToken 5 (word32ToInt64 (eatTailWord32 bs))
+  0xb8 -> DecodedToken 2 $! (word8ToInt64  (eatTailWord8  bs))
+  0xb9 -> DecodedToken 3 $! (word16ToInt64 (eatTailWord16 bs))
+  0xba -> DecodedToken 5 $! (word32ToInt64 (eatTailWord32 bs))
   0xbb -> case word64ToInt64 (eatTailWord64 bs) of
             Just n  -> DecodedToken 9 n
             Nothing -> DecodeFailure
@@ -2374,10 +2374,10 @@ tryConsumeTag64 hdr !bs = case word8ToWord hdr of
   0xd5 -> DecodedToken 1 21
   0xd6 -> DecodedToken 1 22
   0xd7 -> DecodedToken 1 23
-  0xd8 -> DecodedToken 2 (word8ToWord64  (eatTailWord8  bs))
-  0xd9 -> DecodedToken 3 (word16ToWord64 (eatTailWord16 bs))
-  0xda -> DecodedToken 5 (word32ToWord64 (eatTailWord32 bs))
-  0xdb -> DecodedToken 9                 (eatTailWord64 bs)
+  0xd8 -> DecodedToken 2 $! (word8ToWord64  (eatTailWord8  bs))
+  0xd9 -> DecodedToken 3 $! (word16ToWord64 (eatTailWord16 bs))
+  0xda -> DecodedToken 5 $! (word32ToWord64 (eatTailWord32 bs))
+  0xdb -> DecodedToken 9 $!                 (eatTailWord64 bs)
   _    -> DecodeFailure
 {-# INLINE tryConsumeTag64 #-}
 #endif
@@ -2385,17 +2385,17 @@ tryConsumeTag64 hdr !bs = case word8ToWord hdr of
 {-# INLINE tryConsumeFloat #-}
 tryConsumeFloat :: Word8 -> ByteString -> DecodedToken Float
 tryConsumeFloat hdr !bs = case word8ToWord hdr of
-  0xf9 -> DecodedToken 3 (wordToFloat16 (eatTailWord16 bs))
-  0xfa -> DecodedToken 5 (wordToFloat32 (eatTailWord32 bs))
+  0xf9 -> DecodedToken 3 $! (wordToFloat16 (eatTailWord16 bs))
+  0xfa -> DecodedToken 5 $! (wordToFloat32 (eatTailWord32 bs))
   _    -> DecodeFailure
 
 
 {-# INLINE tryConsumeDouble #-}
 tryConsumeDouble :: Word8 -> ByteString -> DecodedToken Double
 tryConsumeDouble hdr !bs = case word8ToWord hdr of
-  0xf9 -> DecodedToken 3 (float2Double $ wordToFloat16 (eatTailWord16 bs))
-  0xfa -> DecodedToken 5 (float2Double $ wordToFloat32 (eatTailWord32 bs))
-  0xfb -> DecodedToken 9                (wordToFloat64 (eatTailWord64 bs))
+  0xf9 -> DecodedToken 3 $! (float2Double $ wordToFloat16 (eatTailWord16 bs))
+  0xfa -> DecodedToken 5 $! (float2Double $ wordToFloat32 (eatTailWord32 bs))
+  0xfb -> DecodedToken 9 $!                (wordToFloat64 (eatTailWord64 bs))
   _    -> DecodeFailure
 
 
@@ -2436,7 +2436,7 @@ tryConsumeSimple hdr !bs = case word8ToWord hdr of
   0xf5 -> DecodedToken 1 21
   0xf6 -> DecodedToken 1 22
   0xf7 -> DecodedToken 1 23
-  0xf8 -> DecodedToken 2 (word8ToWord (eatTailWord8 bs))
+  0xf8 -> DecodedToken 2 $! (word8ToWord (eatTailWord8 bs))
   _    -> DecodeFailure
 
 
