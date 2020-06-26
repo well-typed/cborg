@@ -100,7 +100,7 @@ import           Data.ByteString (ByteString)
 import qualified Data.ByteString          as BS
 import qualified Data.ByteString.Internal as BS
 import qualified Data.ByteString.Unsafe   as BS
-import           Data.Primitive.ByteArray as Prim
+import           Data.Primitive.ByteArray as Prim hiding (copyByteArrayToPtr)
 
 import           Foreign.ForeignPtr (withForeignPtr)
 import           Foreign.C (CUShort)
