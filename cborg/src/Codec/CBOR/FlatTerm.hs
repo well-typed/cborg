@@ -250,7 +250,7 @@ decodeTermToken = do
 
       TypeTag          -> do !x <- decodeTag
                              return $! TkTag (fromIntegral x)
-      TypeTag64        -> do !x <- decodeTag
+      TypeTag64        -> do !x <- decodeTag64
                              return $! TkTag (fromIntegral x)
 
       TypeBool    -> do !x <- decodeBool
