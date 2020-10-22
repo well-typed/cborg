@@ -51,6 +51,7 @@ import           Data.Ord
 #if MIN_VERSION_base(4,8,0)
 import           Numeric.Natural
 import           Data.Functor.Identity
+import           Data.Void                           (Void, absurd)
 #endif
 
 #if MIN_VERSION_base(4,9,0)
@@ -205,6 +206,13 @@ instance Serialise a => Serialise (NonEmpty.NonEmpty a) where
 
 --------------------------------------------------------------------------------
 -- Primitive and integral instances
+
+#if MIN_VERSION_base(4,8,0)
+-- | @since 0.2.3.1
+instance Serialise Void where
+    encode = absurd
+    decode = fail "tried to decode void"
+#endif
 
 -- | @since 0.2.0.0
 instance Serialise () where
