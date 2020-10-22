@@ -72,7 +72,9 @@ library
     half                    >= 0.2.2.3 && < 0.4,
     hashable                >= 1.2     && < 2.0,
     primitive               >= 0.5     && < 0.8,
+    strict                  >= 0.4     && < 0.5,
     text                    >= 1.1     && < 1.3,
+    these                   >= 1.1     && < 1.2,
     unordered-containers    >= 0.2     && < 0.3,
     vector                  >= 0.10    && < 0.13
 
