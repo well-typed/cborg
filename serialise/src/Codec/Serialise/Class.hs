@@ -208,7 +208,7 @@ instance Serialise a => Serialise (NonEmpty.NonEmpty a) where
 -- Primitive and integral instances
 
 #if MIN_VERSION_base(4,8,0)
--- | @since 0.2.3.1
+-- | @since 0.2.4.0
 instance Serialise Void where
     encode = absurd
     decode = fail "tried to decode void"
@@ -860,7 +860,7 @@ instance (Serialise a, Serialise b) => Serialise (Either a b) where
                           return (Right x)
                   _ -> fail "unknown tag"
 
--- | @since 0.2.3.1
+-- | @since 0.2.4.0
 instance (Serialise a, Serialise b) => Serialise (These.These a b) where
     encode (These.This x) = encodeListLen 2 <> encodeWord 0 <> encode x
     encode (These.That x) = encodeListLen 2 <> encodeWord 1 <> encode x
@@ -878,22 +878,22 @@ instance (Serialise a, Serialise b) => Serialise (These.These a b) where
                                return (These.These x y)
                   _ -> fail "unknown tag"
 
--- | @since 0.2.3.1
+-- | @since 0.2.4.0
 instance (Serialise a, Serialise b) => Serialise (Strict.Pair a b) where
     encode = encode . Strict.toLazy
     decode = Strict.toStrict <$> decode
 
--- | @since 0.2.3.1
+-- | @since 0.2.4.0
 instance Serialise a => Serialise (Strict.Maybe a) where
     encode = encode . Strict.toLazy
     decode = Strict.toStrict <$> decode
 
--- | @since 0.2.3.1
+-- | @since 0.2.4.0
 instance (Serialise a, Serialise b) => Serialise (Strict.Either a b) where
     encode = encode . Strict.toLazy
     decode = Strict.toStrict <$> decode
 
--- | @since 0.2.3.1
+-- | @since 0.2.4.0
 instance (Serialise a, Serialise b) => Serialise (Strict.These a b) where
     encode = encode . Strict.toLazy
     decode = Strict.toStrict <$> decode

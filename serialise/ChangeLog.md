@@ -1,5 +1,9 @@
 # Revision history for serialise
 
+## 0.2.4.0  -- UNRELEASED
+
+* Add instances for Data.Void, strict and these.
+
 ## 0.2.3.0  -- 2020-05-10
 
 * Bounds bumps and GHC 8.10 compatibility
