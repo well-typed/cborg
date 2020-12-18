@@ -13,9 +13,11 @@ import           Codec.CBOR.Encoding
 import           Codec.CBOR.Decoding
 import           Data.Aeson                          ( Value(..) )
 import qualified Data.Aeson                          as Aeson
+import qualified Data.ByteString.Base16              as HEX
 import qualified Data.HashMap.Lazy                   as HM
 import           Data.Scientific                     as Scientific
 import qualified Data.Text                           as T
+import qualified Data.Text.Encoding                  as TE
 import qualified Data.Vector                         as V
 
 -- | Encode a JSON value into CBOR.
@@ -59,9 +61,12 @@ decodeValue lenient = do
       TypeListLen      -> decodeListLen >>= decodeListN lenient
       TypeListLenIndef -> decodeListLenIndef >> decodeListIndef lenient []
       TypeMapLen       -> decodeMapLen >>= flip (decodeMapN lenient) HM.empty
-
+      TypeBytes   -> packHex <$> decodeBytes
       _           -> fail $ "unexpected CBOR token type for a JSON value: "
                          ++ show tkty
+    where
+      packHex = String . TE.decodeLatin1 . HEX.encode
+
 
 decodeNumberIntegral :: Decoder s Value
 decodeNumberIntegral = Number . fromInteger <$> decodeInteger
@@ -78,7 +83,7 @@ decodeNumberFloat16 = do
 
 decodeListN :: Bool -> Int -> Decoder s Value
 decodeListN !lenient !n = do
-  vec <- V.replicateM n (decodeValue lenient) 
+  vec <- V.replicateM n (decodeValue lenient)
   return $! Array vec
 
 decodeListIndef :: Bool -> [Value] -> Decoder s Value
