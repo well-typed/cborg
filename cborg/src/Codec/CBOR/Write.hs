@@ -596,7 +596,11 @@ bigNatToBuilder = bigNatBuilder
     bigNatBuilder :: Gmp.BigNat -> B.Builder
     bigNatBuilder bigNat =
         let sizeW# = Gmp.sizeInBaseBigNat bigNat 256#
+#if MIN_VERSION_bytestring(0,10,12)
+            bounded = PI.boundedPrim (I# (word2Int# sizeW#)) (dumpBigNat sizeW#)
+#else
             bounded = PI.boudedPrim (I# (word2Int# sizeW#)) (dumpBigNat sizeW#)
+#endif
         in P.primBounded bytesLenMP (W# sizeW#) <> P.primBounded bounded bigNat
 
     dumpBigNat :: Word# -> Gmp.BigNat -> Ptr a -> IO (Ptr a)

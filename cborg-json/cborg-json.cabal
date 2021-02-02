@@ -55,7 +55,7 @@ benchmark bench
     cborg                                      ,
     cborg-json                                 ,
     aeson                                      ,
-    bytestring              >= 0.10.4  && < 0.11,
+    bytestring              >= 0.10.4  && < 0.12,
     criterion               >= 1.0     && < 1.6,
     deepseq                 >= 1.0     && < 1.5,
     directory,
