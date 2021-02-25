@@ -42,7 +42,7 @@ library
   exposed-modules: Data.Binary.Serialise.CBOR.Read
 
   build-depends:
-    base >= 4.8 && < 4.15,
+    base >= 4.8 && < 4.16,
     bytestring < 1.0,
     cborg     == 0.2.*,
     serialise == 0.2.*
