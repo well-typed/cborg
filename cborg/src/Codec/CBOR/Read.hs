@@ -9,9 +9,14 @@
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE RankNTypes             #-}
 
+#if __GLASGOW_HASKELL__ < 900
 -- Bump up from the default 1.5, otherwise our decoder fast path is no good.
 -- We went over the threshold when we switched to using ST.
+--
+-- However, this flag is not supported on GHC 9.0 and later and eye-balling the
+-- Core suggests that the new inlining heuristics don't require it.
 {-# OPTIONS_GHC -funfolding-keeness-factor=2.0 #-}
+#endif
 
 -- |
 -- Module      : Codec.CBOR.Read
