@@ -23,7 +23,7 @@ library
   exposed-modules:     Codec.CBOR.JSON
   ghc-options:         -Wall
   build-depends:
-    base >=4.7 && < 4.15,
+    base >=4.7 && < 4.16,
     aeson >=0.7 && <1.6,
     aeson-pretty >=0.8 && <0.9,
     unordered-containers >=0.2 && <0.3,
@@ -51,7 +51,7 @@ benchmark bench
   other-modules:
 
   build-depends:
-    base                    >= 4.6     && < 4.15,
+    base                    >= 4.6     && < 4.16,
     cborg                                      ,
     cborg-json                                 ,
     aeson                                      ,
