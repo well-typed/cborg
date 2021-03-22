@@ -1,0 +1,4 @@
+jobs-selection: any
+-- These don't yet build with GHC 9.0
+tests: < 9.0
+benchmarks: < 9.0
