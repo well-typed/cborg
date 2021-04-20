@@ -51,6 +51,7 @@ import           Data.Ord
 #if MIN_VERSION_base(4,8,0)
 import           Numeric.Natural
 import           Data.Functor.Identity
+import           Data.Void                           (Void, absurd)
 #endif
 
 #if MIN_VERSION_base(4,9,0)
@@ -70,10 +71,12 @@ import qualified Data.ByteString.Lazy                as BS.Lazy
 import qualified Data.Map                            as Map
 import qualified Data.Sequence                       as Sequence
 import qualified Data.Set                            as Set
+import qualified Data.Strict                         as Strict
 import qualified Data.IntSet                         as IntSet
 import qualified Data.IntMap                         as IntMap
 import qualified Data.HashSet                        as HashSet
 import qualified Data.HashMap.Strict                 as HashMap
+import qualified Data.These                          as These
 import qualified Data.Tree                           as Tree
 import qualified Data.Primitive.ByteArray            as Prim
 import qualified Data.Vector                         as Vector
@@ -203,6 +206,13 @@ instance Serialise a => Serialise (NonEmpty.NonEmpty a) where
 
 --------------------------------------------------------------------------------
 -- Primitive and integral instances
+
+#if MIN_VERSION_base(4,8,0)
+-- | @since 0.2.4.0
+instance Serialise Void where
+    encode = absurd
+    decode = fail "tried to decode void"
+#endif
 
 -- | @since 0.2.0.0
 instance Serialise () where
@@ -849,6 +859,44 @@ instance (Serialise a, Serialise b) => Serialise (Either a b) where
                   1 -> do !x <- decode
                           return (Right x)
                   _ -> fail "unknown tag"
+
+-- | @since 0.2.4.0
+instance (Serialise a, Serialise b) => Serialise (These.These a b) where
+    encode (These.This x) = encodeListLen 2 <> encodeWord 0 <> encode x
+    encode (These.That x) = encodeListLen 2 <> encodeWord 1 <> encode x
+    encode (These.These x y) = encodeListLen 3 <> encodeWord 2 <> encode x <> encode y
+
+    decode = do n <- decodeListLen
+                t <- decodeWord
+                case (t, n) of
+                  (0, 2) -> do !x <- decode
+                               return (These.This x)
+                  (1, 2) -> do !x <- decode
+                               return (These.That x)
+                  (2, 3) -> do !x <- decode
+                               !y <- decode
+                               return (These.These x y)
+                  _ -> fail "unknown tag"
+
+-- | @since 0.2.4.0
+instance (Serialise a, Serialise b) => Serialise (Strict.Pair a b) where
+    encode = encode . Strict.toLazy
+    decode = Strict.toStrict <$> decode
+
+-- | @since 0.2.4.0
+instance Serialise a => Serialise (Strict.Maybe a) where
+    encode = encode . Strict.toLazy
+    decode = Strict.toStrict <$> decode
+
+-- | @since 0.2.4.0
+instance (Serialise a, Serialise b) => Serialise (Strict.Either a b) where
+    encode = encode . Strict.toLazy
+    decode = Strict.toStrict <$> decode
+
+-- | @since 0.2.4.0
+instance (Serialise a, Serialise b) => Serialise (Strict.These a b) where
+    encode = encode . Strict.toLazy
+    decode = Strict.toStrict <$> decode
 
 
 --------------------------------------------------------------------------------
