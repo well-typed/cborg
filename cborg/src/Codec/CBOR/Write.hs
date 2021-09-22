@@ -55,6 +55,8 @@ import qualified Data.Text.Encoding                    as T
 import           Control.Exception.Base                (assert)
 import           GHC.Exts
 import           GHC.IO                                (IO(IO))
+
+#if defined(OPTIMIZE_GMP)
 #if defined(HAVE_GHC_BIGNUM)
 import qualified GHC.Num.Integer
 import qualified GHC.Num.BigNat                        as Gmp
@@ -63,6 +65,7 @@ import           GHC.Num.BigNat                        (BigNat)
 #else
 import qualified GHC.Integer.GMP.Internals             as Gmp
 import           GHC.Integer.GMP.Internals             (BigNat)
+#endif
 #endif
 
 #if __GLASGOW_HASKELL__ < 710
