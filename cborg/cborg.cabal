@@ -94,8 +94,11 @@ library
 
   if flag(optimize-gmp)
     cpp-options:            -DFLAG_OPTIMIZE_GMP
-    build-depends:
-      integer-gmp
+    if impl(ghc >= 9.0)
+      cpp-options:          -DHAVE_GHC_BIGNUM
+      build-depends: ghc-bignum
+    else
+      build-depends: integer-gmp
 
   if impl(ghc >= 8.0)
     ghc-options: -Wcompat -Wnoncanonical-monad-instances

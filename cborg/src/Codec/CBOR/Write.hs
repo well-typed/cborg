@@ -8,11 +8,8 @@
 
 #include "cbor.h"
 
-#if defined(OPTIMIZE_GMP)
-#if __GLASGOW_HASKELL__ >= 900
-#define HAVE_GHC_BIGNUM 1
+#if defined(OPTIMIZE_GMP) && defined(HAVE_GHC_BIGNUM)
 {-# LANGUAGE UnboxedSums         #-}
-#endif
 #endif
 
 -- |
@@ -54,8 +51,9 @@ import qualified Data.Text.Encoding                    as T
 
 import           Control.Exception.Base                (assert)
 import           GHC.Exts
-import           GHC.IO                                (IO(IO))
+#if defined(OPTIMIZE_GMP)
 #if defined(HAVE_GHC_BIGNUM)
+import           GHC.IO                                (IO(IO))
 import qualified GHC.Num.Integer
 import qualified GHC.Num.BigNat                        as Gmp
 import qualified GHC.Num.BigNat
@@ -63,6 +61,7 @@ import           GHC.Num.BigNat                        (BigNat)
 #else
 import qualified GHC.Integer.GMP.Internals             as Gmp
 import           GHC.Integer.GMP.Internals             (BigNat)
+#endif
 #endif
 
 #if __GLASGOW_HASKELL__ < 710
@@ -605,7 +604,11 @@ exportBigNatToAddr :: BigNat -> Addr# -> IO Word
 
 #if defined(HAVE_GHC_BIGNUM)
 
+{-# COMPLETE SmallInt, PosBigInt, NegBigInt #-}
+pattern SmallInt :: Int# -> Integer
 pattern SmallInt  n = GHC.Num.Integer.IS n
+
+pattern PosBigInt, NegBigInt :: GHC.Num.BigNat.BigNat# -> Integer
 pattern PosBigInt n = GHC.Num.Integer.IP n
 pattern NegBigInt n = GHC.Num.Integer.IN n
 
@@ -633,9 +636,14 @@ exportBigNatToAddr (GHC.Num.BigNat.BN# b) addr = IO $ \s ->
   -- The last parameter (`1#`) makes the export function use big endian encoding.
   case GHC.Num.BigNat.bigNatToAddr# b addr 1# s of
     (# s', w #) -> (# s', W# w #)
-#else
+#else /* HAVE_GHC_BIGNUM */
 
+{-# COMPLETE SmallInt, PosBigInt, NegBigInt #-}
+pattern SmallInt :: Int# -> Integer
 pattern SmallInt  n = Gmp.S# n
+
+pattern PosBigInt :: BigNat -> Integer
+pattern NegBigInt :: BigNat -> Integer
 pattern PosBigInt n = Gmp.Jp# n
 pattern NegBigInt n = Gmp.Jn# n
 
@@ -653,12 +661,12 @@ negBigNatMP n =
      P.primBounded header 0xc3
   <> bigNatToBuilder (subtractOneBigNat n)
   where
-    subtractOneBigNat n = Gmp.minusBigNatWord n (int2Word# 1#)
+    subtractOneBigNat m = Gmp.minusBigNatWord m (int2Word# 1#)
 
 exportBigNatToAddr bigNat addr# =
   -- The last parameter (`1#`) makes the export function use big endian encoding.
   Gmp.exportBigNatToAddr bigNat addr# 1#
-#endif
+#endif /* HAVE_GHC_BIGNUM */
 
 bigNatToBuilder :: BigNat -> B.Builder
 bigNatToBuilder = bigNatBuilder
@@ -680,7 +688,7 @@ bigNatToBuilder = bigNatBuilder
             sanity = isTrue# (sizeW# `eqWord#` written#)
         return $ assert sanity newPtr
 
-#else
+#else /* OPTIMIZE_GMP */
 
 -- ---------------------- --
 -- Generic implementation --
@@ -703,4 +711,4 @@ integerToBytes n0
 
     narrow :: Integer -> Word8
     narrow = fromIntegral
-#endif
+#endif /* OPTIMIZE_GMP */

@@ -32,7 +32,11 @@
 #define MIN_VERSION_integer_gmp(x,y,z) 0
 #endif
 
-#if defined(FLAG_OPTIMIZE_GMP) && MIN_VERSION_integer_gmp(1,0,0)
+#if !defined(MIN_VERSION_ghc_bignum)
+#define MIN_VERSION_ghc_bignum(x,y,z) 0
+#endif
+
+#if defined(FLAG_OPTIMIZE_GMP) && (MIN_VERSION_ghc_bignum(1,0,0) || MIN_VERSION_integer_gmp(1,0,0))
 #define OPTIMIZE_GMP
 #endif
 
