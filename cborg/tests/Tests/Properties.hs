@@ -45,6 +45,7 @@ import           Data.Bits (complement)
 import qualified Numeric.Half as Half
 import           Data.Function (on)
 import           Data.Proxy
+import           Data.Kind (Type)
 
 import           Codec.CBOR.Term
 import           Codec.CBOR.Read
@@ -99,7 +100,7 @@ import           Control.Applicative
 -- We capture these types and arrows with a type class and an associated type.
 --
 class (Eq t, Show t) => Token t where
-  type Imp t :: *
+  type Imp t :: Type
 
   encodeImp :: Proxy t -> Imp t -> Encoding
   encodeRef :: Ref.Encoder t
