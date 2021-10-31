@@ -24,7 +24,7 @@ library
   ghc-options:         -Wall
   build-depends:
     base >=4.7 && < 4.16,
-    aeson >=0.7 && <1.6,
+    aeson >=0.7 && <2.1,
     aeson-pretty >=0.8 && <0.9,
     unordered-containers >=0.2 && <0.3,
     scientific >=0.3 && <0.4,
