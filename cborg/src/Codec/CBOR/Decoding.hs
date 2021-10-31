@@ -311,6 +311,40 @@ getDecodeAction :: Decoder s a -> ST s (DecodeAction s a)
 getDecodeAction (Decoder k) = k (\x -> return (Done x))
 
 
+-- Compatibility Shims
+toInt8   :: Int# -> Int8
+toInt16  :: Int# -> Int16
+toInt32  :: Int# -> Int32
+toInt64  :: Int# -> Int64
+toWord8  :: Word# -> Word8
+toWord16 :: Word# -> Word16
+toWord32 :: Word# -> Word32
+toWord64 :: Word# -> Word64
+#if MIN_VERSION_ghc_prim(0,8,0)
+toInt8   n = I8#  (intToInt8# n)
+toInt16  n = I16# (intToInt16# n)
+toInt32  n = I32# (intToInt32# n)
+toWord8  n = W8#  (wordToWord8# n)
+toWord16 n = W16# (wordToWord16# n)
+toWord32 n = W32# (wordToWord32# n)
+#if WORD_SIZE_IN_BITS == 64
+toInt64  n = I64# n
+toWord64 n = W64# n
+#else
+toInt64  n = I64# (intToInt64# n)
+toWord64 n = W64# (wordToWord64# n)
+#endif
+#else
+toInt8   n = I8#  n
+toInt16  n = I16# n
+toInt32  n = I32# n
+toInt64  n = I64# n
+toWord8  n = W8#  n
+toWord16 n = W16# n
+toWord32 n = W32# n
+toWord64 n = W64# n
+#endif
+
 -- $canonical
 --
 -- <https://tools.ietf.org/html/rfc7049#section-3.9>
@@ -358,21 +392,21 @@ decodeWord = Decoder (\k -> return (ConsumeWord (\w# -> k (W# w#))))
 --
 -- @since 0.2.0.0
 decodeWord8 :: Decoder s Word8
-decodeWord8 = Decoder (\k -> return (ConsumeWord8 (\w# -> k (W8# w#))))
+decodeWord8 = Decoder (\k -> return (ConsumeWord8 (\w# -> k (toWord8 w#))))
 {-# INLINE decodeWord8 #-}
 
 -- | Decode a 'Word16'.
 --
 -- @since 0.2.0.0
 decodeWord16 :: Decoder s Word16
-decodeWord16 = Decoder (\k -> return (ConsumeWord16 (\w# -> k (W16# w#))))
+decodeWord16 = Decoder (\k -> return (ConsumeWord16 (\w# -> k (toWord16 w#))))
 {-# INLINE decodeWord16 #-}
 
 -- | Decode a 'Word32'.
 --
 -- @since 0.2.0.0
 decodeWord32 :: Decoder s Word32
-decodeWord32 = Decoder (\k -> return (ConsumeWord32 (\w# -> k (W32# w#))))
+decodeWord32 = Decoder (\k -> return (ConsumeWord32 (\w# -> k (toWord32 w#))))
 {-# INLINE decodeWord32 #-}
 
 -- | Decode a 'Word64'.
@@ -382,9 +416,9 @@ decodeWord64 :: Decoder s Word64
 {-# INLINE decodeWord64 #-}
 decodeWord64 =
 #if defined(ARCH_64bit)
-  Decoder (\k -> return (ConsumeWord (\w# -> k (W64# w#))))
+  Decoder (\k -> return (ConsumeWord (\w# -> k (toWord64 w#))))
 #else
-  Decoder (\k -> return (ConsumeWord64 (\w64# -> k (W64# w64#))))
+  Decoder (\k -> return (ConsumeWord64 (\w64# -> k (toWord64 w64#))))
 #endif
 
 -- | Decode a negative 'Word'.
@@ -401,9 +435,9 @@ decodeNegWord64 :: Decoder s Word64
 {-# INLINE decodeNegWord64 #-}
 decodeNegWord64 =
 #if defined(ARCH_64bit)
-  Decoder (\k -> return (ConsumeNegWord (\w# -> k (W64# w#))))
+  Decoder (\k -> return (ConsumeNegWord (\w# -> k (toWord64 w#))))
 #else
-  Decoder (\k -> return (ConsumeNegWord64 (\w64# -> k (W64# w64#))))
+  Decoder (\k -> return (ConsumeNegWord64 (\w64# -> k (toWord64 w64#))))
 #endif
 
 -- | Decode an 'Int'.
@@ -417,21 +451,21 @@ decodeInt = Decoder (\k -> return (ConsumeInt (\n# -> k (I# n#))))
 --
 -- @since 0.2.0.0
 decodeInt8 :: Decoder s Int8
-decodeInt8 = Decoder (\k -> return (ConsumeInt8 (\w# -> k (I8# w#))))
+decodeInt8 = Decoder (\k -> return (ConsumeInt8 (\w# -> k (toInt8 w#))))
 {-# INLINE decodeInt8 #-}
 
 -- | Decode an 'Int16'.
 --
 -- @since 0.2.0.0
 decodeInt16 :: Decoder s Int16
-decodeInt16 = Decoder (\k -> return (ConsumeInt16 (\w# -> k (I16# w#))))
+decodeInt16 = Decoder (\k -> return (ConsumeInt16 (\w# -> k (toInt16 w#))))
 {-# INLINE decodeInt16 #-}
 
 -- | Decode an 'Int32'.
 --
 -- @since 0.2.0.0
 decodeInt32 :: Decoder s Int32
-decodeInt32 = Decoder (\k -> return (ConsumeInt32 (\w# -> k (I32# w#))))
+decodeInt32 = Decoder (\k -> return (ConsumeInt32 (\w# -> k (toInt32 w#))))
 {-# INLINE decodeInt32 #-}
 
 -- | Decode an 'Int64'.
@@ -441,9 +475,9 @@ decodeInt64 :: Decoder s Int64
 {-# INLINE decodeInt64 #-}
 decodeInt64 =
 #if defined(ARCH_64bit)
-  Decoder (\k -> return (ConsumeInt (\n# -> k (I64# n#))))
+  Decoder (\k -> return (ConsumeInt (\n# -> k (toInt64 n#))))
 #else
-  Decoder (\k -> return (ConsumeInt64 (\n64# -> k (I64# n64#))))
+  Decoder (\k -> return (ConsumeInt64 (\n64# -> k (toInt64 n64#))))
 #endif
 
 -- | Decode canonical representation of a 'Word'.
@@ -457,21 +491,21 @@ decodeWordCanonical = Decoder (\k -> return (ConsumeWordCanonical (\w# -> k (W# 
 --
 -- @since 0.2.0.0
 decodeWord8Canonical :: Decoder s Word8
-decodeWord8Canonical = Decoder (\k -> return (ConsumeWord8Canonical (\w# -> k (W8# w#))))
+decodeWord8Canonical = Decoder (\k -> return (ConsumeWord8Canonical (\w# -> k (toWord8 w#))))
 {-# INLINE decodeWord8Canonical #-}
 
 -- | Decode canonical representation of a 'Word16'.
 --
 -- @since 0.2.0.0
 decodeWord16Canonical :: Decoder s Word16
-decodeWord16Canonical = Decoder (\k -> return (ConsumeWord16Canonical (\w# -> k (W16# w#))))
+decodeWord16Canonical = Decoder (\k -> return (ConsumeWord16Canonical (\w# -> k (toWord16 w#))))
 {-# INLINE decodeWord16Canonical #-}
 
 -- | Decode canonical representation of a 'Word32'.
 --
 -- @since 0.2.0.0
 decodeWord32Canonical :: Decoder s Word32
-decodeWord32Canonical = Decoder (\k -> return (ConsumeWord32Canonical (\w# -> k (W32# w#))))
+decodeWord32Canonical = Decoder (\k -> return (ConsumeWord32Canonical (\w# -> k (toWord32 w#))))
 {-# INLINE decodeWord32Canonical #-}
 
 -- | Decode canonical representation of a 'Word64'.
@@ -481,9 +515,9 @@ decodeWord64Canonical :: Decoder s Word64
 {-# INLINE decodeWord64Canonical #-}
 decodeWord64Canonical =
 #if defined(ARCH_64bit)
-  Decoder (\k -> return (ConsumeWordCanonical (\w# -> k (W64# w#))))
+  Decoder (\k -> return (ConsumeWordCanonical (\w# -> k (toWord64 w#))))
 #else
-  Decoder (\k -> return (ConsumeWord64Canonical (\w64# -> k (W64# w64#))))
+  Decoder (\k -> return (ConsumeWord64Canonical (\w64# -> k (toWord64 w64#))))
 #endif
 
 -- | Decode canonical representation of a negative 'Word'.
@@ -500,9 +534,9 @@ decodeNegWord64Canonical :: Decoder s Word64
 {-# INLINE decodeNegWord64Canonical #-}
 decodeNegWord64Canonical =
 #if defined(ARCH_64bit)
-  Decoder (\k -> return (ConsumeNegWordCanonical (\w# -> k (W64# w#))))
+  Decoder (\k -> return (ConsumeNegWordCanonical (\w# -> k (toWord64 w#))))
 #else
-  Decoder (\k -> return (ConsumeNegWord64Canonical (\w64# -> k (W64# w64#))))
+  Decoder (\k -> return (ConsumeNegWord64Canonical (\w64# -> k (toWord64 w64#))))
 #endif
 
 -- | Decode canonical representation of an 'Int'.
@@ -516,21 +550,21 @@ decodeIntCanonical = Decoder (\k -> return (ConsumeIntCanonical (\n# -> k (I# n#
 --
 -- @since 0.2.0.0
 decodeInt8Canonical :: Decoder s Int8
-decodeInt8Canonical = Decoder (\k -> return (ConsumeInt8Canonical (\w# -> k (I8# w#))))
+decodeInt8Canonical = Decoder (\k -> return (ConsumeInt8Canonical (\w# -> k (toInt8 w#))))
 {-# INLINE decodeInt8Canonical #-}
 
 -- | Decode canonical representation of an 'Int16'.
 --
 -- @since 0.2.0.0
 decodeInt16Canonical :: Decoder s Int16
-decodeInt16Canonical = Decoder (\k -> return (ConsumeInt16Canonical (\w# -> k (I16# w#))))
+decodeInt16Canonical = Decoder (\k -> return (ConsumeInt16Canonical (\w# -> k (toInt16 w#))))
 {-# INLINE decodeInt16Canonical #-}
 
 -- | Decode canonical representation of an 'Int32'.
 --
 -- @since 0.2.0.0
 decodeInt32Canonical :: Decoder s Int32
-decodeInt32Canonical = Decoder (\k -> return (ConsumeInt32Canonical (\w# -> k (I32# w#))))
+decodeInt32Canonical = Decoder (\k -> return (ConsumeInt32Canonical (\w# -> k (toInt32 w#))))
 {-# INLINE decodeInt32Canonical #-}
 
 -- | Decode canonical representation of an 'Int64'.
@@ -540,9 +574,9 @@ decodeInt64Canonical :: Decoder s Int64
 {-# INLINE decodeInt64Canonical #-}
 decodeInt64Canonical =
 #if defined(ARCH_64bit)
-  Decoder (\k -> return (ConsumeIntCanonical (\n# -> k (I64# n#))))
+  Decoder (\k -> return (ConsumeIntCanonical (\n# -> k (toInt64 n#))))
 #else
-  Decoder (\k -> return (ConsumeInt64Canonical (\n64# -> k (I64# n64#))))
+  Decoder (\k -> return (ConsumeInt64Canonical (\n64# -> k (toInt64 n64#))))
 #endif
 
 -- | Decode an 'Integer'.
@@ -759,7 +793,7 @@ decodeNull = Decoder (\k -> return (ConsumeNull (k ())))
 --
 -- @since 0.2.0.0
 decodeSimple :: Decoder s Word8
-decodeSimple = Decoder (\k -> return (ConsumeSimple (\w# -> k (W8# w#))))
+decodeSimple = Decoder (\k -> return (ConsumeSimple (\w# -> k (toWord8 w#))))
 {-# INLINE decodeSimple #-}
 
 -- | Decode canonical representation of an 'Integer'.
@@ -795,7 +829,7 @@ decodeDoubleCanonical = Decoder (\k -> return (ConsumeDoubleCanonical (\f# -> k 
 --
 -- @since 0.2.0.0
 decodeSimpleCanonical :: Decoder s Word8
-decodeSimpleCanonical = Decoder (\k -> return (ConsumeSimpleCanonical (\w# -> k (W8# w#))))
+decodeSimpleCanonical = Decoder (\k -> return (ConsumeSimpleCanonical (\w# -> k (toWord8 w#))))
 {-# INLINE decodeSimpleCanonical #-}
 
 --------------------------------------------------------------
