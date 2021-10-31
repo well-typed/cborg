@@ -1,8 +1,10 @@
 # Revision history for serialise
 
-## 0.2.4.0  -- UNRELEASED
+## 0.2.4.0  -- 2021-10-31
 
-* Add instances for Data.Void, strict and these.
+* Add instances for `Data.Void`, `strict`, and `these`.
+
+* Compatibility with GHC 9.0 and 9.2
 
 ## 0.2.3.0  -- 2020-05-10
 
