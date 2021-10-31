@@ -48,6 +48,9 @@ import qualified Data.ByteString.Builder.Prim.Internal as PI
 import qualified Data.ByteString.Lazy                  as L
 import qualified Data.Text                             as T
 import qualified Data.Text.Encoding                    as T
+#if MIN_VERSION_text(2,0,0)
+import qualified Data.Text.Foreign                     as T
+#endif
 
 import           Control.Exception.Base                (assert)
 import           GHC.Exts
@@ -419,9 +422,13 @@ bytesBeginMP = constHeader 0x5f
 
 stringMP :: T.Text -> B.Builder
 stringMP t =
+#if MIN_VERSION_text(2,0,0)
+    P.primBounded stringLenMP (fromIntegral $ T.lengthWord8 t) <> T.encodeUtf8Builder t
+#else
     P.primBounded stringLenMP (fromIntegral $ S.length bs) <> B.byteString bs
   where
     bs  = T.encodeUtf8 t
+#endif
 
 stringLenMP :: P.BoundedPrim Word
 stringLenMP =
