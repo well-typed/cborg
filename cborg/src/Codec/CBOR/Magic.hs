@@ -48,12 +48,17 @@ module Codec.CBOR.Magic
 
   -- int*ToInt conversions are missing because they are not needed.
 
-  , word8ToInt        -- :: Int8  -> Int
-  , word16ToInt       -- :: Int16 -> Int
-  , word32ToInt       -- :: Int32 -> Int
-  , word64ToInt       -- :: Int64 -> Int
+  , word8ToInt        -- :: Word8  -> Int
+  , word16ToInt       -- :: Word16 -> Int
+  , word32ToInt       -- :: Word32 -> Int
+  , word64ToInt       -- :: Word64 -> Int
 
-  , intToInt64        -- :: Int   -> Int64
+  , intToWord         -- :: Int    -> Word
+  , intToInt64        -- :: Int    -> Int64
+
+  , intToWord64       -- :: Int    -> Word64
+  , int64ToWord64     -- :: Int64  -> Word64
+
 #if defined(ARCH_32bit)
   , word8ToInt64      -- :: Word8  -> Int64
   , word16ToInt64     -- :: Word16 -> Int64
@@ -391,6 +396,18 @@ word32ToWord64 :: Word32 -> Word64
 intToInt64 :: Int -> Int64
 intToInt64 = fromIntegral
 {-# INLINE intToInt64 #-}
+
+intToWord :: Int -> Word
+intToWord = fromIntegral
+{-# INLINE intToWord #-}
+
+intToWord64 :: Int -> Word64
+intToWord64 = fromIntegral
+{-# INLINE intToWord64 #-}
+
+int64ToWord64 :: Int64 -> Word64
+int64ToWord64 = fromIntegral
+{-# INLINE int64ToWord64 #-}
 
 word8ToWord  (W8#  w#) = W# w#
 word16ToWord (W16# w#) = W# w#
