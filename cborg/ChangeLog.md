@@ -1,5 +1,19 @@
 # Revision history for cborg
 
+## 0.2.6.0  -- 2021-10-31
+
+* Support for GHC 9.2
+
+* Support for `text-2.0` and zero-copy `Text` serialisation support
+
+## 0.2.5.0  -- 2021-04-08
+
+* Support for `ghc-bignum` and GHC 9.0
+
+## 0.2.4.0  -- 2021-07-05
+
+* Fix decoding on 32-bit systems (#244)
+
 ## 0.2.3.1  -- 2020-05-10
 
 * Bounds updates for GHC 8.10
