@@ -1,5 +1,9 @@
 # Revision history for cborg-json
 
+## 0.2.3.0  -- 2021-10-31
+
+* Support for `aeson-2.0`, GHC 9.0, GHC 9.2, and `bytestring-0.11`.
+
 ## 0.2.2.0  -- 2019-12-29
 
 * Use `replicateM` to significantly speed up decoding. Now faster than Aeson!
