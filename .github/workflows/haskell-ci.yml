@@ -40,8 +40,6 @@ jobs:
             allow-failure: false
           - compiler: ghc-8.0.2
             allow-failure: false
-          - compiler: ghc-7.10.3
-            allow-failure: false
       fail-fast: false
     steps:
       - name: apt
@@ -125,7 +123,7 @@ jobs:
           echo "packages: $GITHUB_WORKSPACE/source/cborg" >> cabal.project
           echo "packages: $GITHUB_WORKSPACE/source/cbor-tool" >> cabal.project
           echo "packages: $GITHUB_WORKSPACE/source/serialise" >> cabal.project
-          if [ $((HCNUMVER < 90000)) -ne 0 ] ; then echo "packages: $GITHUB_WORKSPACE/source/binary-serialise-cbor" >> cabal.project ; fi
+          echo "packages: $GITHUB_WORKSPACE/source/binary-serialise-cbor" >> cabal.project
           echo "packages: $GITHUB_WORKSPACE/source/cborg-json" >> cabal.project
           cat cabal.project
       - name: sdist
@@ -153,7 +151,7 @@ jobs:
           echo "packages: ${PKGDIR_cborg}" >> cabal.project
           echo "packages: ${PKGDIR_cbor_tool}" >> cabal.project
           echo "packages: ${PKGDIR_serialise}" >> cabal.project
-          if [ $((HCNUMVER < 90000)) -ne 0 ] ; then echo "packages: ${PKGDIR_binary_serialise_cbor}" >> cabal.project ; fi
+          echo "packages: ${PKGDIR_binary_serialise_cbor}" >> cabal.project
           echo "packages: ${PKGDIR_cborg_json}" >> cabal.project
           if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "package cborg" >> cabal.project ; fi
           if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "    ghc-options: -Werror=missing-methods" >> cabal.project ; fi
@@ -161,8 +159,8 @@ jobs:
           if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "    ghc-options: -Werror=missing-methods" >> cabal.project ; fi
           if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "package serialise" >> cabal.project ; fi
           if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "    ghc-options: -Werror=missing-methods" >> cabal.project ; fi
-          if [ $((HCNUMVER >= 80200 && HCNUMVER < 90000)) -ne 0 ] ; then echo "package binary-serialise-cbor" >> cabal.project ; fi
-          if [ $((HCNUMVER >= 80200 && HCNUMVER < 90000)) -ne 0 ] ; then echo "    ghc-options: -Werror=missing-methods" >> cabal.project ; fi
+          if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "package binary-serialise-cbor" >> cabal.project ; fi
+          if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "    ghc-options: -Werror=missing-methods" >> cabal.project ; fi
           if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "package cborg-json" >> cabal.project ; fi
           if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "    ghc-options: -Werror=missing-methods" >> cabal.project ; fi
           cat >> cabal.project <<EOF
@@ -201,8 +199,8 @@ jobs:
           ${CABAL} -vnormal check
           cd ${PKGDIR_serialise} || false
           ${CABAL} -vnormal check
-          if [ $((HCNUMVER < 90000)) -ne 0 ] ; then cd ${PKGDIR_binary_serialise_cbor} || false ; fi
-          if [ $((HCNUMVER < 90000)) -ne 0 ] ; then ${CABAL} -vnormal check ; fi
+          cd ${PKGDIR_binary_serialise_cbor} || false
+          ${CABAL} -vnormal check
           cd ${PKGDIR_cborg_json} || false
           ${CABAL} -vnormal check
       - name: haddock

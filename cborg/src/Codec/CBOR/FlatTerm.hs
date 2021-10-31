@@ -55,6 +55,9 @@ import           GHC.Int   (Int64(I64#))
 import           GHC.Word  (Word64(W64#))
 import           GHC.Exts  (Word64#, Int64#)
 #endif
+#if MIN_VERSION_ghc_prim(0,8,0)
+import           GHC.Exts  (word8ToWord#)
+#endif
 import           GHC.Word  (Word(W#), Word8(W8#))
 import           GHC.Exts  (Int(I#), Int#, Word#, Float#, Double#)
 import           GHC.Float (Float(F#), Double(D#), float2Double)
@@ -714,7 +717,11 @@ unW# :: Word -> Word#
 unW#   (W#  w#) = w#
 
 unW8# :: Word8 -> Word#
+#if MIN_VERSION_ghc_prim(0,8,0)
+unW8#  (W8# w#) = word8ToWord# w#
+#else
 unW8#  (W8# w#) = w#
+#endif
 
 unF# :: Float -> Float#
 unF#   (F#   f#) = f#

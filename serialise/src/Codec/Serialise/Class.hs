@@ -102,6 +102,9 @@ import           System.Exit                         (ExitCode(..))
 
 import           Prelude hiding (decodeFloat, encodeFloat, foldr)
 import qualified Prelude
+#if MIN_VERSION_base(4,16,0)
+import           GHC.Exts (Levity(..))
+#endif
 #if MIN_VERSION_base(4,10,0)
 import           Type.Reflection
 import           Type.Reflection.Unsafe
@@ -540,10 +543,12 @@ instance Serialise a => Serialise (Semigroup.Last a) where
   encode = encode . Semigroup.getLast
   decode = fmap Semigroup.Last decode
 
+#if !MIN_VERSION_base(4,16,0)
 -- | @since 0.2.0.0
 instance Serialise a => Serialise (Semigroup.Option a) where
   encode = encode . Semigroup.getOption
   decode = fmap Semigroup.Option decode
+#endif
 
 instance Serialise a => Serialise (Semigroup.WrappedMonoid a) where
   encode = encode . Semigroup.unwrapMonoid
@@ -1184,6 +1189,15 @@ instance Serialise VecElem where
     decodeListLenOf 1
     toEnum . fromIntegral <$> decodeWord
 
+#if MIN_VERSION_base(4,16,0)
+-- | @since 0.2.6.0
+instance Serialise Levity where
+  encode lev = encodeListLen 1 <> encodeWord (fromIntegral $ fromEnum lev)
+  decode = do
+    decodeListLenOf 1
+    toEnum . fromIntegral <$> decodeWord
+#endif
+
 -- | @since 0.2.0.0
 instance Serialise RuntimeRep where
   encode rr =
@@ -1191,8 +1205,12 @@ instance Serialise RuntimeRep where
       VecRep a b    -> encodeListLen 3 <> encodeWord 0 <> encode a <> encode b
       TupleRep reps -> encodeListLen 2 <> encodeWord 1 <> encode reps
       SumRep reps   -> encodeListLen 2 <> encodeWord 2 <> encode reps
+#if MIN_VERSION_base(4,16,0)
+      BoxedRep lev  -> encodeListLen 2 <> encodeWord 3 <> encode lev
+#else
       LiftedRep     -> encodeListLen 1 <> encodeWord 3
       UnliftedRep   -> encodeListLen 1 <> encodeWord 4
+#endif
       IntRep        -> encodeListLen 1 <> encodeWord 5
       WordRep       -> encodeListLen 1 <> encodeWord 6
       Int64Rep      -> encodeListLen 1 <> encodeWord 7
@@ -1218,8 +1236,12 @@ instance Serialise RuntimeRep where
       0  | len == 3 -> VecRep <$> decode <*> decode
       1  | len == 2 -> TupleRep <$> decode
       2  | len == 2 -> SumRep <$> decode
+#if MIN_VERSION_base(4,16,0)
+      3  | len == 2 -> BoxedRep <$> decode
+#else
       3  | len == 1 -> pure LiftedRep
       4  | len == 1 -> pure UnliftedRep
+#endif
       5  | len == 1 -> pure IntRep
       6  | len == 1 -> pure WordRep
       7  | len == 1 -> pure Int64Rep
@@ -1269,12 +1291,18 @@ instance Serialise TypeLitSort where
    <> case n of
         TypeLitSymbol -> encodeWord 0
         TypeLitNat    -> encodeWord 1
+#if MIN_VERSION_base(4,16,0)
+        TypeLitChar   -> encodeWord 2
+#endif
   decode = do
     decodeListLenOf 1
     tag <- decodeWord
     case tag of
       0 -> pure TypeLitSymbol
       1 -> pure TypeLitNat
+#if MIN_VERSION_base(4,16,0)
+      2 -> pure TypeLitChar
+#endif
       _ -> fail "Data.Serialise.Binary.CBOR.putTypeLitSort: invalid tag"
 
 decodeSomeTypeRep :: Decoder s SomeTypeRep
