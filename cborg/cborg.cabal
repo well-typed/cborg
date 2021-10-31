@@ -83,11 +83,11 @@ library
 
   build-depends:
     array                   >= 0.4     && < 0.6,
-    base                    >= 4.7     && < 4.16,
+    base                    >= 4.7     && < 4.17,
     bytestring              >= 0.10.4  && < 0.12,
     containers              >= 0.5     && < 0.7,
     deepseq                 >= 1.0     && < 1.5,
-    ghc-prim                >= 0.3.1.0 && < 0.8,
+    ghc-prim                >= 0.3.1.0 && < 0.9,
     half                    >= 0.2.2.3 && < 0.4,
     primitive               >= 0.5     && < 0.8,
     text                    >= 1.1     && < 1.3 || >= 2.0 && <2.1
@@ -141,7 +141,7 @@ test-suite tests
 
   build-depends:
     array                   >= 0.4     && < 0.6,
-    base                    >= 4.7     && < 4.16,
+    base                    >= 4.7     && < 4.17,
     base-orphans,
     bytestring              >= 0.10.4  && < 0.12,
     text                    >= 1.1     && < 1.3,
