@@ -93,7 +93,11 @@ import           GHC.Float (castWord32ToFloat, castWord64ToDouble)
 import           Foreign.Ptr
 
 #if defined(OPTIMIZE_GMP)
+#if defined(HAVE_GHC_BIGNUM)
+import qualified GHC.Num.Integer                as BigNum
+#else
 import qualified GHC.Integer.GMP.Internals      as Gmp
+#endif
 #endif
 
 import           Data.ByteString (ByteString)
@@ -477,7 +481,12 @@ uintegerFromBytes (BS.PS fp (I# off#) (I# len#)) =
           let addrOff# = addr# `plusAddr#` off#
           -- The last parmaeter (`1#`) tells the import function to use big
           -- endian encoding.
-          in Gmp.importIntegerFromAddr addrOff# (int2Word# len#) 1#
+          in
+#if defined(HAVE_GHC_BIGNUM)
+             BigNum.integerFromAddr (int2Word# len#) addrOff# 1#
+#else
+             Gmp.importIntegerFromAddr addrOff# (int2Word# len#) 1#
+#endif
 #else
 uintegerFromBytes bs =
     case BS.uncons bs of
