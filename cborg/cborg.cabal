@@ -112,7 +112,7 @@ library
     build-depends:
       -- provide/emulate `Control.Monad.Fail` and `Data.Semigroups` API for pre-GHC8
       fail                    == 4.9.*,
-      semigroups              >= 0.18 && < 0.20,
+      semigroups              >= 0.18 && < 0.21,
       -- the `PS` pattern synonym in bytestring 0.11 is unavailable with GHC < 8.0
       bytestring              < 0.11
 
