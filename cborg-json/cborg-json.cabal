@@ -35,7 +35,7 @@ library
     aeson-pretty >=0.8 && <0.9,
     unordered-containers >=0.2 && <0.3,
     scientific >=0.3 && <0.4,
-    text >=1.1 && <1.3,
+    text >=1.1 && <2.1,
     vector >=0.10 && <0.13,
     cborg ==0.2.*
   hs-source-dirs:      src
