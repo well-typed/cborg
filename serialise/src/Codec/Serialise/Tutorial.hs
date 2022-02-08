@@ -9,8 +9,7 @@
 -- Stability   : experimental
 -- Portability : non-portable (GHC extensions)
 --
--- @serialise@ library is built on @cborg@
--- (which implements Concise Binary Object Representation (CBOR), specified by [RFC 7049](https://datatracker.ietf.org/doc/html/rfc7049)).
+-- @serialise@ library is built on @cborg@, they implement CBOR (Concise Binary Object Representation, specified by [IETF RFC 7049](https://tools.ietf.org/html/rfc7049)) and serialisers/deserializers for it.
 --
 module Codec.Serialise.Tutorial
   ( -- * Basic use example
@@ -71,11 +70,11 @@ import Codec.CBOR.Pretty
 > fredTheFrog :: Animal
 > fredTheFrog = HoppingAnimal "Fred" 4
 >
-> -- | To output value into a file:
+> -- | To output value into a file
 > write :: Serialise a => FilePath -> a -> IO ()
 > write file val = BSL.writeFile file (serialise val)
 >
-> -- | Outputs @Fred@ value into file:
+> -- | Outputs @Fred@ value into file
 > writeIO :: IO ()
 > writeIO = write fileName fredTheFrog
 >
@@ -92,9 +91,7 @@ import Codec.CBOR.Pretty
 
 {- $cbor_format
 
-@serialise@ & @cborg@ implements CBOR (Concise Binary Object Representation, IETF RFC 7049, <https://tools.ietf.org/html/rfc7049>) serialisation
-representation. This encoding is efficient in both encoding\/decoding complexity
-as well as space, and is generally machine-independent.
+CBOR encoding is efficient in encoding\/decoding complexity and space, and is generally machine-independent.
 
 CBOR data model has:
   * integers
@@ -103,7 +100,7 @@ CBOR data model has:
   * text
   * arrays
   * key\/value maps
-and resembles JSON one.
+and resembles JSON.
 
 CBOR allows items to be /tagged/ with a number which identifies the type of data.
 This can be used both to identify which data constructor of a type
@@ -170,9 +167,9 @@ of reasons:
 
  * interfacing with other CBOR implementations
 
- * managing migrations between changes to the type and its encoding
+ * managing migration changes to the type and its encoding
 
-A minimal instance is created through defining the 'encode' and 'decode' methods:
+'encode' and 'decode' methods form a minimal `Serialise` instance definition:
 
 > instance Serialise Animal where
 >     encode = encodeAnimal
@@ -184,9 +181,9 @@ A minimal instance is created through defining the 'encode' and 'decode' methods
 
 For the purposes of encoding, abstract CBOR representations are embodied by the
 'Codec.CBOR.Encoding.Tokens' type. Such a representation can be efficiently
-built using the 'Codec.CBOR.Encoding.Encoding' 'Monoid'.
+built using the 'Monoid' 'Codec.CBOR.Encoding.Encoding'.
 
-For instance, to implement an encoder for the @Animal@ type above we might write,
+For instance, to implement an encoder for the @Animal@ type above:
 
 > encodeAnimal :: Animal -> Encoding
 > encodeAnimal (HoppingAnimal name height) =
@@ -194,13 +191,13 @@ For instance, to implement an encoder for the @Animal@ type above we might write
 > encodeAnimal (WalkingAnimal name speed) =
 >     encodeListLen 3 <> encodeWord 1 <> encode name <> encode speed
 
-Here we see that each encoding begins with a /length/, describing how many
-values belonging to our @Animal@ will follow. We then encode a /tag/, which
-identifies which constructor. We then encode the fields using their respective
-'Serialise' instance.
+Each encoding begins with a /length/, declaring how many
+values belonging to @Animal@ constructor going to follow. Then a /tag/ which
+identifies constructor. Fields are encoded using their respective
+'Serialise' instances.
 
-It is recommended to not deviate from this encoding scheme, including both
-the length and tag, to ensure to have the option to migrate types
+It is recommended to not deviate from this encoding scheme - including both
+the length and tag - to ensure to have the option to migrate types
 later on.
 
 Note: the recommended encoding represents Haskell constructor indexes
@@ -226,8 +223,8 @@ Decoding CBOR representations to Haskell values is done in the 'Decoder'
 
 {- $migrations
 
-One eventuality that data serialisation schemes need to account for - is the need
-for changes in the data's structure.
+One eventuality that data serialisation schemes need to account for
+- is the future changes in the data's structure.
 
 There are two types of compatibility to strive for in serialisers:
 
@@ -237,11 +234,7 @@ There are two types of compatibility to strive for in serialisers:
  * forward compatibility: older versions of the serialiser can read
    (or at least tolerate) newer versions of an encoding
 
-Below we will look at a few of the types of changes which we may need to make
-and describe how these can be handled in a backwards-compatible manner with
-@cborg@.
-
-Below are a few examples of how to provide backwaed-compatible changes to serialisation.
+Below are a few examples of how to provide backward-compatible serialisation.
 
 === Adding a constructor
 
