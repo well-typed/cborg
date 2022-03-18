@@ -9,33 +9,32 @@
 -- Stability   : experimental
 -- Portability : non-portable (GHC extensions)
 --
--- @cborg@ is a library for the serialisation of Haskell values.
+-- @serialise@ library is built on @cborg@, they implement CBOR (Concise Binary Object Representation, specified by [IETF RFC 7049](https://tools.ietf.org/html/rfc7049)) and serialisers/deserializers for it.
 --
 module Codec.Serialise.Tutorial
-  ( -- * Introduction
+  ( -- * Basic use example
     -- $introduction
 
-    -- ** The CBOR format
+    -- * The CBOR format
     -- $cbor_format
+
+    -- ** Interoperability with other CBOR implementations
+    -- $interoperability
 
     -- * The 'Serialise' class
     -- $serialise
 
-    -- ** Encoding terms
+    -- ** How to write encoding terms
     -- $encoding
 
-    -- ** Decoding terms
+    -- ** How to write decoding terms
     -- $decoding
 
     -- * Migrations
     -- $migrations
 
     -- * Working with foreign encodings
-    -- | While @cborg@ is primarily designed to be a Haskell serialisation
-    -- library, the fact that it uses the standard CBOR encoding means that it can also
-    -- find uses in interacting with foreign non-@cborg@ producers and
-    -- consumers. In this section we will describe a few features of the library
-    -- which may be useful in such applications.
+    -- $foreign_encodings
 
     -- ** Working with arbitrary terms
     -- $arbitrary_terms
@@ -45,19 +44,25 @@ module Codec.Serialise.Tutorial
   ) where
 
 -- These are necessary for haddock to properly hyperlink
+import Codec.Serialise
 import Codec.Serialise.Decoding
 import Codec.Serialise.Class
+import Codec.CBOR.Term
+import Codec.CBOR.FlatTerm
+import Codec.CBOR.Pretty
 
 {- $introduction
 
-As in modern serialisation libraries, @cborg@ offers
-instance derivation via GHC's 'GHC.Generic' mechanism,
+@serialise@ offers ability to derive instances via 'GHC.Generic' mechanism:
 
 > import Codec.Serialise
 > import qualified Data.ByteString.Lazy as BSL
 >
+> fileName :: FilePath
+> fileName = "out.cbor"
+>
 > data Animal = HoppingAnimal { animalName :: String, hoppingHeight :: Int }
->             | WalkingAnimal { animalName :: String, walkingSpeed :: Int }
+>             | WalkingAnimal { animalName :: String, walkingSpeed  :: Int }
 >             deriving (Generic)
 >
 > instance Serialise Animal
@@ -65,41 +70,55 @@ instance derivation via GHC's 'GHC.Generic' mechanism,
 > fredTheFrog :: Animal
 > fredTheFrog = HoppingAnimal "Fred" 4
 >
-> main = BSL.writeFile "hi" (serialise fredTheFrog)
-
-We can then later read Fred,
-
-> main = do
->     fred <- deserialise <$> BSL.readFile "hi"
->     print fred
+> -- | To output value into a file
+> write :: Serialise a => FilePath -> a -> IO ()
+> write file val = BSL.writeFile file (serialise val)
+>
+> -- | Outputs @Fred@ value into file
+> writeIO :: IO ()
+> writeIO = write fileName fredTheFrog
+>
+> -- | Reads the value from file
+> readIO :: IO Animal
+> readIO = deserialise <$> BSL.readFile fileName
+>
+> printIO :: IO ()
+> printIO = do
+>     val <- readIO
+>     print val
 
 -}
 
 {- $cbor_format
 
-@cborg@ uses the Concise Binary Object Representation, CBOR
-(IETF RFC 7049, <https://tools.ietf.org/html/rfc7049>), as its serialised
-representation. This encoding is efficient in both encoding\/decoding complexity
-as well as space, and is generally machine-independent.
+CBOR encoding is efficient in encoding\/decoding complexity and space, and is generally machine-independent.
 
-The CBOR data model resembles that of JSON, having arrays, key\/value maps,
-integers, floating point numbers, binary strings, and text. In addition,
-CBOR allows items to be /tagged/ with a number which describes the type of data
-that follows. This can be used both to identify which data constructor of a type
-an encoding represents, as well as representing different versions of the same
+CBOR data model has:
+  * integers
+  * floating point numbers
+  * binary strings
+  * text
+  * arrays
+  * key\/value maps
+and resembles JSON.
+
+CBOR allows items to be /tagged/ with a number which identifies the type of data.
+This can be used both to identify which data constructor of a type
+is represented, as well as representing different versions of the same
 constructor.
 
-=== A note on interoperability
+-}
 
-@cborg@ is intended primarily as a /serialisation/ library for
-Haskell values. That is, a means of stably storing Haskell values for later
-reading by @cborg@. While it uses the CBOR encoding format, the
-library is /not/ primarily aimed to facilitate serialisation and
+{- $interoperability
+
+Library provides means of stably storing Haskell values for later
+reading by the library.
+
+The library is /not/ aimed to facilitate serialisation and
 deserialisation across different CBOR implementations.
+But that is possible to setup practically.
 
-If you want to use @cborg@ to serialise\/deserialise values
-for\/from another CBOR implementation (either in Haskell or another language),
-you should keep a few things in mind,
+A few things on compatibility with other CBOR implementations:
 
 1. The 'Serialise' instances for some "basic" Haskell types (e.g. 'Maybe',
    'Data.ByteString.ByteString', tuples) don't carry a tag, in contrast to common
@@ -111,12 +130,12 @@ you should keep a few things in mind,
    non-backwards-compatible ways across super-major versions. For example the
    library may start producing a new representation for some type. The new
    version of the library will be able to decode the old and new representation,
-   but your different CBOR decoder would not be expecting the new representation
+   but different CBOR decoder would not be expecting the new representation
    and would have to be updated to match.
 
 3. While the library tries to use standard encodings in its instances wherever possible,
    these instances aren't guaranteed to implement all valid variants of the
-   encodings in the specification. For instance, the 'UTCTime' instance only
+   RFCs/standards mentioned in the specification. For instance, the 'UTCTime' instance only
    implements a small subset of the encodings described by the Extended Date
    RFC.
 
@@ -124,38 +143,37 @@ you should keep a few things in mind,
 
 {- $serialise
 
-@cborg@ provides a 'Serialise' class for convenient access to serialisers and
-deserialisers. Writing a serialiser can be as simple as deriving 'Generic' and
+'Serialise' class provides convenient access to serialisers and
+deserialisers.
+
+Creating & using a serialiser can be as simple as deriving 'Generic' and
 'Serialise',
 
+> -- all GHCs
+> data MyType = ...
+>             deriving (Generic)
+> instance Serialise MyType
+>
 > -- with DerivingStrategies (GHC 8.2 and newer)
 > data Animal = ...
 >             deriving stock (Generic)
 >             deriving anyclass (Serialise)
->
-> -- older GHCs
-> data MyType = ...
->             deriving (Generic)
-> instance Serialise MyType
 
-Of course, you can also write the equivalent serialisers manually.
-A hand-rolled 'Serialise' instance may be desireable for a variety
-of reasons,
+Of course, equivalent implementations can be handwritten.
+A custom 'Serialise' instance may be desireable for a variety
+of reasons:
 
- * Deviating from the type-guided encoding that the 'Generic' instance will
-   provide
+ * deviating from the type-guided encoding that the 'Generic' instance provides
 
- * Interfacing with other CBOR implementations
+ * interfacing with other CBOR implementations
 
- * Enabling migrations for future changes to the type or its encoding
+ * managing migration changes to the type and its encoding
 
-A minimal hand-rolled instance will define the 'encode' and 'decode' methods,
+'encode' and 'decode' methods form a minimal `Serialise` instance definition:
 
 > instance Serialise Animal where
 >     encode = encodeAnimal
 >     decode = decodeAnimal
-
-Below we will describe how to write these pieces.
 
 -}
 
@@ -163,9 +181,9 @@ Below we will describe how to write these pieces.
 
 For the purposes of encoding, abstract CBOR representations are embodied by the
 'Codec.CBOR.Encoding.Tokens' type. Such a representation can be efficiently
-built using the 'Codec.CBOR.Encoding.Encoding' 'Monoid'.
+built using the 'Monoid' 'Codec.CBOR.Encoding.Encoding'.
 
-For instance, to implement an encoder for the @Animal@ type above we might write,
+For instance, to implement an encoder for the @Animal@ type above:
 
 > encodeAnimal :: Animal -> Encoding
 > encodeAnimal (HoppingAnimal name height) =
@@ -173,16 +191,16 @@ For instance, to implement an encoder for the @Animal@ type above we might write
 > encodeAnimal (WalkingAnimal name speed) =
 >     encodeListLen 3 <> encodeWord 1 <> encode name <> encode speed
 
-Here we see that each encoding begins with a /length/, describing how many
-values belonging to our @Animal@ will follow. We then encode a /tag/, which
-identifies which constructor. We then encode the fields using their respective
-'Serialise' instance.
+Each encoding begins with a /length/, declaring how many
+values belonging to @Animal@ constructor going to follow. Then a /tag/ which
+identifies constructor. Fields are encoded using their respective
+'Serialise' instances.
 
-It is recommended that you not deviate from this encoding scheme, including both
-the length and tag, to ensure that you have the option to migrate your types
+It is recommended to not deviate from this encoding scheme - including both
+the length and tag - to ensure to have the option to migrate types
 later on.
 
-Also note that the recommended encoding represents Haskell constructor indexes
+Note: the recommended encoding represents Haskell constructor indexes
 as CBOR words, not CBOR tags.
 
 -}
@@ -190,8 +208,7 @@ as CBOR words, not CBOR tags.
 {- $decoding
 
 Decoding CBOR representations to Haskell values is done in the 'Decoder'
-'Monad'. We can write a 'Decoder' for the @Animal@ type defined above as
-follows,
+'Monad'. A 'decode' for the @Animal@ type would be:
 
 > decodeAnimal :: Decoder s Animal
 > decodeAnimal = do
@@ -206,31 +223,30 @@ follows,
 
 {- $migrations
 
-One eventuality that data serialisation schemes need to account for is the need
-for changes in the data's structure. There are two types of compatibility
-which we might want to strive for in our serialisers,
+One eventuality that data serialisation schemes need to account for
+- is the future changes in the data's structure.
 
- * Backward compatibility, such that newer versions of the serialiser can read
+There are two types of compatibility to strive for in serialisers:
+
+ * backward compatibility: newer versions of the serialiser can read
    older versions of an encoding
 
- * Forward compatibility, such that older versions of the serialiser can read
+ * forward compatibility: older versions of the serialiser can read
    (or at least tolerate) newer versions of an encoding
 
-Below we will look at a few of the types of changes which we may need to make
-and describe how these can be handled in a backwards-compatible manner with
-@cborg@.
+Below are a few examples of how to provide backward-compatible serialisation.
 
 === Adding a constructor
 
-Say we want to add a new constructor to our @Animal@ type, @SwimmingAnimal@,
+Example: adding a new constructor to @Animal@ type, @SwimmingAnimal@,
 
 > data Animal = HoppingAnimal { animalName :: String, hoppingHeight :: Int }
 >             | WalkingAnimal { animalName :: String, walkingSpeed :: Int }
 >             | SwimmingAnimal { numberOfFins :: Int }
 >             deriving (Generic)
 
-We can account for this in our hand-rolled serialiser by simply adding a new tag
-to our encoder and decoder,
+To account for this in handwritten serialiser - add a new tag
+to encoder and decoder,
 
 > encodeAnimal :: Animal -> Encoding
 > -- HoppingAnimal, SwimmingAnimal cases are unchanged...
@@ -256,15 +272,15 @@ to our encoder and decoder,
 
 === Adding\/removing\/modifying fields
 
-Say then we want to add a new field to our @WalkingAnimal@ constructor,
+Example: adding a new field to @WalkingAnimal@ constructor,
 
 > data Animal = HoppingAnimal { animalName :: String, hoppingHeight :: Int }
->             | WalkingAnimal { animalName :: String, walkingSpeed :: Int, numberOfFeet :: Int }
+>             | WalkingAnimal { animalName :: String, walkingSpeed  :: Int, numberOfFeet :: Int }
 >             | SwimmingAnimal { numberOfFins :: Int }
 >             deriving (Generic)
 
-We can account for this by representing @WalkingAnimal@ with a new encoding with
-a new tag,
+To account for this - represent @WalkingAnimal@ with a new encoding with
+a new tag, while also providing default value for backward compatibility:
 
 > encodeAnimal :: Animal -> Encoding
 > -- HoppingAnimal, SwimmingAnimal cases are unchanged...
@@ -290,15 +306,25 @@ a new tag,
 >       (4, 3) -> WalkingAnimal <$> decode <*> decode <*> decode
 >       _      -> fail "invalid Animal encoding"
 
-We can use this same approach to handle field removal and type changes.
+The same approach can be used to handle field removal and type changes.
+
+-}
+
+{- $foreign_encodings
+
+While @serialise@ & @cborg@ are primarily designed to be a Haskell-only values serialisation
+library, the fact that it implements the standard CBOR encoding means that it also can
+find uses in interacting with foreign CBOR producers &
+consumers. In this section we will describe a few features of the library
+which may be useful in such applications.
 
 -}
 
 {- $arbitrary_terms
 
 When working with foreign encodings, it can sometimes be useful to capture a
-serialised CBOR term verbatim (for instance, so you can later re-serialise it in
-some later result). The 'Codec.CBOR.Term.Term' type provides such a
+serialised CBOR term verbatim (for instance, to later re-serialise it in
+some later result). The 'Codec.CBOR.Term.Term' type provides such
 representation, losslessly capturing a CBOR AST. It can be serialised and
 deserialised with its 'Serialise' instance.
 
@@ -306,7 +332,7 @@ deserialised with its 'Serialise' instance.
 
 {- $examining_encodings
 
-We can also look In addition to serialisation and deserialisation, @cborg@
+In addition to serialisation and deserialisation, @cborg@
 provides a variety of tools for representing arbitrary CBOR encodings in the
 "Codec.CBOR.FlatTerm" and "Codec.CBOR.Pretty" modules.
 
@@ -320,7 +346,7 @@ look at the structure of our @Animal@ encoding above,
 Right (HoppingAnimal {animalName = "Fred", hoppingHeight = 42})
 
 This can be useful both for understanding external CBOR formats, as well as
-understanding and testing your own hand-rolled encodings.
+understanding and testing handwritten encodings.
 
 The package also includes a pretty-printer in "Codec.CBOR.Pretty", for
 visualising the CBOR wire protocol alongside its semantic structure. For instance,
