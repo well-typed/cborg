@@ -8,11 +8,10 @@ import Data.Aeson.TH as Aeson
 import Data.ByteString.Lazy as BS
 import Data.Maybe
 
+deriveJSON defaultOptions ''Tree
+
 serialise :: Tree -> BS.ByteString
 serialise = Aeson.encode
 
 deserialise :: BS.ByteString -> Tree
 deserialise = fromJust . Aeson.decode'
-
-deriveJSON defaultOptions ''Tree
-
