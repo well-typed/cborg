@@ -191,8 +191,14 @@ grabWord16 (Ptr ip#) =
     case indexWord8OffAddr# ip# 0# of
      w0# ->
       case indexWord8OffAddr# ip# 1# of
-       w1# -> W16# w0# `unsafeShiftL` 8 .|.
-              W16# w1#
+       w1# -> w16 w0# `unsafeShiftL` 8 .|.
+              w16 w1#
+  where
+#if MIN_VERSION_ghc_prim(0,8,0)
+    w16 w# = W16# (wordToWord16# (word8ToWord# w#))
+#else 
+    w16 w# = W16# w#  
+#endif
 
 grabWord32 (Ptr ip#) =
     case indexWord8OffAddr# ip# 0# of
@@ -202,10 +208,16 @@ grabWord32 (Ptr ip#) =
         case indexWord8OffAddr# ip# 2# of
          w2# ->
           case indexWord8OffAddr# ip# 3# of
-           w3# -> W32# w0# `unsafeShiftL` 24 .|.
-                  W32# w1# `unsafeShiftL` 16 .|.
-                  W32# w2# `unsafeShiftL`  8 .|.
-                  W32# w3#
+           w3# -> w32 w0# `unsafeShiftL` 24 .|.
+                  w32 w1# `unsafeShiftL` 16 .|.
+                  w32 w2# `unsafeShiftL`  8 .|.
+                  w32 w3#
+  where 
+#if MIN_VERSION_ghc_prim(0,8,0)
+    w32 w# = W32# (wordToWord32# (word8ToWord# w#))
+#else 
+    w32 w# = W32# w#  
+#endif
 
 grabWord64 (Ptr ip#) =
     case indexWord8OffAddr# ip# 0# of
@@ -223,19 +235,27 @@ grabWord64 (Ptr ip#) =
                 case indexWord8OffAddr# ip# 6# of
                  w6# ->
                   case indexWord8OffAddr# ip# 7# of
-                   w7# -> w w0# `unsafeShiftL` 56 .|.
-                          w w1# `unsafeShiftL` 48 .|.
-                          w w2# `unsafeShiftL` 40 .|.
-                          w w3# `unsafeShiftL` 32 .|.
-                          w w4# `unsafeShiftL` 24 .|.
-                          w w5# `unsafeShiftL` 16 .|.
-                          w w6# `unsafeShiftL`  8 .|.
-                          w w7#
+                   w7# -> w64 w0# `unsafeShiftL` 56 .|.
+                          w64 w1# `unsafeShiftL` 48 .|.
+                          w64 w2# `unsafeShiftL` 40 .|.
+                          w64 w3# `unsafeShiftL` 32 .|.
+                          w64 w4# `unsafeShiftL` 24 .|.
+                          w64 w5# `unsafeShiftL` 16 .|.
+                          w64 w6# `unsafeShiftL`  8 .|.
+                          w64 w7#
   where
-#if defined(ARCH_64bit)
-    w w# = W64# w#
-#else
-    w w# = W64# (wordToWord64# w#)
+#if MIN_VERSION_ghc_prim(0,8,0)
+    toWord :: Word8# -> Word#
+    toWord w# = word8ToWord# w#
+#else 
+    toWord :: Word# -> Word#
+    toWord w# = w#  
+#endif
+
+#if WORD_SIZE_IN_BITS == 64
+    w64 w# = W64# (toWord w#)
+#else 
+    w64 w# = W64# (wordToWord64# (toWord w#))
 #endif
 
 #endif
