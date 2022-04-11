@@ -36,7 +36,7 @@ executable cbor-tool
     scientific >=0.3 && <0.4,
     bytestring >=0.10 && <0.12,
     unordered-containers >=0.2 && <0.3,
-    text >=1.1 && <1.3,
+    text >=1.1 && <2.1,
     vector >=0.10 && <0.13,
 
     cborg      ==0.2.*,
