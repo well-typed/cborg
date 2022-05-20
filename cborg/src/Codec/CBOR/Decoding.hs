@@ -418,7 +418,7 @@ decodeWord64 =
 #if defined(ARCH_64bit)
   Decoder (\k -> return (ConsumeWord (\w# -> k (toWord64 w#))))
 #else
-  Decoder (\k -> return (ConsumeWord64 (\w64# -> k (toWord64 w64#))))
+  Decoder (\k -> return (ConsumeWord64 (\w64# -> k (W64# w64#))))
 #endif
 
 -- | Decode a negative 'Word'.
@@ -437,7 +437,7 @@ decodeNegWord64 =
 #if defined(ARCH_64bit)
   Decoder (\k -> return (ConsumeNegWord (\w# -> k (toWord64 w#))))
 #else
-  Decoder (\k -> return (ConsumeNegWord64 (\w64# -> k (toWord64 w64#))))
+  Decoder (\k -> return (ConsumeNegWord64 (\w64# -> k (W64# w64#))))
 #endif
 
 -- | Decode an 'Int'.
@@ -477,7 +477,7 @@ decodeInt64 =
 #if defined(ARCH_64bit)
   Decoder (\k -> return (ConsumeInt (\n# -> k (toInt64 n#))))
 #else
-  Decoder (\k -> return (ConsumeInt64 (\n64# -> k (toInt64 n64#))))
+  Decoder (\k -> return (ConsumeInt64 (\n64# -> k (I64# n64#))))
 #endif
 
 -- | Decode canonical representation of a 'Word'.
@@ -517,7 +517,7 @@ decodeWord64Canonical =
 #if defined(ARCH_64bit)
   Decoder (\k -> return (ConsumeWordCanonical (\w# -> k (toWord64 w#))))
 #else
-  Decoder (\k -> return (ConsumeWord64Canonical (\w64# -> k (toWord64 w64#))))
+  Decoder (\k -> return (ConsumeWord64Canonical (\w64# -> k (W64# w64#))))
 #endif
 
 -- | Decode canonical representation of a negative 'Word'.
@@ -536,7 +536,7 @@ decodeNegWord64Canonical =
 #if defined(ARCH_64bit)
   Decoder (\k -> return (ConsumeNegWordCanonical (\w# -> k (toWord64 w#))))
 #else
-  Decoder (\k -> return (ConsumeNegWord64Canonical (\w64# -> k (toWord64 w64#))))
+  Decoder (\k -> return (ConsumeNegWord64Canonical (\w64# -> k (W64# w64#))))
 #endif
 
 -- | Decode canonical representation of an 'Int'.
@@ -576,7 +576,7 @@ decodeInt64Canonical =
 #if defined(ARCH_64bit)
   Decoder (\k -> return (ConsumeIntCanonical (\n# -> k (toInt64 n#))))
 #else
-  Decoder (\k -> return (ConsumeInt64Canonical (\n64# -> k (toInt64 n64#))))
+  Decoder (\k -> return (ConsumeInt64Canonical (\n64# -> k (I64# n64#))))
 #endif
 
 -- | Decode an 'Integer'.
