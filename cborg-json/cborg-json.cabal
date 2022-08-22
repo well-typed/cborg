@@ -59,7 +59,7 @@ benchmark bench
   other-modules:
 
   build-depends:
-    base                    >= 4.6     && < 4.17,
+    base                    >= 4.6     && < 4.18,
     cborg                                      ,
     cborg-json                                 ,
     aeson                                      ,

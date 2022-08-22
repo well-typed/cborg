@@ -149,7 +149,7 @@ test-suite tests
 
   build-depends:
     array                   >= 0.4     && < 0.6,
-    base                    >= 4.7     && < 4.17,
+    base                    >= 4.7     && < 4.18,
     base-orphans,
     bytestring              >= 0.10.4  && < 0.12,
     text                    >= 1.1     && < 2.1,
