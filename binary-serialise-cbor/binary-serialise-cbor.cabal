@@ -20,7 +20,8 @@ tested-with:
   GHC == 8.8.3,
   GHC == 8.10.1,
   GHC == 9.0.1,
-  GHC == 9.2.2
+  GHC == 9.2.2,
+  GHC == 9.4.1
 
 description:
   This package is a shim around @cborg@, exposing an interface compatible with
@@ -49,7 +50,7 @@ library
   exposed-modules: Data.Binary.Serialise.CBOR.Read
 
   build-depends:
-    base >= 4.8 && < 4.17,
+    base >= 4.8 && < 4.18,
     bytestring < 1.0,
     cborg     == 0.2.*,
     serialise == 0.2.*

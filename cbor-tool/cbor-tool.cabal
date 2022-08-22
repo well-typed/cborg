@@ -22,16 +22,17 @@ tested-with:
   GHC == 8.8.3,
   GHC == 8.10.1,
   GHC == 9.0.1,
-  GHC == 9.2.2
+  GHC == 9.2.2,
+  GHC == 9.4.1
 
 executable cbor-tool
   main-is:             Main.hs
   other-extensions:    CPP, BangPatterns
   ghc-options:         -Wall
   build-depends:
-    base >=4.7 && <4.17,
+    base >=4.7 && <4.18,
     filepath >=1.0 && <1.5,
-    aeson >=0.7 && <2.1,
+    aeson >=0.7 && <2.2,
     aeson-pretty >=0.8 && <0.9,
     scientific >=0.3 && <0.4,
     bytestring >=0.10 && <0.12,

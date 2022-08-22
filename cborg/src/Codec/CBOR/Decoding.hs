@@ -328,8 +328,13 @@ toWord8  n = W8#  (wordToWord8# n)
 toWord16 n = W16# (wordToWord16# n)
 toWord32 n = W32# (wordToWord32# n)
 #if WORD_SIZE_IN_BITS == 64
+#if MIN_VERSION_base(4,17,0)
+toInt64  n = I64# (intToInt64# n)
+toWord64 n = W64# (wordToWord64# n)
+#else
 toInt64  n = I64# n
 toWord64 n = W64# n
+#endif
 #else
 toInt64  n = I64# (intToInt64# n)
 toWord64 n = W64# (wordToWord64# n)
@@ -748,7 +753,13 @@ decodeTag64 :: Decoder s Word64
 {-# INLINE decodeTag64 #-}
 decodeTag64 =
 #if defined(ARCH_64bit)
-  Decoder (\k -> return (ConsumeTag (\w# -> k (W64# w#))))
+  Decoder (\k -> return (ConsumeTag (\w# -> k (W64#
+#if MIN_VERSION_base(4,17,0)
+    (wordToWord64# w#)
+#else
+    w#
+#endif
+  ))))
 #else
   Decoder (\k -> return (ConsumeTag64 (\w64# -> k (W64# w64#))))
 #endif
@@ -769,7 +780,13 @@ decodeTag64Canonical :: Decoder s Word64
 {-# INLINE decodeTag64Canonical #-}
 decodeTag64Canonical =
 #if defined(ARCH_64bit)
-  Decoder (\k -> return (ConsumeTagCanonical (\w# -> k (W64# w#))))
+  Decoder (\k -> return (ConsumeTagCanonical (\w# -> k (W64#
+#if MIN_VERSION_base(4,17,0)
+    (wordToWord64# w#)
+#else
+    w#
+#endif
+  ))))
 #else
   Decoder (\k -> return (ConsumeTag64Canonical (\w64# -> k (W64# w64#))))
 #endif
@@ -968,7 +985,13 @@ type ByteOffset = Int64
 --
 -- @since 0.2.2.0
 peekByteOffset :: Decoder s ByteOffset
-peekByteOffset = Decoder (\k -> return (PeekByteOffset (\off# -> k (I64# off#))))
+peekByteOffset = Decoder (\k -> return (PeekByteOffset (\off# -> k (I64#
+#if MIN_VERSION_base(4,17,0)
+        (intToInt64# off#)
+#else
+        off#
+#endif
+    ))))
 {-# INLINE peekByteOffset #-}
 
 -- | This captures the pattern of getting the byte offsets before and after
