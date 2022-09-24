@@ -4,3 +4,7 @@ packages:
   serialise/
   binary-serialise-cbor/
   cborg-json/
+
+-- Needed for serialise benchmarks
+allow-newer:
+  store-core:text
