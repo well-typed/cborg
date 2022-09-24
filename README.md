@@ -1,6 +1,6 @@
 # Fast binary serialisation and CBOR implementation for Haskell
 
-[![Linux Build Status](https://img.shields.io/travis/well-typed/cborg/master.svg?label=Linux%20build)](https://travis-ci.org/well-typed/cborg)
+![Haskell CI](https://github.com/well-typed/cborg/actions/workflows/haskell-ci.yml/badge.svg)
 [![Hackage cborg version](https://img.shields.io/hackage/v/cborg.svg?label=Hackage)](https://hackage.haskell.org/package/cborg)
 [![Hackage serialise version](https://img.shields.io/hackage/v/serialise.svg?label=Hackage)](https://hackage.haskell.org/package/serialise)
 [![BSD3](https://img.shields.io/badge/License-BSD-blue.svg)](https://en.wikipedia.org/wiki/BSD_License)
