@@ -1,5 +1,5 @@
 name:                binary-serialise-cbor
-version:             0.2.1.0
+version:             0.2.2.0
 synopsis:            Yet Another Binary Serialisation Library (compatibility shim)
 license:             BSD3
 license-file:        LICENSE.txt
@@ -20,6 +20,9 @@ tested-with:
   GHC == 9.0.1,
   GHC == 9.2.2,
   GHC == 9.4.2
+
+extra-source-files:
+  ChangeLog.md
 
 description:
   This package is a shim around @cborg@, exposing an interface compatible with
@@ -48,8 +51,9 @@ library
   exposed-modules: Data.Binary.Serialise.CBOR.Read
 
   build-depends:
-    base >= 4.8 && < 4.18,
+    base       >= 4.11 && < 4.18,
     bytestring < 1.0,
+
     cborg     == 0.2.*,
     serialise == 0.2.*
 

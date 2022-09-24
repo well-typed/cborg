@@ -1,5 +1,16 @@
 # Revision history for cborg
 
+## 0.2.8.0  -- 2022-09-24
+
+* Support GHC 9.4
+
+* Fix compatibility with primitive 0.7.4.0
+
+* Drop GHC 8.0 and 8.2 support
+
+* Support aeson 2.1
+
+
 ## 0.2.3.1  -- 2020-05-10
 
 * Bounds updates for GHC 8.10
