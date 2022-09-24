@@ -43,10 +43,10 @@ jobs:
             compilerVersion: 9.0.1
             setup-method: hvr-ppa
             allow-failure: false
-          - compiler: ghc-8.10.1
+          - compiler: ghc-8.10.7
             compilerKind: ghc
-            compilerVersion: 8.10.1
-            setup-method: hvr-ppa
+            compilerVersion: 8.10.7
+            setup-method: ghcup
             allow-failure: false
           - compiler: ghc-8.8.3
             compilerKind: ghc
@@ -61,16 +61,6 @@ jobs:
           - compiler: ghc-8.4.4
             compilerKind: ghc
             compilerVersion: 8.4.4
-            setup-method: hvr-ppa
-            allow-failure: false
-          - compiler: ghc-8.2.2
-            compilerKind: ghc
-            compilerVersion: 8.2.2
-            setup-method: hvr-ppa
-            allow-failure: false
-          - compiler: ghc-8.0.2
-            compilerKind: ghc
-            compilerVersion: 8.0.2
             setup-method: hvr-ppa
             allow-failure: false
       fail-fast: false
@@ -215,17 +205,18 @@ jobs:
           echo "packages: ${PKGDIR_serialise}" >> cabal.project
           echo "packages: ${PKGDIR_binary_serialise_cbor}" >> cabal.project
           echo "packages: ${PKGDIR_cborg_json}" >> cabal.project
-          if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "package cborg" >> cabal.project ; fi
-          if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "    ghc-options: -Werror=missing-methods" >> cabal.project ; fi
-          if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "package cbor-tool" >> cabal.project ; fi
-          if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "    ghc-options: -Werror=missing-methods" >> cabal.project ; fi
-          if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "package serialise" >> cabal.project ; fi
-          if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "    ghc-options: -Werror=missing-methods" >> cabal.project ; fi
-          if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "package binary-serialise-cbor" >> cabal.project ; fi
-          if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "    ghc-options: -Werror=missing-methods" >> cabal.project ; fi
-          if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "package cborg-json" >> cabal.project ; fi
-          if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "    ghc-options: -Werror=missing-methods" >> cabal.project ; fi
+          echo "package cborg" >> cabal.project
+          echo "    ghc-options: -Werror=missing-methods" >> cabal.project
+          echo "package cbor-tool" >> cabal.project
+          echo "    ghc-options: -Werror=missing-methods" >> cabal.project
+          echo "package serialise" >> cabal.project
+          echo "    ghc-options: -Werror=missing-methods" >> cabal.project
+          echo "package binary-serialise-cbor" >> cabal.project
+          echo "    ghc-options: -Werror=missing-methods" >> cabal.project
+          echo "package cborg-json" >> cabal.project
+          echo "    ghc-options: -Werror=missing-methods" >> cabal.project
           cat >> cabal.project <<EOF
+          allow-newer: store-core:text
           EOF
           $HCPKG list --simple-output --names-only | perl -ne 'for (split /\s+/) { print "constraints: $_ installed\n" unless /^(binary-serialise-cbor|cbor-tool|cborg|cborg-json|serialise)$/; }' >> cabal.project.local
           cat cabal.project
