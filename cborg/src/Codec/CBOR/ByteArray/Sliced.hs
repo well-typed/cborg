@@ -133,9 +133,10 @@ instance Eq SlicedByteArray where
     | otherwise
     = let (!) :: Prim.ByteArray -> Int -> Word8
           (!) = Prim.indexByteArray
+          -- len1 and len2 are known to be equal at this point
+          len1' = len1 + off1
           go i1 i2
-            | i1 == len1 && i2 == len2   = True
-            | i1 == len1 || i2 == len2   = False
+            | i1 == len1' = True
             | (arr1 ! i1) == (arr2 ! i2) = go (i1+1) (i2+1)
             | otherwise                  = False
       in go off1 off2
@@ -150,10 +151,12 @@ instance Ord SlicedByteArray where
     | otherwise
     = let (!) :: Prim.ByteArray -> Int -> Word8
           (!) = Prim.indexByteArray
+          len1' = len1 + off1
+          len2' = len2 + off2
           go i1 i2
-            | i1 == len1 && i2 == len2 = EQ
-            | i1 == len1 || i2 == len2 = len1 `compare` len2
-            | EQ <- o                  = go (i1+1) (i2+1)
-            | otherwise                = o
+            | i1 == len1' && i2 == len2' = EQ
+            | i1 == len1' || i2 == len2' = len1 `compare` len2
+            | EQ <- o                    = go (i1+1) (i2+1)
+            | otherwise                  = o
             where o = (arr1 ! i1) `compare` (arr2 ! i2)
       in go off1 off2
