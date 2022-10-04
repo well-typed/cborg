@@ -84,7 +84,7 @@ toPinned (SBA ba off len)
         Prim.unsafeFreezeByteArray ba'
 
 toBuilder :: SlicedByteArray -> BSB.Builder
-toBuilder = \(SBA ba off len) -> BSB.builder (go ba off len)
+toBuilder = \(SBA ba off len) -> BSB.builder (go ba off (len + off))
   where
     go ba !ip !ipe !k (BSB.BufferRange op ope)
       | inpRemaining <= outRemaining = do
