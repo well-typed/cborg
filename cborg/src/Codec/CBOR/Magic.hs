@@ -257,7 +257,13 @@ grabWord64 (Ptr ip#) =
 #endif
 
 #if WORD_SIZE_IN_BITS == 64
+
+#if MIN_VERSION_ghc_prim(0,9,0)
+    w64 w# = W64# (wordToWord64# (toWord w#))
+#else
     w64 w# = W64# (toWord w#)
+#endif
+
 #else
     w64 w# = W64# (wordToWord64# (toWord w#))
 #endif
