@@ -532,17 +532,17 @@ word64ToInt (W64# w#) =
 {-# INLINE word64ToInt #-}
 
 #if defined(ARCH_32bit)
-word8ToInt64  (W8#  w#) = I64# (intToInt64# (word2Int# (Compat.word8ToWord# w#)))
-word16ToInt64 (W16# w#) = I64# (intToInt64# (word2Int# (Compat.word16ToWord# w#)))
-word32ToInt64 (W32# w#) = I64# (word64ToInt64# (Compat.wordToWord64# (Compat.word32ToWord# w#)))
+word8ToInt64  (W8#  w#) = I64# (intToInt64# (word2Int# (word8ToWord# w#)))
+word16ToInt64 (W16# w#) = I64# (intToInt64# (word2Int# (word16ToWord# w#)))
+word32ToInt64 (W32# w#) = I64# (word64ToInt64# (Compat.wordToWord64# (word32ToWord# w#)))
 word64ToInt64 (W64# w#) =
   case isTrue# (w# `ltWord64#` uncheckedShiftL64# (Compat.wordToWord64# 1##) 63#) of
     True  -> Just (I64# (word64ToInt64# w#))
     False -> Nothing
 
-word8ToWord64  (W8#  w#) = W64# (Compat.wordToWord64# (Compat.word8ToWord# w#))
-word16ToWord64 (W16# w#) = W64# (Compat.wordToWord64# (Compat.word16ToWord# w#))
-word32ToWord64 (W32# w#) = W64# (Compat.wordToWord64# (Compat.word32ToWord# w#))
+word8ToWord64  (W8#  w#) = W64# (Compat.wordToWord64# (word8ToWord# w#))
+word16ToWord64 (W16# w#) = W64# (Compat.wordToWord64# (word16ToWord# w#))
+word32ToWord64 (W32# w#) = W64# (Compat.wordToWord64# (word32ToWord# w#))
 
 {-# INLINE word8ToInt64  #-}
 {-# INLINE word16ToInt64 #-}
