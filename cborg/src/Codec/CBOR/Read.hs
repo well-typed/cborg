@@ -77,6 +77,11 @@ import           Codec.CBOR.Decoding (DecodeAction)
 import qualified Codec.CBOR.Decoding as D
 import           Codec.CBOR.Magic
 
+#if !MIN_VERSION_ghc_prim(0,8,0)
+import GHC.IntWord64
+#endif
+
+
 --------------------------------------------------------------------------------
 
 -- | An exception type that may be returned (by pure functions) or
