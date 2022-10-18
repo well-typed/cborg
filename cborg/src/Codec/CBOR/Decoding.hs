@@ -126,10 +126,6 @@ import           Codec.CBOR.ByteArray (ByteArray)
 
 import           Prelude hiding (decodeFloat)
 
-#if !MIN_VERSION_ghc_prim(0,8,0)
-import qualified GHC.IntWord64 as Compat (wordToWord64#, intToInt64#)
-#endif
-
 
 -- | A continuation-based decoder, used for decoding values that were
 -- previously encoded using the "Codec.CBOR.Encoding"
