@@ -319,11 +319,14 @@ getDecodeAction (Decoder k) = k (\x -> return (Done x))
 toInt8   :: Int# -> Int8
 toInt16  :: Int# -> Int16
 toInt32  :: Int# -> Int32
-toInt64  :: Int# -> Int64
 toWord8  :: Word# -> Word8
 toWord16 :: Word# -> Word16
 toWord32 :: Word# -> Word32
+#if defined(ARCH_64bit)
+toInt64  :: Int# -> Int64
 toWord64 :: Word# -> Word64
+#endif
+
 #if MIN_VERSION_ghc_prim(0,8,0)
 toInt8   n = I8#  (intToInt8# n)
 toInt16  n = I16# (intToInt16# n)
@@ -332,12 +335,14 @@ toWord8  n = W8#  (wordToWord8# n)
 toWord16 n = W16# (wordToWord16# n)
 toWord32 n = W32# (wordToWord32# n)
 #if WORD_SIZE_IN_BITS == 64
+#if defined(ARCH_64bit)
 #if MIN_VERSION_base(4,17,0)
 toInt64  n = I64# (intToInt64# n)
 toWord64 n = W64# (wordToWord64# n)
 #else
 toInt64  n = I64# n
 toWord64 n = W64# n
+#endif
 #endif
 #else
 toInt64  n = I64# (intToInt64# n)
@@ -350,10 +355,7 @@ toInt32  n = I32# n
 toWord8  n = W8#  n
 toWord16 n = W16# n
 toWord32 n = W32# n
-#if defined(ARCH_32bit)
-toInt64  n = I64# (Compat.intToInt64# n)
-toWord64 n = W64# (Compat.wordToWord64# n)
-#else
+#if defined(ARCH_64bit)
 toInt64  n = I64# n
 toWord64 n = W64# n
 #endif
