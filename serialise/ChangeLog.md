@@ -1,5 +1,11 @@
 # Revision history for serialise
 
+## 0.2.6.0  -- 2022-09-24
+
+* Support GHC 9.4
+
+* Drop GHC 8.0 and 8.2 support
+
 ## 0.2.4.0  -- UNRELEASED
 
 * Add instances for Data.Void, strict and these.

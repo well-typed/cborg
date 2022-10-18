@@ -1,5 +1,5 @@
 name:                cbor-tool
-version:             0.2.2.0
+version:             0.2.3.0
 synopsis:            A tool for manipulating CBOR.
 description:         A tool for dumping and converting CBOR-encoded data.
 homepage:            https://github.com/well-typed/cborg
@@ -15,29 +15,28 @@ build-type:          Simple
 extra-source-files:  ChangeLog.md
 cabal-version:       >=1.10
 tested-with:
-  GHC == 8.0.2,
-  GHC == 8.2.2,
   GHC == 8.4.4,
   GHC == 8.6.5,
   GHC == 8.8.3,
-  GHC == 8.10.1,
+  GHC == 8.10.7,
   GHC == 9.0.1,
-  GHC == 9.2.2
+  GHC == 9.2.2,
+  GHC == 9.4.2
 
 executable cbor-tool
   main-is:             Main.hs
   other-extensions:    CPP, BangPatterns
   ghc-options:         -Wall
   build-depends:
-    base >=4.7 && <4.17,
-    filepath >=1.0 && <1.5,
-    aeson >=0.7 && <2.1,
-    aeson-pretty >=0.8 && <0.9,
-    scientific >=0.3 && <0.4,
-    bytestring >=0.10 && <0.12,
-    unordered-containers >=0.2 && <0.3,
-    text >=1.1 && <2.1,
-    vector >=0.10 && <0.13,
+    base                 >=4.11 && <4.18,
+    filepath             >=1.0  && <1.5,
+    aeson                >=0.7  && <2.2,
+    aeson-pretty         >=0.8  && <0.9,
+    scientific           >=0.3  && <0.4,
+    bytestring           >=0.10 && <0.12,
+    unordered-containers >=0.2  && <0.3,
+    text                 >=1.1  && <2.1,
+    vector               >=0.10 && <0.13,
 
     cborg      ==0.2.*,
     cborg-json ==0.2.*
