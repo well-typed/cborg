@@ -120,6 +120,19 @@ import qualified Numeric.Half as Half
 import           Data.Bits ((.|.), unsafeShiftL)
 #endif
 
+#if defined(ARCH_32bit)
+import           GHC.IntWord64 as Compat (wordToWord64#, word64ToWord#,
+                                intToInt64#, int64ToInt#,
+                                leWord64#, ltWord64#, word64ToInt64#)
+#else
+import           GHC.Exts as Compat (wordToWord64#, word64ToWord#,
+                                intToInt64#, int64ToInt#,
+                                leWord64#, ltWord64#, word64ToInt64#)
+
+#endif
+
+
+
 --------------------------------------------------------------------------------
 
 -- | Grab a 8-bit 'Word' given a 'Ptr' to some address.
@@ -161,7 +174,7 @@ grabWord32 (Ptr ip#) = W32# (narrow32Word# (byteSwap32# (indexWord32OffAddr# ip#
 #endif
 #if defined(ARCH_64bit)
 #if MIN_VERSION_base(4,17,0)
-grabWord64 (Ptr ip#) = W64# (wordToWord64# (byteSwap# (word64ToWord# (indexWord64OffAddr# ip# 0#))))
+grabWord64 (Ptr ip#) = W64# (Compat.wordToWord64# (byteSwap# (word64ToWord# (indexWord64OffAddr# ip# 0#))))
 #else
 grabWord64 (Ptr ip#) = W64# (byteSwap# (indexWord64OffAddr# ip# 0#))
 #endif
@@ -252,7 +265,7 @@ grabWord64 (Ptr ip#) =
 #if WORD_SIZE_IN_BITS == 64
     w64 w# = W64# (toWord w#)
 #else
-    w64 w# = W64# (wordToWord64# (toWord w#))
+    w64 w# = W64# (Compat.wordToWord64# (toWord w#))
 #endif
 
 #endif
@@ -443,7 +456,7 @@ word64ToWord (W64# w#) = W# w#
 #endif
 #else
 word64ToWord (W64# w64#) =
-  case isTrue# (w64# `leWord64#` wordToWord64# 0xffffffff##) of
+  case isTrue# (w64# `leWord64#` Compat.wordToWord64# 0xffffffff##) of
     True  -> Just (W# (word64ToWord# w64#))
     False -> Nothing
 #endif
@@ -455,7 +468,7 @@ word32ToWord (W32# w#) = W# w#
 word64ToWord (W64# w#) = W# w#
 #else
 word64ToWord (W64# w64#) =
-  case isTrue# (w64# `leWord64#` wordToWord64# 0xffffffff##) of
+  case isTrue# (w64# `leWord64#` Compat.wordToWord64# 0xffffffff##) of
     True  -> Just (W# (word64ToWord# w64#))
     False -> Nothing
 #endif
@@ -508,7 +521,7 @@ word64ToInt (W64# w#) =
     False -> Nothing
 #else
 word64ToInt (W64# w#) =
-  case isTrue# (w# `ltWord64#` wordToWord64# 0x80000000##) of
+  case isTrue# (w# `ltWord64#` Compat.wordToWord64# 0x80000000##) of
     True  -> Just (I# (int64ToInt# (word64ToInt64# w#)))
     False -> Nothing
 #endif
@@ -521,15 +534,15 @@ word64ToInt (W64# w#) =
 #if defined(ARCH_32bit)
 word8ToInt64  (W8#  w#) = I64# (intToInt64# (word2Int# (word8ToWord# w#)))
 word16ToInt64 (W16# w#) = I64# (intToInt64# (word2Int# (word16ToWord# w#)))
-word32ToInt64 (W32# w#) = I64# (word64ToInt64# (wordToWord64# (word32ToWord# w#)))
+word32ToInt64 (W32# w#) = I64# (word64ToInt64# (Compat.wordToWord64# (word32ToWord# w#)))
 word64ToInt64 (W64# w#) =
-  case isTrue# (w# `ltWord64#` uncheckedShiftL64# (wordToWord64# 1##) 63#) of
+  case isTrue# (w# `ltWord64#` uncheckedShiftL64# (Compat.wordToWord64# 1##) 63#) of
     True  -> Just (I64# (word64ToInt64# w#))
     False -> Nothing
 
-word8ToWord64  (W8#  w#) = W64# (wordToWord64# (word8ToWord# w#))
-word16ToWord64 (W16# w#) = W64# (wordToWord64# (word16ToWord# w#))
-word32ToWord64 (W32# w#) = W64# (wordToWord64# (word32ToWord# w#))
+word8ToWord64  (W8#  w#) = W64# (Compat.wordToWord64# (word8ToWord# w#))
+word16ToWord64 (W16# w#) = W64# (Compat.wordToWord64# (word16ToWord# w#))
+word32ToWord64 (W32# w#) = W64# (Compat.wordToWord64# (word32ToWord# w#))
 
 {-# INLINE word8ToInt64  #-}
 {-# INLINE word16ToInt64 #-}
