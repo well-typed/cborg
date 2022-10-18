@@ -351,8 +351,8 @@ toWord8  n = W8#  n
 toWord16 n = W16# n
 toWord32 n = W32# n
 #if defined(ARCH_32bit)
-toInt64  n = I64# $ intToInt64# n
-toWord64 n = W64# $ wordToInt64# n
+toInt64  n = I64# $ Compat.intToInt64# n
+toWord64 n = W64# $ Compat.wordToInt64# n
 #else
 toInt64  n = I64# n
 toWord64 n = W64# n
