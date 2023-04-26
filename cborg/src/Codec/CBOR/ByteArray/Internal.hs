@@ -41,9 +41,10 @@ foldrByteArray :: (Word8 -> a -> a) -> a
                -> a
 foldrByteArray f z off0 len ba = go off0
   where
+    len' = len + off0
     go !off
-      | off == len = z
-      | otherwise  =
+      | off >= len' = z
+      | otherwise   =
         let x = Prim.indexByteArray ba off
         in f x (go (off+1))
 

@@ -1,5 +1,10 @@
 # Revision history for cborg
 
+## 0.2.9.0
+
+* Fix `Eq`, `Ord`, `Show` and `IsList` instances for `SlicedByteArray` when offset is present
+* Fix `toBuilder` and `encodeByteArray` for `SlicedByteArray` when offset is present
+
 ## 0.2.8.0  -- 2022-09-24
 
 * Support GHC 9.4
