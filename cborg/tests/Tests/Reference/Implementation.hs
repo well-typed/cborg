@@ -27,6 +27,7 @@ module Tests.Reference.Implementation (
     fromUInt,
     toUInt,
     canonicaliseUInt,
+    lengthUInt,
 
     Simple(..),
     fromSimple,
