@@ -38,6 +38,7 @@ module Tests.Properties (
 
 import           Prelude hiding (decodeFloat, encodeFloat)
 
+import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
 import           Data.Word
 import           Data.Int
@@ -47,6 +48,9 @@ import           Data.Function (on)
 import           Data.Proxy
 import           Data.Kind (Type)
 
+import GHC.Exts
+import           Codec.CBOR.ByteArray
+import qualified Codec.CBOR.ByteArray.Sliced as Sliced
 import           Codec.CBOR.Term
 import           Codec.CBOR.Read
 import           Codec.CBOR.Write
@@ -56,10 +60,10 @@ import           Codec.CBOR.Encoding
 import           Test.Tasty (TestTree, testGroup, localOption)
 import           Test.Tasty.QuickCheck (testProperty, QuickCheckMaxSize(..))
 import           Test.QuickCheck
-import           System.Random (Random)
+import           Test.QuickCheck.Gen (Gen (MkGen))
 
 import qualified Tests.Reference.Implementation as Ref
-import           Tests.Reference.Implementation (UInt(..))
+import           Tests.Reference.Implementation (UInt(..), lengthUInt)
 import           Tests.Reference.Generators
 import           Tests.Term
                    ( fromRefTerm, toRefTerm, eqTerm, canonicaliseTerm )
@@ -69,6 +73,15 @@ import           Tests.Util
 import           Control.Applicative
 #endif
 
+
+#if MIN_VERSION_bytestring(0,11,1)
+import qualified Data.ByteString.Short as SBS
+#else
+import qualified Data.ByteString.Short.Internal as SBS
+#endif
+
+import qualified Data.Primitive.ByteArray as Prim (ByteArray (..))
+import System.Random.Stateful hiding (genByteString, genShortByteString)
 
 -- | The CBOR implementation and its reference implementation satisfy all the
 -- properties implied in the following commuting diagram.
@@ -984,7 +997,50 @@ instance Token Ref.Term where
     encodeRef   = Ref.encodeTerm
     decodeRef _ = Ref.decodeTerm
 
+--------------------------------------------------------------------------------
+-- Token class instances for ByteArray tokens.
+--
 
+newtype TokByteArray = TokByteArray { unTokByteArray :: [Word8] }
+  deriving (Eq, Show)
+
+instance Token TokByteArray where
+    type Imp TokByteArray = Sliced.SlicedByteArray
+
+    eqImp _ = (==)
+
+    fromRef = Sliced.fromByteString . BS.pack . unTokByteArray
+    toRef _ = TokByteArray . toList
+
+    canonicaliseImp _ = id
+    canonicaliseRef   = id
+
+    encodeImp _ = encodeByteArray
+    decodeImp _ = toSliced <$> decodeByteArray
+
+    encodeRef (TokByteArray bs) = Ref.encodeToken (Ref.MT2_ByteString (lengthUInt bs) bs)
+    decodeRef _ = do Ref.MT2_ByteString _n bs <- Ref.decodeToken
+                     -- TODO? check _n == bs
+                     return (TokByteArray bs)
+
+instance Arbitrary Sliced.SlicedByteArray where
+    -- Taken from cardano-ledger-binary testlib.
+    arbitrary = do
+      NonNegative off <- arbitrary
+      Positive count <- arbitrary
+      NonNegative slack <- arbitrary
+      let len = off + count + slack
+      ba <- genByteArray len
+      pure $ Sliced.SBA ba off count
+
+      where
+        genShortByteString :: Int -> Gen SBS.ShortByteString
+        genShortByteString n = MkGen (\r _n -> runStateGen_ r (uniformShortByteString n))
+
+        genByteArray :: Int -> Gen Prim.ByteArray
+        genByteArray n = do
+                  SBS.SBS ba <- genShortByteString n
+                  pure (Prim.ByteArray ba)
 --------------------------------------------------------------------------------
 -- TestTree API
 
@@ -1077,6 +1133,7 @@ testTree =
     , testProperty "Tag64"   (prop_encodeImpdecodeImp (Proxy :: Proxy TokTag64))
     , testProperty "Simple"  (prop_encodeImpdecodeImp (Proxy :: Proxy Ref.Simple))
     , testProperty "Term"    (prop_encodeImpdecodeImp (Proxy :: Proxy Ref.Term))
+    , testProperty "ByteArray" (prop_encodeImpdecodeImp (Proxy :: Proxy TokByteArray))
     ]
 
   , testGroup "dec_imp . enc_imp = canon_imp (all 2-splits)"
