@@ -62,7 +62,7 @@ benchmark bench
   build-depends:
     base       >= 4.11    && < 4.19,
     bytestring >= 0.10.4  && < 0.12,
-    criterion  >= 1.0     && < 1.6,
+    criterion  >= 1.0     && < 1.7,
     deepseq    >= 1.0     && < 1.5,
     zlib       >= 0.5     && < 0.7,
     directory,
