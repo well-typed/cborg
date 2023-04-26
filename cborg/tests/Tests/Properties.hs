@@ -1004,6 +1004,9 @@ instance Token Ref.Term where
 newtype TokByteArray = TokByteArray { unTokByteArray :: [Word8] }
   deriving (Eq, Show)
 
+instance Arbitrary TokByteArray where
+  arbitrary = TokByteArray <$> arbitrary
+
 instance Token TokByteArray where
     type Imp TokByteArray = Sliced.SlicedByteArray
 
@@ -1067,6 +1070,7 @@ testTree =
     , testProperty "Tag64"   (prop_fromRefToRef (Proxy :: Proxy TokTag64))
     , testProperty "Simple"  (prop_fromRefToRef (Proxy :: Proxy Ref.Simple))
     , testProperty "Term"    (prop_fromRefToRef (Proxy :: Proxy Ref.Term))
+    , testProperty "ByteArray" (prop_fromRefToRef (Proxy :: Proxy TokByteArray))
     ]
 
   , testGroup "from . id . to = canon_imp"
@@ -1089,6 +1093,7 @@ testTree =
     , testProperty "Tag64"   (prop_toRefFromRef (Proxy :: Proxy TokTag64))
     , testProperty "Simple"  (prop_toRefFromRef (Proxy :: Proxy Ref.Simple))
     , testProperty "Term"    (prop_toRefFromRef (Proxy :: Proxy Ref.Term))
+    , testProperty "ByteArray" (prop_toRefFromRef (Proxy :: Proxy TokByteArray))
     ]
 
   , testGroup "dec_ref . enc_ref = id"
@@ -1111,6 +1116,7 @@ testTree =
     , testProperty "Tag64"   (prop_encodeRefdecodeRef (Proxy :: Proxy TokTag64))
     , testProperty "Simple"  (prop_encodeRefdecodeRef (Proxy :: Proxy Ref.Simple))
     , testProperty "Term"    (prop_encodeRefdecodeRef (Proxy :: Proxy Ref.Term))
+    , testProperty "ByteArray" (prop_encodeRefdecodeRef (Proxy :: Proxy TokByteArray))
     ]
 
   , testGroup "dec_imp . enc_imp = canon_imp"
@@ -1157,6 +1163,7 @@ testTree =
     , testProperty "Simple"  (prop_encodeImpdecodeImp_splits2 (Proxy :: Proxy Ref.Simple))
     , localOption (QuickCheckMaxSize 100) $
       testProperty "Term"    (prop_encodeImpdecodeImp_splits2 (Proxy :: Proxy Ref.Term))
+    , testProperty "ByteArray" (prop_encodeImpdecodeImp_splits2 (Proxy :: Proxy TokByteArray))
     ]
 
   , testGroup "dec_imp . enc_imp = canon_imp (all 3-splits)"
@@ -1180,6 +1187,7 @@ testTree =
     , testProperty "Simple"  (prop_encodeImpdecodeImp_splits3 (Proxy :: Proxy Ref.Simple))
     , localOption (QuickCheckMaxSize 25) $
       testProperty "Term"    (prop_encodeImpdecodeImp_splits3 (Proxy :: Proxy Ref.Term))
+    , testProperty "ByteArray" (prop_encodeImpdecodeImp_splits3 (Proxy :: Proxy TokByteArray))
     ]
 
   , testGroup "enc_imp . from = enc_ref . canon_ref"
@@ -1202,6 +1210,7 @@ testTree =
     , testProperty "Tag64"   (prop_encodeRefencodeImp1 (Proxy :: Proxy TokTag64))
     , testProperty "Simple"  (prop_encodeRefencodeImp1 (Proxy :: Proxy Ref.Simple))
     , testProperty "Term"    (prop_encodeRefencodeImp1 (Proxy :: Proxy Ref.Term))
+    , testProperty "ByteArray" (prop_encodeRefencodeImp1 (Proxy :: Proxy TokByteArray))
     ]
 
   , testGroup "enc_ref . to = enc_imp"
@@ -1224,6 +1233,7 @@ testTree =
     , testProperty "Tag64"   (prop_encodeRefencodeImp2 (Proxy :: Proxy TokTag64))
     , testProperty "Simple"  (prop_encodeRefencodeImp2 (Proxy :: Proxy Ref.Simple))
     , testProperty "Term"    (prop_encodeRefencodeImp2 (Proxy :: Proxy Ref.Term))
+    , testProperty "ByteArray" (prop_encodeRefencodeImp2 (Proxy :: Proxy TokByteArray))
     ]
 
   , testGroup "dec_imp . enc_ref = from . dec_ref . enc_ref"
@@ -1246,5 +1256,6 @@ testTree =
     , testProperty "Tag64"   (prop_decodeRefdecodeImp (Proxy :: Proxy TokTag64))
     , testProperty "Simple"  (prop_decodeRefdecodeImp (Proxy :: Proxy Ref.Simple))
     , testProperty "Term"    (prop_decodeRefdecodeImp (Proxy :: Proxy Ref.Term))
+    , testProperty "ByteArray" (prop_decodeRefdecodeImp (Proxy :: Proxy TokByteArray))
     ]
   ]
