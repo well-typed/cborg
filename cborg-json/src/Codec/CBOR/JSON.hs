@@ -14,8 +14,7 @@ import           Codec.CBOR.Encoding
 import           Codec.CBOR.Decoding
 import           Data.Aeson                          ( Value(..) )
 import qualified Data.Aeson                          as Aeson
-import qualified Data.ByteString.Base16              as HEX
-import qualified Data.HashMap.Lazy                   as HM
+import qualified Data.ByteString.Base64.URL          as Base64url
 import           Data.Scientific                     as Scientific
 import qualified Data.Text                           as T
 import qualified Data.Text.Encoding                  as TE
@@ -80,12 +79,12 @@ decodeValue lenient = do
       TypeListLenIndef -> decodeListLenIndef >> decodeListIndef lenient []
       TypeMapLen       -> decodeMapLen >>= flip (decodeMapN lenient) mempty
 
-      TypeBytes   -> packHex <$> decodeBytes
+      TypeBytes   -> bytesToBase64Text <$> decodeBytes
 
       _           -> fail $ "unexpected CBOR token type for a JSON value: "
                          ++ show tkty
     where
-      packHex = String . TE.decodeLatin1 . HEX.encode
+      bytesToBase64Text = String . TE.decodeLatin1 . Base64url.encode
 
 
 decodeNumberIntegral :: Decoder s Value

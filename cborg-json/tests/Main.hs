@@ -20,8 +20,8 @@ tests :: TestTree
 tests =
   testGroup "CBOR-JSON"
     [ testGroup "unit tests"
-        [ testCase "decode variable ByteString as HexString" $
-            Right ("", String "303132") @=? deserialiseFromBytes (decodeValue True)
-                                              (fromStrict . fst $ HEX.decode "5803303132")
+        [ testCase "decode variable ByteString as Base62Url String" $
+            Right ("", String "MDEy") @=? deserialiseFromBytes (decodeValue True)
+                                              (fromStrict . either error id $ HEX.decode "5803303132")
         ]
     ]
