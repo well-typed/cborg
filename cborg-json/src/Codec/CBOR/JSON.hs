@@ -14,8 +14,10 @@ import           Codec.CBOR.Encoding
 import           Codec.CBOR.Decoding
 import           Data.Aeson                          ( Value(..) )
 import qualified Data.Aeson                          as Aeson
+import qualified Data.ByteString.Base64.URL          as Base64url
 import           Data.Scientific                     as Scientific
 import qualified Data.Text                           as T
+import qualified Data.Text.Encoding                  as TE
 import qualified Data.Vector                         as V
 
 #if MIN_VERSION_aeson(2,0,0)
@@ -77,8 +79,13 @@ decodeValue lenient = do
       TypeListLenIndef -> decodeListLenIndef >> decodeListIndef lenient []
       TypeMapLen       -> decodeMapLen >>= flip (decodeMapN lenient) mempty
 
+      TypeBytes   -> bytesToBase64Text <$> decodeBytes
+
       _           -> fail $ "unexpected CBOR token type for a JSON value: "
                          ++ show tkty
+    where
+      bytesToBase64Text = String . TE.decodeLatin1 . Base64url.encode
+
 
 decodeNumberIntegral :: Decoder s Value
 decodeNumberIntegral = Number . fromInteger <$> decodeInteger
@@ -95,7 +102,7 @@ decodeNumberFloat16 = do
 
 decodeListN :: Bool -> Int -> Decoder s Value
 decodeListN !lenient !n = do
-  vec <- V.replicateM n (decodeValue lenient) 
+  vec <- V.replicateM n (decodeValue lenient)
   return $! Array vec
 
 decodeListIndef :: Bool -> [Value] -> Decoder s Value
