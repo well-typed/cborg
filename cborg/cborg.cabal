@@ -1,5 +1,5 @@
 name:                cborg
-version:             0.2.8.0
+version:             0.2.9.0
 synopsis:            Concise Binary Object Representation (CBOR)
 license:             BSD3
 license-file:        LICENSE.txt
