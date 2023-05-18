@@ -2,6 +2,7 @@
 
 ## 0.2.9.0
 
+* Fix build with `base >= 4.17` on platforms without unaligned memory operations.
 * Fix `Eq`, `Ord`, `Show` and `IsList` instances for `SlicedByteArray` when offset is present
 * Fix `toBuilder` and `encodeByteArray` for `SlicedByteArray` when offset is present
 
