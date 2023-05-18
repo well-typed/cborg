@@ -1,5 +1,9 @@
 # Revision history for cborg-json
 
+## 0.2.6.0
+
+* Use `Base62Url` encoding for bytes
+
 ## 0.2.5.0  -- 2022-09-24
 
 * Support GHC 9.4
