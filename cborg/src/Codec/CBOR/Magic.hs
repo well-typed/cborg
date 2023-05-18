@@ -257,11 +257,15 @@ grabWord64 (Ptr ip#) =
 #endif
 
 #if WORD_SIZE_IN_BITS == 64
+#if MIN_VERSION_base(4,17,0)
+-- case taken from Codec.CBOR.Decoding
+    w64 w# = W64# (wordToWord64# (toWord w#))
+#else
     w64 w# = W64# (toWord w#)
+#endif
 #else
     w64 w# = W64# (wordToWord64# (toWord w#))
 #endif
-
 #endif
 
 --------------------------------------------------------------------------------
