@@ -215,6 +215,8 @@ pprint = do
     TkFloat64  _   _         -> termFailure term
     TkEncoded  _   TkEnd     -> ppTkEncoded
     TkEncoded  _   _         -> termFailure term
+    TkDup TkEnd              -> str "# Dup"
+    TkDup _                  -> termFailure term
     TkEnd                    -> str "# End of input"
  where
    termFailure t = fail $ unwords ["pprint: Unexpected token:", show t]
@@ -337,6 +339,7 @@ ppTkFloat64 f = str "# float64" >> parens (shown f)
 
 unconsToken :: Tokens -> Maybe (Tokens, Tokens)
 unconsToken TkEnd               = Nothing
+unconsToken (TkDup tks)         = Just (TkDup         TkEnd,tks)
 unconsToken (TkWord w      tks) = Just (TkWord w      TkEnd,tks)
 unconsToken (TkWord64 w    tks) = Just (TkWord64 w    TkEnd,tks)
 unconsToken (TkInt i       tks) = Just (TkInt i       TkEnd,tks)

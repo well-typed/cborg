@@ -153,6 +153,7 @@ convFlatTerm (Enc.TkFloat64  f  ts) = TkFloat64   f : convFlatTerm ts
 convFlatTerm (Enc.TkBreak       ts) = TkBreak       : convFlatTerm ts
 convFlatTerm (Enc.TkEncoded  bs ts) = decodePreEncoded bs
                                                    ++ convFlatTerm ts
+convFlatTerm (Enc.TkDup         ts) = convFlatTerm ts
 convFlatTerm  Enc.TkEnd             = []
 
 --------------------------------------------------------------------------------

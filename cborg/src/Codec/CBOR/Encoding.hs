@@ -131,6 +131,8 @@ data Tokens =
     -- Special
     | TkEncoded  {-# UNPACK #-} !B.ByteString Tokens
 
+    | TkDup Tokens
+
     | TkEnd
     deriving (Show,Eq)
 
