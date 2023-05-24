@@ -59,6 +59,11 @@ flag optimize-gmp
   manual: False
   description: Use optimized code paths for integer-gmp
 
+flag dupIO
+  default: False
+  manual: True
+  description: Use dupIO to avoid unwanted sharing when encoding
+
 --------------------------------------------------------------------------------
 -- Library
 
@@ -99,6 +104,10 @@ library
     half                    >= 0.2.2.3 && < 0.4,
     primitive               >= 0.5     && < 0.10,
     text                    >= 1.1     && < 1.3 || >= 2.0 && <2.2
+
+  if flag(dupIO)
+    cpp-options:            -DDUPIO
+    build-depends: dupIO >= 0.1.0 && < 0.2
 
   if flag(optimize-gmp)
     cpp-options:            -DOPTIMIZE_GMP
