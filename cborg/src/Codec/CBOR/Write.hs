@@ -75,6 +75,8 @@ import qualified Codec.CBOR.ByteArray.Sliced           as BAS
 import           Codec.CBOR.Encoding
 import           Codec.CBOR.Magic
 
+import qualified Data.Dup                              as Dup
+
 --------------------------------------------------------------------------------
 
 -- | Turn an 'Encoding' into a lazy 'L.ByteString' in CBOR binary
@@ -194,7 +196,8 @@ buildStep vs1 k (BI.BufferRange op0 ope0) =
 
           TkEnd            -> k (BI.BufferRange op ope0)
 
-      | otherwise = return $ BI.bufferFull bound op (buildStep vs k)
+      | otherwise = do vs' <- Dup.dupIO vs
+                       return $ BI.bufferFull bound op (buildStep vs' k)
 
     -- The maximum size in bytes of the fixed-size encodings
     bound :: Int
