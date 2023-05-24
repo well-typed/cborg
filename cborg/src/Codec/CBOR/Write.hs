@@ -75,6 +75,8 @@ import qualified Codec.CBOR.ByteArray.Sliced           as BAS
 import           Codec.CBOR.Encoding
 import           Codec.CBOR.Magic
 
+import qualified Data.Dup                              as Dup
+
 --------------------------------------------------------------------------------
 
 -- | Turn an 'Encoding' into a lazy 'L.ByteString' in CBOR binary
@@ -110,7 +112,9 @@ buildStep vs1 k (BI.BufferRange op0 ope0) =
     go vs1 op0
   where
     go vs !op
-      | op `plusPtr` bound <= ope0 = case vs of
+      | op `plusPtr` bound <= ope0 = do
+        dup_vs <- Dup.dupIO vs
+        case dup_vs of
           TkWord     x vs' -> PI.runB wordMP     x op >>= go vs'
           TkWord64   x vs' -> PI.runB word64MP   x op >>= go vs'
 
