@@ -1,0 +1,47 @@
+name: Other CI
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  i386:
+    name: i386 - ${{ matrix.ghc }}
+    runs-on: ubuntu-latest
+    container:
+      image: i386/debian:bookworm
+    strategy:
+      fail-fast: false
+      matrix:
+        ghc:
+        - '9.12'
+        # 9.10.1 causes test failures due to a miscompilation
+        # https://gitlab.haskell.org/ghc/ghc/-/issues/24893
+        - '9.10.2'
+        - '9.8'
+        - '9.6'
+        - '9.4'
+        - '9.2'
+        - '9.0'
+        - '8.10'
+        - '8.8'
+    steps:
+    - name: Install system dependencies
+      run: |
+        apt-get update -y
+        apt-get install -y build-essential curl libffi-dev libffi8 libgmp-dev libgmp10 libncurses-dev libncurses5 libtinfo5 zlib1g-dev
+        # https://github.com/haskell/ghcup-hs/issues/1107
+        curl https://downloads.haskell.org/ghcup/0.1.20.0/i386-linux-ghcup-0.1.20.0 > ghcup
+        chmod a+x ghcup
+        ./ghcup install cabal latest --set
+        ./ghcup install ghc ${{ matrix.ghc }} --set
+        echo "$HOME/.ghcup/bin" >> "$GITHUB_PATH"
+    - uses: actions/checkout@v1
+    - name: Build and test
+      run: |
+        cabal update
+        cabal configure --enable-tests --enable-benchmarks
+        cabal build all
+        cabal test all
