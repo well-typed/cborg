@@ -153,7 +153,7 @@ hPutSerialise :: Serialise a
               => Handle       -- ^ The @'Handle'@ to write to.
               -> a            -- ^ The value to be serialised and written.
               -> IO ()
-hPutSerialise hnd x = BS.hPut hnd (serialise x)
+hPutSerialise hnd x = BS.hPutBuilder hnd (CBOR.Write.toBuilder (encode x))
 
 -- | Serialise a @'BS.ByteString'@ and write it directly to the
 -- specified file.
