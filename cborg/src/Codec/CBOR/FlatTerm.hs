@@ -564,7 +564,10 @@ tokenTypeOf :: TermToken -> TokenType
 tokenTypeOf (TkInt n)
     | n >= 0                = TypeUInt
     | otherwise             = TypeNInt
-tokenTypeOf TkInteger{}     = TypeInteger
+tokenTypeOf (TkInteger n)   -- See https://github.com/well-typed/cborg/issues/324
+  | n >= 0 && n <  2^64     = TypeUInt64
+  | n <  0 && n > -2^64     = TypeNInt64
+  | otherwise               = TypeInteger
 tokenTypeOf TkBytes{}       = TypeBytes
 tokenTypeOf TkBytesBegin{}  = TypeBytesIndef
 tokenTypeOf TkString{}      = TypeString
