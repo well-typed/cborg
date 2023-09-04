@@ -565,7 +565,7 @@ tokenTypeOf (TkInt n)
     | n >= 0                          = TypeUInt
     | otherwise                       = TypeNInt
 tokenTypeOf (TkInteger n)   -- See https://github.com/well-typed/cborg/issues/324
-  | 0 <= n && n <= 0xffffffffffffffff = TypeUInt64
+  | 0 <= n && n <= 0xffffffffffffffff = TypeUInt64 -- 0xffffffffffffffff == 2^64 - 1
   | -0xffffffffffffffff <= n && n < 0 = TypeNInt64
   | otherwise                         = TypeInteger
 tokenTypeOf TkBytes{}                 = TypeBytes
