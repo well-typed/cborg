@@ -60,7 +60,7 @@ import qualified Data.Text          as T
 import qualified Data.Text.Encoding as T
 import           Data.Word
 import           GHC.Word
-#if defined(ARCH_32bit)
+#if defined(ARCH_32bit) && !MIN_VERSION_ghc_prim(0,8,0)
 import           GHC.IntWord64
 #endif
 import           GHC.Exts

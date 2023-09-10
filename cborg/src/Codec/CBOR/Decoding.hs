@@ -328,17 +328,12 @@ toInt32  n = I32# (intToInt32# n)
 toWord8  n = W8#  (wordToWord8# n)
 toWord16 n = W16# (wordToWord16# n)
 toWord32 n = W32# (wordToWord32# n)
-#if defined(ARCH_64bit)
-#if MIN_VERSION_base(4,17,0)
+#if MIN_VERSION_base(4,17,0) && defined(ARCH_64bit)
 toInt64  n = I64# (intToInt64# n)
 toWord64 n = W64# (wordToWord64# n)
 #else
 toInt64  n = I64# n
 toWord64 n = W64# n
-#endif
-#else
-toInt64  n = I64# (intToInt64# n)
-toWord64 n = W64# (wordToWord64# n)
 #endif
 #else
 toInt8   n = I8#  n
