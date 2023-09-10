@@ -170,7 +170,7 @@ grabWord64 (Ptr ip#) = W64# (wordToWord64# (byteSwap# (word64ToWord# (indexWord6
 grabWord64 (Ptr ip#) = W64# (byteSwap# (indexWord64OffAddr# ip# 0#))
 #endif
 #else
-grabWord64 (Ptr ip#) = W64# (byteSwap64# (word64ToWord# (indexWord64OffAddr# ip# 0#)))
+grabWord64 (Ptr ip#) = W64# (byteSwap64# (indexWord64OffAddr# ip# 0#))
 #endif
 
 #elif defined(MEM_UNALIGNED_OPS) && \
@@ -445,7 +445,7 @@ word16ToInt (W16# w#) = I# (word2Int# (word16ToWord# w#))
 word32ToInt (W32# w#) = I# (word2Int# (word32ToWord# w#))
 #else
 word32ToInt (W32# w#) =
-  case isTrue# (w# `ltWord#` 0x80000000##) of
+  case isTrue# (word32ToWord# w# `ltWord#` 0x80000000##) of
     True  -> Just (I# (word2Int# (word32ToWord# w#)))
     False -> Nothing
 #endif
