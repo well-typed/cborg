@@ -1,4 +1,4 @@
-resolver: lts-13.8
+resolver: lts-21.14
 packages:
 - 'cborg'
 - 'serialise'
@@ -9,3 +9,9 @@ packages:
 flags:
   serialise:
     newtime15: true
+
+extra-deps:
+- commit: f143eae94b79fdbc963640ecdadb5d222be6d7ef
+  git: "https://github.com/well-typed/dupIO.git"
+  subdirs:
+  - .
