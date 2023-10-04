@@ -562,25 +562,28 @@ fromFlatTerm decoder ft =
 -- | Map a 'TermToken' to the underlying CBOR 'TokenType'
 tokenTypeOf :: TermToken -> TokenType
 tokenTypeOf (TkInt n)
-    | n >= 0                = TypeUInt
-    | otherwise             = TypeNInt
-tokenTypeOf TkInteger{}     = TypeInteger
-tokenTypeOf TkBytes{}       = TypeBytes
-tokenTypeOf TkBytesBegin{}  = TypeBytesIndef
-tokenTypeOf TkString{}      = TypeString
-tokenTypeOf TkStringBegin{} = TypeStringIndef
-tokenTypeOf TkListLen{}     = TypeListLen
-tokenTypeOf TkListBegin{}   = TypeListLenIndef
-tokenTypeOf TkMapLen{}      = TypeMapLen
-tokenTypeOf TkMapBegin{}    = TypeMapLenIndef
-tokenTypeOf TkTag{}         = TypeTag
-tokenTypeOf TkBool{}        = TypeBool
-tokenTypeOf TkNull          = TypeNull
-tokenTypeOf TkBreak         = TypeBreak
-tokenTypeOf TkSimple{}      = TypeSimple
-tokenTypeOf TkFloat16{}     = TypeFloat16
-tokenTypeOf TkFloat32{}     = TypeFloat32
-tokenTypeOf TkFloat64{}     = TypeFloat64
+    | n >= 0                          = TypeUInt
+    | otherwise                       = TypeNInt
+tokenTypeOf (TkInteger n)   -- See https://github.com/well-typed/cborg/issues/324
+  | 0 <= n && n <= 0xffffffffffffffff = TypeUInt64 -- 0xffffffffffffffff == 2^64 - 1
+  | -0xffffffffffffffff <= n && n < 0 = TypeNInt64
+  | otherwise                         = TypeInteger
+tokenTypeOf TkBytes{}                 = TypeBytes
+tokenTypeOf TkBytesBegin{}            = TypeBytesIndef
+tokenTypeOf TkString{}                = TypeString
+tokenTypeOf TkStringBegin{}           = TypeStringIndef
+tokenTypeOf TkListLen{}               = TypeListLen
+tokenTypeOf TkListBegin{}             = TypeListLenIndef
+tokenTypeOf TkMapLen{}                = TypeMapLen
+tokenTypeOf TkMapBegin{}              = TypeMapLenIndef
+tokenTypeOf TkTag{}                   = TypeTag
+tokenTypeOf TkBool{}                  = TypeBool
+tokenTypeOf TkNull                    = TypeNull
+tokenTypeOf TkBreak                   = TypeBreak
+tokenTypeOf TkSimple{}                = TypeSimple
+tokenTypeOf TkFloat16{}               = TypeFloat16
+tokenTypeOf TkFloat32{}               = TypeFloat32
+tokenTypeOf TkFloat64{}               = TypeFloat64
 
 --------------------------------------------------------------------------------
 
