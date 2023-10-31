@@ -1042,8 +1042,10 @@ instance Arbitrary Sliced.SlicedByteArray where
 
         genByteArray :: Int -> Gen Prim.ByteArray
         genByteArray n = do
-                  SBS.SBS ba <- genShortByteString n
-                  pure (Prim.ByteArray ba)
+                  bss <- genShortByteString n
+                  case bss of
+                    SBS.SBS ba -> pure $ Prim.ByteArray ba
+
 --------------------------------------------------------------------------------
 -- TestTree API
 
