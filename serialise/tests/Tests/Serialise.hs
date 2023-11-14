@@ -434,5 +434,6 @@ instance Serialise Utf8ByteArray where
 
 instance Arbitrary Utf8ByteArray where
     arbitrary = do
-        BSS.SBS ba <- BSS.toShort . Text.encodeUtf8 <$> arbitrary
-        return $ Utf8BA $ CBOR.BA.BA $ Prim.ByteArray ba
+        bss <- BSS.toShort . Text.encodeUtf8 <$> arbitrary
+        case bss of
+          BSS.SBS ba -> return $ Utf8BA $ CBOR.BA.BA $ Prim.ByteArray ba

@@ -29,14 +29,14 @@ executable cbor-tool
   other-extensions:    CPP, BangPatterns
   ghc-options:         -Wall
   build-depends:
-    base                 >=4.11 && <4.19,
+    base                 >=4.11 && <4.20,
     filepath             >=1.0  && <1.5,
-    aeson                >=0.7  && <2.2,
+    aeson                >=0.7  && <2.3,
     aeson-pretty         >=0.8  && <0.9,
     scientific           >=0.3  && <0.4,
-    bytestring           >=0.10 && <0.12,
+    bytestring           >=0.10 && <0.13,
     unordered-containers >=0.2  && <0.3,
-    text                 >=1.1  && <2.1,
+    text                 >=1.1  && <2.2,
     vector               >=0.10 && <0.14,
 
     cborg      ==0.2.*,
