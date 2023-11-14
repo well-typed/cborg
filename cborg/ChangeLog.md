@@ -1,5 +1,11 @@
 # Revision history for cborg
 
+## 0.2.10.0
+
+* Return `TypeUInt64` and `TypeNInt64` from `tokenType` when appropriate, fixing [#324](https://github.com/well-typed/cborg/issues/324)
+* Don't rely on `MonadFail Gen`
+* Support for GHC 9.8
+
 ## 0.2.9.0
 
 * Fix build with `base >= 4.17` on platforms without unaligned memory operations.
