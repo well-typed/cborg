@@ -4,6 +4,8 @@
 
 * Use `Base62Url` encoding for bytes
 
+* Support GHC 9.8
+
 ## 0.2.5.0  -- 2022-09-24
 
 * Support GHC 9.4
