@@ -65,7 +65,7 @@ benchmark bench
     bytestring >= 0.10.4  && < 0.13,
     criterion  >= 1.0     && < 1.7,
     deepseq    >= 1.0     && < 1.6,
-    zlib       >= 0.5     && < 0.7,
+    zlib       >= 0.5     && < 0.8,
     directory,
     process,
     aeson,
