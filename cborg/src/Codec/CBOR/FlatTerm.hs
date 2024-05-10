@@ -385,7 +385,7 @@ fromFlatTerm decoder ft =
     go (TkTag     n : ts) (ConsumeTagCanonical     k)
         | n <= maxWord                       = k (unW# (fromIntegral n)) >>= go ts
 
-#if defined(ARCH_32bit)
+#if defined(ARCH_32bit) && !defined(ghcjs_HOST_OS)
     -- 64bit variants for 32bit machines
     go (TkInt       n : ts) (ConsumeWord64    k)
       | n >= 0                                   = k (unW64# (fromIntegral n)) >>= go ts
@@ -468,7 +468,7 @@ fromFlatTerm decoder ft =
     -- We don't have real bytes so we have to give these two operations
     -- different interpretations: remaining tokens and just 0 for offsets.
     go ts        (PeekAvailable k) = k (unI# (length ts)) >>= go ts
-#if defined(ARCH_32bit)
+#if defined(ARCH_32bit) && !defined(ghcjs_HOST_OS)
     go ts        (PeekByteOffset k)= k (unI64# 0) >>= go ts
 #else
     go ts        (PeekByteOffset k)= k 0# >>= go ts
@@ -529,7 +529,7 @@ fromFlatTerm decoder ft =
     go ts (ConsumeUtf8ByteArrayCanonical _) = unexpected "decodeUtf8ByteArrayCanonical" ts
     go ts (ConsumeSimpleCanonical  _)       = unexpected "decodeSimpleCanonical"        ts
 
-#if defined(ARCH_32bit)
+#if defined(ARCH_32bit) && !defined(ghcjs_HOST_OS)
     -- 64bit variants for 32bit machines
     go ts (ConsumeWord64    _) = unexpected "decodeWord64"    ts
     go ts (ConsumeNegWord64 _) = unexpected "decodeNegWord64" ts
@@ -744,7 +744,7 @@ unF#   (F#   f#) = f#
 unD# :: Double -> Double#
 unD#   (D#   f#) = f#
 
-#if defined(ARCH_32bit)
+#if defined(ARCH_32bit) && !defined(ghcjs_HOST_OS)
 unW64# :: Word64 -> Word64#
 unW64# (W64# w#) = w#
 
