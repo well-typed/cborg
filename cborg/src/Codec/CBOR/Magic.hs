@@ -4,6 +4,11 @@
 {-# LANGUAGE UnboxedTuples            #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE ScopedTypeVariables      #-}
+#if defined(ghcjs_HOST_OS)
+-- when using javascript backend Word is a 64 bit type, but ghc emits
+-- `-Woverflowed-literals` warning when using `0x80000000##`.
+{-# OPTIONS_GHC -Wno-overflowed-literals #-}
+#endif
 
 #include "cbor.h"
 
@@ -60,7 +65,7 @@ module Codec.CBOR.Magic
   , intToWord64       -- :: Int    -> Word64
   , int64ToWord64     -- :: Int64  -> Word64
 
-#if defined(ARCH_32bit)
+#if defined(ARCH_32bit) && !defined(ghcjs_HOST_OS)
   , word8ToInt64      -- :: Word8  -> Int64
   , word16ToInt64     -- :: Word16 -> Int64
   , word32ToInt64     -- :: Word32 -> Int64
@@ -123,7 +128,6 @@ import           Data.Bits ((.|.), unsafeShiftL)
 import           GHC.IntWord64 (wordToWord64#, word64ToWord#,
                                 intToInt64#, int64ToInt#,
                                 leWord64#, ltWord64#, word64ToInt64#)
-
 #endif
 
 --------------------------------------------------------------------------------
@@ -164,7 +168,7 @@ grabWord32 (Ptr ip#) = W32# (wordToWord32# (byteSwap32# (word32ToWord# (indexWor
 grabWord16 (Ptr ip#) = W16# (narrow16Word# (byteSwap16# (indexWord16OffAddr# ip# 0#)))
 grabWord32 (Ptr ip#) = W32# (narrow32Word# (byteSwap32# (indexWord32OffAddr# ip# 0#)))
 #endif
-#if defined(ARCH_64bit)
+#if defined(ARCH_64bit) || defined(ghcjs_HOST_OS)
 #if MIN_VERSION_base(4,17,0)
 grabWord64 (Ptr ip#) = W64# (wordToWord64# (byteSwap# (word64ToWord# (indexWord64OffAddr# ip# 0#))))
 #else
@@ -362,7 +366,7 @@ wordToFloat64 = GHC.Float.castWord64ToDouble
 word8ToWord  :: Word8  -> Word
 word16ToWord :: Word16 -> Word
 word32ToWord :: Word32 -> Word
-#if defined(ARCH_64bit)
+#if defined(ARCH_64bit) || defined(ghcjs_HOST_OS)
 word64ToWord :: Word64 -> Word
 #else
 word64ToWord :: Word64 -> Maybe Word
@@ -370,14 +374,14 @@ word64ToWord :: Word64 -> Maybe Word
 
 word8ToInt  :: Word8  -> Int
 word16ToInt :: Word16 -> Int
-#if defined(ARCH_64bit)
+#if defined(ARCH_64bit) || defined(ghcjs_HOST_OS)
 word32ToInt :: Word32 -> Int
 #else
 word32ToInt :: Word32 -> Maybe Int
 #endif
 word64ToInt :: Word64 -> Maybe Int
 
-#if defined(ARCH_32bit)
+#if defined(ARCH_32bit) && !defined(ghcjs_HOST_OS)
 word8ToInt64  :: Word8  -> Int64
 word16ToInt64 :: Word16 -> Int64
 word32ToInt64 :: Word32 -> Int64
@@ -412,7 +416,7 @@ int64ToWord64 = fromIntegral
 word8ToWord  (W8#  w#) = W# (word8ToWord# w#)
 word16ToWord (W16# w#) = W# (word16ToWord# w#)
 word32ToWord (W32# w#) = W# (word32ToWord# w#)
-#if defined(ARCH_64bit)
+#if defined(ARCH_64bit) || defined(ghcjs_HOST_OS)
 #if MIN_VERSION_base(4,17,0)
 word64ToWord (W64# w#) = W# (word64ToWord# w#)
 #else
@@ -428,7 +432,7 @@ word64ToWord (W64# w64#) =
 word8ToWord  (W8#  w#) = W# w#
 word16ToWord (W16# w#) = W# w#
 word32ToWord (W32# w#) = W# w#
-#if defined(ARCH_64bit)
+#if defined(ARCH_64bit) || defined(ghcjs_HOST_OS)
 word64ToWord (W64# w#) = W# w#
 #else
 word64ToWord (W64# w64#) =
@@ -446,7 +450,7 @@ word64ToWord (W64# w64#) =
 #if MIN_VERSION_base(4,16,0)
 word8ToInt  (W8#  w#) = I# (word2Int# (word8ToWord# w#))
 word16ToInt (W16# w#) = I# (word2Int# (word16ToWord# w#))
-#if defined(ARCH_64bit)
+#if defined(ARCH_64bit) || defined(ghcjs_HOST_OS)
 word32ToInt (W32# w#) = I# (word2Int# (word32ToWord# w#))
 #else
 word32ToInt (W32# w#) =
@@ -458,7 +462,7 @@ word32ToInt (W32# w#) =
 word8ToInt  (W8#  w#) = I# (word2Int# w#)
 word16ToInt (W16# w#) = I# (word2Int# w#)
 
-#if defined(ARCH_64bit)
+#if defined(ARCH_64bit) || defined(ghcjs_HOST_OS)
 word32ToInt (W32# w#) = I# (word2Int# w#)
 #else
 word32ToInt (W32# w#) =
@@ -468,7 +472,7 @@ word32ToInt (W32# w#) =
 #endif
 #endif
 
-#if defined(ARCH_64bit)
+#if defined(ARCH_64bit) || defined(ghcjs_HOST_OS)
 word64ToInt (W64# w#) =
 #if MIN_VERSION_base(4,17,0)
   case isTrue# (word64ToWord# w# `ltWord#` 0x8000000000000000##) of
@@ -495,7 +499,7 @@ word64ToInt (W64# w#) =
 {-# INLINE word32ToInt #-}
 {-# INLINE word64ToInt #-}
 
-#if defined(ARCH_32bit)
+#if defined(ARCH_32bit) && !defined(ghcjs_HOST_OS)
 #if MIN_VERSION_base(4,16,0)
 word8ToInt64  (W8#  w#) = I64# (intToInt64# (word2Int# (word8ToWord# w#)))
 word16ToInt64 (W16# w#) = I64# (intToInt64# (word2Int# (word16ToWord# w#)))
