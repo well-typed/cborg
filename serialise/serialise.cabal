@@ -69,7 +69,7 @@ library
     Codec.Serialise.Internal.GeneralisedUTF8
 
   build-depends:
-    base                    >= 4.11    && < 4.20,
+    base                    >= 4.11    && < 4.21,
     array                   >= 0.4     && < 0.6,
     bytestring              >= 0.10.4  && < 0.13,
     cborg                   == 0.2.*,
@@ -86,10 +86,10 @@ library
 
   if flag(newtime15)
     build-depends:
-      time                  >= 1.5     && < 1.14
+      time                  >= 1.5     && < 1.15
   else
     build-depends:
-      time                  >= 1.4     && < 1.5,
+      time                  >= 1.4     && < 1.6,
       old-locale
 
   if impl(ghc >= 8.0)
@@ -124,18 +124,18 @@ test-suite tests
     Tests.GeneralisedUTF8
 
   build-depends:
-    base                    >= 4.11    && < 4.20,
+    base                    >= 4.11    && < 4.21,
     bytestring              >= 0.10.4  && < 0.13,
     directory               >= 1.0     && < 1.4,
-    filepath                >= 1.0     && < 1.5,
+    filepath                >= 1.0     && < 1.6,
     text                    >= 1.1     && < 2.2,
-    time                    >= 1.4     && < 1.14,
+    time                    >= 1.4     && < 1.15,
     containers              >= 0.5     && < 0.8,
     unordered-containers    >= 0.2     && < 0.3,
     primitive               >= 0.5     && < 0.10,
     cborg,
     serialise,
-    QuickCheck              >= 2.9     && < 2.15,
+    QuickCheck              >= 2.9     && < 2.16,
     tasty                   >= 0.11    && < 1.6,
     tasty-hunit             >= 0.9     && < 0.11,
     tasty-quickcheck        >= 0.8     && < 0.11,
@@ -161,7 +161,7 @@ benchmark instances
     Instances.Time
 
   build-depends:
-    base                    >= 4.11    && < 4.20,
+    base                    >= 4.11    && < 4.21,
     binary                  >= 0.7     && < 0.11,
     bytestring              >= 0.10.4  && < 0.13,
     vector                  >= 0.10    && < 0.14,
@@ -173,7 +173,7 @@ benchmark instances
 
   if flag(newtime15)
     build-depends:
-      time                  >= 1.5     && < 1.14
+      time                  >= 1.5     && < 1.15
   else
     build-depends:
       time                  >= 1.4     && < 1.5,
@@ -205,7 +205,7 @@ benchmark micro
     SimpleVersus
 
   build-depends:
-    base                    >= 4.11    && < 4.20,
+    base                    >= 4.11    && < 4.21,
     binary                  >= 0.7     && < 0.11,
     bytestring              >= 0.10.4  && < 0.13,
     ghc-prim                >= 0.3.1.0 && < 0.12,
@@ -251,7 +251,7 @@ benchmark versus
     Macro.CBOR
 
   build-depends:
-    base                    >= 4.11    && < 4.20,
+    base                    >= 4.11    && < 4.21,
     array                   >= 0.4     && < 0.6,
     binary                  >= 0.7     && < 0.11,
     bytestring              >= 0.10.4  && < 0.13,
@@ -263,14 +263,14 @@ benchmark versus
     cborg,
     serialise,
 
-    filepath                >= 1.0     && < 1.5,
+    filepath                >= 1.0     && < 1.6,
     containers              >= 0.5     && < 0.8,
     deepseq                 >= 1.0     && < 1.6,
     aeson                   >= 0.7     && < 2.3,
     cereal                  >= 0.5.2.0 && < 0.6,
     half                    >= 0.2.2.3 && < 0.4,
-    tar                     >= 0.4     && < 0.6,
-    zlib                    >= 0.5     && < 0.7,
+    tar                     >= 0.4     && < 0.7,
+    zlib                    >= 0.5     && < 0.8,
     pretty                  >= 1.0     && < 1.2,
     criterion               >= 1.0     && < 1.7,
     store                   >= 0.7.1   && < 0.8,
@@ -278,7 +278,7 @@ benchmark versus
 
   if flag(newtime15)
     build-depends:
-      time                  >= 1.5     && < 1.14
+      time                  >= 1.5     && < 1.15
   else
     build-depends:
       time                  >= 1.4     && < 1.5,
