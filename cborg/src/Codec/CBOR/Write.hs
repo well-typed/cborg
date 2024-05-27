@@ -192,6 +192,11 @@ buildStep vs1 k (BI.BufferRange op0 ope0) =
                                 (B.byteString x) (buildStep vs' k)
                                 (BI.BufferRange op ope0)
 
+          TkEmbedded sz e vs'
+                           -> PI.runB bytesLenMP sz op >>= \op' ->
+                              buildStep e (buildStep vs' k)
+                                        (BI.BufferRange op' ope0)
+
           TkEnd            -> k (BI.BufferRange op ope0)
 
       | otherwise = return $ BI.bufferFull bound op (buildStep vs k)
