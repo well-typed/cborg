@@ -1268,7 +1268,11 @@ go_slow da bs !offset = do
 
     SlowPeekByteOffset bs' k ->
       lift
+#if defined(ARCH_32bit)
         (k off#)
+#else
+        (k (int64ToInt# off#))
+#endif
         >>= \daz -> go_slow daz bs' offset'
       where
         !offset'@(I64# off#) = offset + intToInt64 (BS.length bs - BS.length bs')
@@ -1373,7 +1377,11 @@ go_slow_overlapped da sz bs_cur bs_next !offset =
       SlowPeekByteOffset bs_empty k ->
         assert (BS.null bs_empty) $ do
         lift
+#if defined(ARCH_32bit)
           (k off#)
+#else
+          (k (int64ToInt# off#))
+#endif
           >>= \daz -> go_slow daz bs' offset'
         where
           !(I64# off#) = offset'
