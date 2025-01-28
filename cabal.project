@@ -5,6 +5,8 @@ packages:
   binary-serialise-cbor/
   cborg-json/
 
--- Needed for serialise benchmarks
-allow-newer:
-  store-core:text
+if impl (ghc >= 9.12)
+  allow-newer:
+    , aeson:ghc-prim
+    , aeson:template-haskell
+    , bytestring:ghc-prim
