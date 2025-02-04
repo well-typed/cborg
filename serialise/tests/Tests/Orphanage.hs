@@ -195,9 +195,11 @@ instance Arbitrary BSS.ShortByteString where
   arbitrary = BSS.pack <$> arbitrary
 #endif
 
+#if !MIN_VERSION_quickcheck_instances(0,3,32)
 instance (Vector.Primitive.Prim a, Arbitrary a
          ) => Arbitrary (Vector.Primitive.Vector a) where
     arbitrary = Vector.Primitive.fromList <$> arbitrary
+#endif
 
 #if MIN_VERSION_base(4,7,0) && !MIN_VERSION_QuickCheck(2,10,0)
 instance Arbitrary (Proxy a) where
