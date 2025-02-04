@@ -8,9 +8,9 @@
 #
 # For more information, see https://github.com/haskell-CI/haskell-ci
 #
-# version: 0.16
+# version: 0.19.20250115
 #
-# REGENDATA ("0.16",["github","cabal.project"])
+# REGENDATA ("0.19.20250115",["github","cabal.project"])
 #
 name: Haskell-CI
 on:
@@ -23,11 +23,16 @@ jobs:
     timeout-minutes:
       60
     container:
-      image: buildpack-deps:bionic
+      image: buildpack-deps:jammy
     continue-on-error: ${{ matrix.allow-failure }}
     strategy:
       matrix:
         include:
+          - compiler: ghc-9.12.1
+            compilerKind: ghc
+            compilerVersion: 9.12.1
+            setup-method: ghcup
+            allow-failure: false
           - compiler: ghc-9.10.1
             compilerKind: ghc
             compilerVersion: 9.10.1
@@ -38,14 +43,14 @@ jobs:
             compilerVersion: 9.8.1
             setup-method: ghcup
             allow-failure: false
-          - compiler: ghc-9.6.3
+          - compiler: ghc-9.6.1
             compilerKind: ghc
-            compilerVersion: 9.6.3
+            compilerVersion: 9.6.1
             setup-method: ghcup
             allow-failure: false
-          - compiler: ghc-9.4.7
+          - compiler: ghc-9.4.2
             compilerKind: ghc
-            compilerVersion: 9.4.7
+            compilerVersion: 9.4.2
             setup-method: ghcup
             allow-failure: false
           - compiler: ghc-9.2.2
@@ -56,7 +61,7 @@ jobs:
           - compiler: ghc-9.0.1
             compilerKind: ghc
             compilerVersion: 9.0.1
-            setup-method: hvr-ppa
+            setup-method: ghcup
             allow-failure: false
           - compiler: ghc-8.10.7
             compilerKind: ghc
@@ -66,39 +71,43 @@ jobs:
           - compiler: ghc-8.8.3
             compilerKind: ghc
             compilerVersion: 8.8.3
-            setup-method: hvr-ppa
+            setup-method: ghcup
             allow-failure: false
           - compiler: ghc-8.6.5
             compilerKind: ghc
             compilerVersion: 8.6.5
-            setup-method: hvr-ppa
+            setup-method: ghcup
             allow-failure: false
           - compiler: ghc-8.4.4
             compilerKind: ghc
             compilerVersion: 8.4.4
-            setup-method: hvr-ppa
+            setup-method: ghcup
             allow-failure: false
       fail-fast: false
     steps:
-      - name: apt
+      - name: apt-get install
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends gnupg ca-certificates dirmngr curl git software-properties-common libtinfo5
-          if [ "${{ matrix.setup-method }}" = ghcup ]; then
-            mkdir -p "$HOME/.ghcup/bin"
-            curl -sL https://downloads.haskell.org/ghcup/0.1.19.2/x86_64-linux-ghcup-0.1.19.2 > "$HOME/.ghcup/bin/ghcup"
-            chmod a+x "$HOME/.ghcup/bin/ghcup"
-            "$HOME/.ghcup/bin/ghcup" install ghc "$HCVER" || (cat "$HOME"/.ghcup/logs/*.* && false)
-            "$HOME/.ghcup/bin/ghcup" install cabal 3.10.1.0 || (cat "$HOME"/.ghcup/logs/*.* && false)
-          else
-            apt-add-repository -y 'ppa:hvr/ghc'
-            apt-get update
-            apt-get install -y "$HCNAME"
-            mkdir -p "$HOME/.ghcup/bin"
-            curl -sL https://downloads.haskell.org/ghcup/0.1.19.2/x86_64-linux-ghcup-0.1.19.2 > "$HOME/.ghcup/bin/ghcup"
-            chmod a+x "$HOME/.ghcup/bin/ghcup"
-            "$HOME/.ghcup/bin/ghcup" install cabal 3.10.1.0 || (cat "$HOME"/.ghcup/logs/*.* && false)
-          fi
+          apt-get install -y --no-install-recommends gnupg ca-certificates dirmngr curl git software-properties-common libtinfo5 libnuma-dev
+      - name: Install GHCup
+        run: |
+          mkdir -p "$HOME/.ghcup/bin"
+          curl -sL https://downloads.haskell.org/ghcup/0.1.30.0/x86_64-linux-ghcup-0.1.30.0 > "$HOME/.ghcup/bin/ghcup"
+          chmod a+x "$HOME/.ghcup/bin/ghcup"
+      - name: Install cabal-install
+        run: |
+          "$HOME/.ghcup/bin/ghcup" install cabal 3.12.1.0 || (cat "$HOME"/.ghcup/logs/*.* && false)
+          echo "CABAL=$HOME/.ghcup/bin/cabal-3.12.1.0 -vnormal+nowrap" >> "$GITHUB_ENV"
+      - name: Install GHC (GHCup)
+        if: matrix.setup-method == 'ghcup'
+        run: |
+          "$HOME/.ghcup/bin/ghcup" install ghc "$HCVER" || (cat "$HOME"/.ghcup/logs/*.* && false)
+          HC=$("$HOME/.ghcup/bin/ghcup" whereis ghc "$HCVER")
+          HCPKG=$(echo "$HC" | sed 's#ghc$#ghc-pkg#')
+          HADDOCK=$(echo "$HC" | sed 's#ghc$#haddock#')
+          echo "HC=$HC" >> "$GITHUB_ENV"
+          echo "HCPKG=$HCPKG" >> "$GITHUB_ENV"
+          echo "HADDOCK=$HADDOCK" >> "$GITHUB_ENV"
         env:
           HCKIND: ${{ matrix.compilerKind }}
           HCNAME: ${{ matrix.compiler }}
@@ -109,28 +118,12 @@ jobs:
           echo "LANG=C.UTF-8" >> "$GITHUB_ENV"
           echo "CABAL_DIR=$HOME/.cabal" >> "$GITHUB_ENV"
           echo "CABAL_CONFIG=$HOME/.cabal/config" >> "$GITHUB_ENV"
-          HCDIR=/opt/$HCKIND/$HCVER
-          if [ "${{ matrix.setup-method }}" = ghcup ]; then
-            HC=$HOME/.ghcup/bin/$HCKIND-$HCVER
-            echo "HC=$HC" >> "$GITHUB_ENV"
-            echo "HCPKG=$HOME/.ghcup/bin/$HCKIND-pkg-$HCVER" >> "$GITHUB_ENV"
-            echo "HADDOCK=$HOME/.ghcup/bin/haddock-$HCVER" >> "$GITHUB_ENV"
-            echo "CABAL=$HOME/.ghcup/bin/cabal-3.10.1.0 -vnormal+nowrap" >> "$GITHUB_ENV"
-          else
-            HC=$HCDIR/bin/$HCKIND
-            echo "HC=$HC" >> "$GITHUB_ENV"
-            echo "HCPKG=$HCDIR/bin/$HCKIND-pkg" >> "$GITHUB_ENV"
-            echo "HADDOCK=$HCDIR/bin/haddock" >> "$GITHUB_ENV"
-            echo "CABAL=$HOME/.ghcup/bin/cabal-3.10.1.0 -vnormal+nowrap" >> "$GITHUB_ENV"
-          fi
-
           HCNUMVER=$(${HC} --numeric-version|perl -ne '/^(\d+)\.(\d+)\.(\d+)(\.(\d+))?$/; print(10000 * $1 + 100 * $2 + ($3 == 0 ? $5 != 1 : $3))')
           echo "HCNUMVER=$HCNUMVER" >> "$GITHUB_ENV"
           echo "ARG_TESTS=--enable-tests" >> "$GITHUB_ENV"
           echo "ARG_BENCH=--enable-benchmarks" >> "$GITHUB_ENV"
           echo "HEADHACKAGE=false" >> "$GITHUB_ENV"
           echo "ARG_COMPILER=--$HCKIND --with-compiler=$HC" >> "$GITHUB_ENV"
-          echo "GHCJSARITH=0" >> "$GITHUB_ENV"
         env:
           HCKIND: ${{ matrix.compilerKind }}
           HCNAME: ${{ matrix.compiler }}
@@ -180,7 +173,7 @@ jobs:
           chmod a+x $HOME/.cabal/bin/cabal-plan
           cabal-plan --version
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: source
       - name: initial cabal.project for sdist
@@ -188,7 +181,7 @@ jobs:
           touch cabal.project
           echo "packages: $GITHUB_WORKSPACE/source/cborg" >> cabal.project
           echo "packages: $GITHUB_WORKSPACE/source/cbor-tool" >> cabal.project
-          if [ $((HCNUMVER < 90600)) -ne 0 ] ; then echo "packages: $GITHUB_WORKSPACE/source/serialise" >> cabal.project ; fi
+          echo "packages: $GITHUB_WORKSPACE/source/serialise" >> cabal.project
           if [ $((HCNUMVER < 90600)) -ne 0 ] ; then echo "packages: $GITHUB_WORKSPACE/source/binary-serialise-cbor" >> cabal.project ; fi
           echo "packages: $GITHUB_WORKSPACE/source/cborg-json" >> cabal.project
           cat cabal.project
@@ -217,15 +210,15 @@ jobs:
           touch cabal.project.local
           echo "packages: ${PKGDIR_cborg}" >> cabal.project
           echo "packages: ${PKGDIR_cbor_tool}" >> cabal.project
-          if [ $((HCNUMVER < 90600)) -ne 0 ] ; then echo "packages: ${PKGDIR_serialise}" >> cabal.project ; fi
+          echo "packages: ${PKGDIR_serialise}" >> cabal.project
           if [ $((HCNUMVER < 90600)) -ne 0 ] ; then echo "packages: ${PKGDIR_binary_serialise_cbor}" >> cabal.project ; fi
           echo "packages: ${PKGDIR_cborg_json}" >> cabal.project
           echo "package cborg" >> cabal.project
           echo "    ghc-options: -Werror=missing-methods" >> cabal.project
           echo "package cbor-tool" >> cabal.project
           echo "    ghc-options: -Werror=missing-methods" >> cabal.project
-          if [ $((HCNUMVER < 90600)) -ne 0 ] ; then echo "package serialise" >> cabal.project ; fi
-          if [ $((HCNUMVER < 90600)) -ne 0 ] ; then echo "    ghc-options: -Werror=missing-methods" >> cabal.project ; fi
+          echo "package serialise" >> cabal.project
+          echo "    ghc-options: -Werror=missing-methods" >> cabal.project
           if [ $((HCNUMVER < 90600)) -ne 0 ] ; then echo "package binary-serialise-cbor" >> cabal.project ; fi
           if [ $((HCNUMVER < 90600)) -ne 0 ] ; then echo "    ghc-options: -Werror=missing-methods" >> cabal.project ; fi
           echo "package cborg-json" >> cabal.project
@@ -233,7 +226,7 @@ jobs:
           cat >> cabal.project <<EOF
           allow-newer: store-core:text
           EOF
-          $HCPKG list --simple-output --names-only | perl -ne 'for (split /\s+/) { print "constraints: $_ installed\n" unless /^(binary-serialise-cbor|cbor-tool|cborg|cborg-json|serialise)$/; }' >> cabal.project.local
+          $HCPKG list --simple-output --names-only | perl -ne 'for (split /\s+/) { print "constraints: any.$_ installed\n" unless /^(binary-serialise-cbor|cbor-tool|cborg|cborg-json|serialise)$/; }' >> cabal.project.local
           cat cabal.project
           cat cabal.project.local
       - name: dump install plan
@@ -241,7 +234,7 @@ jobs:
           $CABAL v2-build $ARG_COMPILER $ARG_TESTS $ARG_BENCH --dry-run all
           cabal-plan
       - name: restore cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           key: ${{ runner.os }}-${{ matrix.compiler }}-${{ github.sha }}
           path: ~/.cabal/store
@@ -265,8 +258,8 @@ jobs:
           ${CABAL} -vnormal check
           cd ${PKGDIR_cbor_tool} || false
           ${CABAL} -vnormal check
-          if [ $((HCNUMVER < 90600)) -ne 0 ] ; then cd ${PKGDIR_serialise} || false ; fi
-          if [ $((HCNUMVER < 90600)) -ne 0 ] ; then ${CABAL} -vnormal check ; fi
+          cd ${PKGDIR_serialise} || false
+          ${CABAL} -vnormal check
           if [ $((HCNUMVER < 90600)) -ne 0 ] ; then cd ${PKGDIR_binary_serialise_cbor} || false ; fi
           if [ $((HCNUMVER < 90600)) -ne 0 ] ; then ${CABAL} -vnormal check ; fi
           cd ${PKGDIR_cborg_json} || false
@@ -279,8 +272,8 @@ jobs:
           rm -f cabal.project.local
           $CABAL v2-build $ARG_COMPILER --disable-tests --disable-benchmarks all
       - name: save cache
-        uses: actions/cache/save@v3
         if: always()
+        uses: actions/cache/save@v4
         with:
           key: ${{ runner.os }}-${{ matrix.compiler }}-${{ github.sha }}
           path: ~/.cabal/store
