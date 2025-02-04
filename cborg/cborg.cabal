@@ -20,7 +20,10 @@ tested-with:
   GHC == 9.0.1,
   GHC == 9.2.2,
   GHC == 9.4.2,
-  GHC == 9.6.1
+  GHC == 9.6.1,
+  GHC == 9.8.1,
+  GHC == 9.10.1,
+  GHC == 9.12.1
 
 extra-source-files:
   ChangeLog.md
