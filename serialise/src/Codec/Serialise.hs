@@ -24,6 +24,7 @@ module Codec.Serialise
     serialise
   , deserialise
   , deserialiseOrFail
+  , tryDeserialise
 
     -- * Deserialisation exceptions
   , CBOR.Read.DeserialiseFailure(..)
@@ -115,6 +116,9 @@ serialise = CBOR.Write.toLazyByteString . encode
 -- representation is invalid or does not correspond to a value of the
 -- expected type.
 --
+-- The representation may have leftover content that is ignored by this
+-- function; use 'tryDeserialise' if you need to check this.
+--
 -- @since 0.2.0.0
 deserialise :: Serialise a => BS.ByteString -> a
 deserialise bs0 =
@@ -130,6 +134,9 @@ deserialise bs0 =
 -- | Deserialise a Haskell value from the external binary representation,
 -- or get back a @'DeserialiseFailure'@.
 --
+-- The representation may have leftover content that is ignored by this
+-- function; use 'tryDeserialise' if you need to check this.
+--
 -- @since 0.2.0.0
 deserialiseOrFail :: Serialise a => BS.ByteString -> Either CBOR.Read.DeserialiseFailure a
 deserialiseOrFail bs0 =
@@ -141,6 +148,18 @@ deserialiseOrFail bs0 =
         BS.Chunk chunk bs' -> k (Just chunk) >>= supplyAllInput bs'
         BS.Empty           -> k Nothing      >>= supplyAllInput BS.Empty
     supplyAllInput _ (CBOR.Read.Fail _ _ exn) = return (Left exn)
+
+-- | Deserialise a Haskell value from the external binary representation,
+-- or get back a @'DeserialiseFailure'@. In addition to the decoded value
+-- return any remaining input content and the number of bytes consumed.
+--
+-- @since 0.2.4.0
+tryDeserialise :: Serialise a
+               => BS.ByteString
+               -> Either CBOR.Read.DeserialiseFailure
+                         (BS.ByteString, CBOR.Read.ByteOffset, a)
+tryDeserialise = CBOR.Read.deserialiseFromBytesWithSize decode
+
 
 --------------------------------------------------------------------------------
 -- File-based API
