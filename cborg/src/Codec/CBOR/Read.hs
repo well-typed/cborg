@@ -63,9 +63,6 @@ import qualified Data.Text          as T
 import qualified Data.Text.Encoding as T
 import           Data.Word
 import           GHC.Word
-#if defined(ARCH_32bit)
-import           GHC.IntWord64
-#endif
 import           GHC.Exts
 import           GHC.Float (float2Double)
 import           Data.Typeable
@@ -510,8 +507,8 @@ go_fast !bs da@(ConsumeNegWord64Canonical k) =
 go_fast !bs da@(ConsumeInt64Canonical k) =
   case tryConsumeInt64 (BS.unsafeHead bs) bs of
     DecodeFailure             -> go_fast_end bs da
-    DecodedToken sz i@(I64# i#)
-      | isInt64Canonical sz i  -> k i# >>= go_fast (BS.unsafeDrop sz bs)
+    DecodedToken sz (I64# i#)
+      | isInt64Canonical sz i#  -> k i# >>= go_fast (BS.unsafeDrop sz bs)
       | otherwise              -> go_fast_end bs da
 
 go_fast !bs da@(ConsumeListLen64Canonical k) =
@@ -994,8 +991,8 @@ go_fast_end !bs (ConsumeNegWord64Canonical k) =
 go_fast_end !bs (ConsumeInt64Canonical k) =
   case tryConsumeInt64 (BS.unsafeHead bs) bs of
     DecodeFailure             -> return $! SlowFail bs "expected int64"
-    DecodedToken sz i@(I64# i#)
-      | isInt64Canonical sz i  -> k i# >>= go_fast_end (BS.unsafeDrop sz bs)
+    DecodedToken sz (I64# i#)
+      | isInt64Canonical sz i#  -> k i# >>= go_fast_end (BS.unsafeDrop sz bs)
       | otherwise              -> return $! SlowFail bs "non-canonical int64"
 
 go_fast_end !bs (ConsumeListLen64Canonical k) =
@@ -1271,11 +1268,10 @@ go_slow da bs !offset = do
 
     SlowPeekByteOffset bs' k ->
       lift
-#if MIN_VERSION_base(4,17,0)
-        (k (int64ToInt# off#))
-#else
+#if defined(ARCH_32bit)
         (k off#)
-
+#else
+        (k (int64ToInt# off#))
 #endif
         >>= \daz -> go_slow daz bs' offset'
       where
@@ -1381,10 +1377,10 @@ go_slow_overlapped da sz bs_cur bs_next !offset =
       SlowPeekByteOffset bs_empty k ->
         assert (BS.null bs_empty) $ do
         lift
-#if MIN_VERSION_base(4,17,0)
-          (k (int64ToInt# off#))
-#else
+#if defined(ARCH_32bit)
           (k off#)
+#else
+          (k (int64ToInt# off#))
 #endif
           >>= \daz -> go_slow daz bs' offset'
         where
@@ -1565,17 +1561,17 @@ isIntCanonical sz i
 {-# INLINE isWord64Canonical #-}
 isWord64Canonical :: Int -> Word64 -> Bool
 isWord64Canonical sz w
-  | sz == 2   = w > 0x17)
-  | sz == 3   = w > 0xff)
-  | sz == 5   = w > 0xffff)
-  | sz == 9   = w > 0xffffffff)
+  | sz == 2   = w > 0x17
+  | sz == 3   = w > 0xff
+  | sz == 5   = w > 0xffff
+  | sz == 9   = w > 0xffffffff
   | otherwise = True
 
 {-# INLINE isInt64Canonical #-}
 isInt64Canonical :: Int -> Int64# -> Bool
 isInt64Canonical sz i#
-  | isTrue# (i# `ltInt64#` intToInt64# 0#) = isWord64Canonical sz (not64# w#)
-  | otherwise                              = isWord64Canonical sz         w#
+  | isTrue# (i# `ltInt64#` intToInt64# 0#) = isWord64Canonical sz (W64# (not64# w#))
+  | otherwise                              = isWord64Canonical sz (W64# w#)
   where
     w# = int64ToWord64# i#
 #endif
@@ -1796,7 +1792,7 @@ tryConsumeInteger hdr !bs = case word8ToWord hdr of
   0x1b -> let !w = eatTailWord64 bs
               sz = 9
 #if defined(ARCH_32bit)
-          in DecodedToken sz (BigIntToken (isWord64Canonical sz (word64ToWord w)) $! toInteger w)
+          in DecodedToken sz (BigIntToken (isWord64Canonical sz w) $! toInteger w)
 #else
           in DecodedToken sz (BigIntToken (isWordCanonical sz (word64ToWord w))   $! toInteger w)
 #endif
@@ -1838,7 +1834,7 @@ tryConsumeInteger hdr !bs = case word8ToWord hdr of
   0x3b -> let !w = eatTailWord64 bs
               sz = 9
 #if defined(ARCH_32bit)
-          in DecodedToken sz (BigIntToken (isWord64Canonical sz (word64ToWord w)) $! (-1 - toInteger w))
+          in DecodedToken sz (BigIntToken (isWord64Canonical sz w) $! (-1 - toInteger w))
 #else
           in DecodedToken sz (BigIntToken (isWordCanonical sz (word64ToWord w))   $! (-1 - toInteger w))
 #endif
