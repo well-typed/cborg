@@ -13,8 +13,6 @@ category:            Codec
 build-type:          Simple
 cabal-version:       1.22
 tested-with:
-  GHC == 8.4.4,
-  GHC == 8.6.5,
   GHC == 8.8.3,
   GHC == 8.10.7,
   GHC == 9.0.1,
@@ -51,7 +49,7 @@ library
   exposed-modules: Data.Binary.Serialise.CBOR.Read
 
   build-depends:
-    base       >= 4.11 && < 4.21,
+    base       >= 4.11 && < 4.22,
     bytestring < 1.0,
 
     cborg     == 0.2.*,
