@@ -315,11 +315,16 @@ getDecodeAction (Decoder k) = k (\x -> return (Done x))
 toInt8   :: Int# -> Int8
 toInt16  :: Int# -> Int16
 toInt32  :: Int# -> Int32
-toInt64  :: Int# -> Int64
 toWord8  :: Word# -> Word8
 toWord16 :: Word# -> Word16
 toWord32 :: Word# -> Word32
+#if defined(ARCH_64bit)
+toInt64  :: Int# -> Int64
 toWord64 :: Word# -> Word64
+#else
+toInt64  :: Int64# -> Int64
+toWord64 :: Word64# -> Word64
+#endif
 #if MIN_VERSION_ghc_prim(0,8,0)
 toInt8   n = I8#  (intToInt8# n)
 toInt16  n = I16# (intToInt16# n)
@@ -327,17 +332,12 @@ toInt32  n = I32# (intToInt32# n)
 toWord8  n = W8#  (wordToWord8# n)
 toWord16 n = W16# (wordToWord16# n)
 toWord32 n = W32# (wordToWord32# n)
-#if WORD_SIZE_IN_BITS == 64
-#if MIN_VERSION_base(4,17,0)
+#if MIN_VERSION_base(4,17,0) && defined(ARCH_64bit)
 toInt64  n = I64# (intToInt64# n)
 toWord64 n = W64# (wordToWord64# n)
 #else
 toInt64  n = I64# n
 toWord64 n = W64# n
-#endif
-#else
-toInt64  n = I64# (intToInt64# n)
-toWord64 n = W64# (wordToWord64# n)
 #endif
 #else
 toInt8   n = I8#  n
@@ -986,7 +986,7 @@ type ByteOffset = Int64
 -- @since 0.2.2.0
 peekByteOffset :: Decoder s ByteOffset
 peekByteOffset = Decoder (\k -> return (PeekByteOffset (\off# -> k (I64#
-#if MIN_VERSION_base(4,17,0)
+#if MIN_VERSION_base(4,17,0) && !defined(ARCH_32bit)
         (intToInt64# off#)
 #else
         off#

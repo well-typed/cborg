@@ -1,0 +1,41 @@
+name: Other CI
+on:
+  - push
+  - pull_request
+jobs:
+  i386:
+    name: i386 - ${{ matrix.ghc }}
+    runs-on: ubuntu-latest
+    container:
+      image: i386/debian:bookworm
+    strategy:
+      fail-fast: false
+      matrix:
+        ghc:
+          - 9.8.1
+          - 9.6.3
+          - 9.4.8
+          - 9.2.8
+          - 9.0.2
+          - 8.10.7
+          - 8.8.4
+          - 8.6.5
+          - 8.4.4
+    steps:
+    - name: Install system dependencies
+      run: |
+        apt-get update -y
+        apt-get install -y build-essential curl libffi-dev libffi8 libgmp-dev libgmp10 libncurses-dev libncurses5 libtinfo5 zlib1g-dev
+        curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
+      env:
+        BOOTSTRAP_HASKELL_NONINTERACTIVE: 1
+        BOOTSTRAP_HASKELL_INSTALL_NO_STACK: 1
+        BOOTSTRAP_HASKELL_GHC_VERSION: ${{ matrix.ghc }}
+    - uses: actions/checkout@v1
+
+    - name: Build and test
+      run: |
+        . ~/.ghcup/env
+        cabal configure --enable-tests --enable-benchmarks
+        cabal build all
+        cabal test all --test-show-details=direct

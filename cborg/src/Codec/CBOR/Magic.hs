@@ -120,7 +120,7 @@ import qualified Numeric.Half as Half
 import           Data.Bits ((.|.), unsafeShiftL)
 #endif
 
-#if defined(ARCH_32bit)
+#if defined(ARCH_32bit) && !MIN_VERSION_ghc_prim(0,8,0)
 import           GHC.IntWord64 (wordToWord64#, word64ToWord#,
                                 intToInt64#, int64ToInt#,
                                 leWord64#, ltWord64#, word64ToInt64#)
@@ -173,7 +173,7 @@ grabWord64 (Ptr ip#) = W64# (wordToWord64# (byteSwap# (word64ToWord# (indexWord6
 grabWord64 (Ptr ip#) = W64# (byteSwap# (indexWord64OffAddr# ip# 0#))
 #endif
 #else
-grabWord64 (Ptr ip#) = W64# (byteSwap64# (word64ToWord# (indexWord64OffAddr# ip# 0#)))
+grabWord64 (Ptr ip#) = W64# (byteSwap64# (indexWord64OffAddr# ip# 0#))
 #endif
 
 #elif defined(MEM_UNALIGNED_OPS) && \
@@ -484,7 +484,7 @@ word16ToInt (W16# w#) = I# (word2Int# (word16ToWord# w#))
 word32ToInt (W32# w#) = I# (word2Int# (word32ToWord# w#))
 #else
 word32ToInt (W32# w#) =
-  case isTrue# (w# `ltWord#` 0x80000000##) of
+  case isTrue# (word32ToWord# w# `ltWord#` 0x80000000##) of
     True  -> Just (I# (word2Int# (word32ToWord# w#)))
     False -> Nothing
 #endif
@@ -530,6 +530,19 @@ word64ToInt (W64# w#) =
 {-# INLINE word64ToInt #-}
 
 #if defined(ARCH_32bit)
+#if MIN_VERSION_ghc_prim(0,8,0)
+word8ToInt64  (W8#  w#) = I64# (intToInt64# (word2Int# (word8ToWord# w#)))
+word16ToInt64 (W16# w#) = I64# (intToInt64# (word2Int# (word16ToWord# w#)))
+word32ToInt64 (W32# w#) = I64# (word64ToInt64# (wordToWord64# (word32ToWord# w#)))
+word64ToInt64 (W64# w#) =
+  case isTrue# (w# `ltWord64#` uncheckedShiftL64# (wordToWord64# 1##) 63#) of
+    True  -> Just (I64# (word64ToInt64# w#))
+    False -> Nothing
+
+word8ToWord64  (W8#  w#) = W64# (wordToWord64# (word8ToWord# w#))
+word16ToWord64 (W16# w#) = W64# (wordToWord64# (word16ToWord# w#))
+word32ToWord64 (W32# w#) = W64# (wordToWord64# (word32ToWord# w#))
+#else
 word8ToInt64  (W8#  w#) = I64# (intToInt64# (word2Int# w#))
 word16ToInt64 (W16# w#) = I64# (intToInt64# (word2Int# w#))
 word32ToInt64 (W32# w#) = I64# (word64ToInt64# (wordToWord64# w#))
@@ -541,6 +554,7 @@ word64ToInt64 (W64# w#) =
 word8ToWord64  (W8#  w#) = W64# (wordToWord64# w#)
 word16ToWord64 (W16# w#) = W64# (wordToWord64# w#)
 word32ToWord64 (W32# w#) = W64# (wordToWord64# w#)
+#endif
 
 {-# INLINE word8ToInt64  #-}
 {-# INLINE word16ToInt64 #-}
