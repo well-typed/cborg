@@ -50,6 +50,12 @@ module Codec.CBOR.Encoding
   , encodeFloat              -- :: Float -> Encoding
   , encodeDouble             -- :: Double -> Encoding
   , encodePreEncoded         -- :: B.ByteString -> Encoding
+  
+  -- ** Embedded CBOR data
+  -- $embedded-cbor
+  , encodeEmbeddedCBOR
+  , encodeWithinBytes
+  , encodeTagEmbeddedCBOR
   ) where
 
 #include "cbor.h"
@@ -130,6 +136,7 @@ data Tokens =
 
     -- Special
     | TkEncoded  {-# UNPACK #-} !B.ByteString Tokens
+    | TkEmbedded {-# UNPACK #-} !Word Tokens  Tokens
 
     | TkEnd
     deriving (Show,Eq)
@@ -367,3 +374,50 @@ encodeDouble = Encoding . TkFloat64
 -- @since 0.2.2.0
 encodePreEncoded :: B.ByteString -> Encoding
 encodePreEncoded = Encoding . TkEncoded
+
+--------------------------------------------------------------
+-- Encoded CBOR Data Item, Tag 24, RFC 7049 section 2.4.4.1
+
+-- $embedded-cbor
+-- | Sometimes it is beneficial to carry an embedded CBOR data item that
+-- is not meant to be decoded immediately at the time the enclosing data
+-- item is being parsed.  Tag 24 (CBOR data item) can be used to tag the
+-- embedded byte string as a data item encoded in CBOR format.
+--
+-- This can also be used as an encoding trick to provide a length prefix for
+-- the encoed bytes of a CBOR term.
+--
+-- See RFC 7049 section 2.4.4.1 .
+
+-- | Encode an embedded CBOR data item. This is a bytes token that contains
+-- further CBOR data. The given size must match the eventual size of the
+-- embedded 'Encoding'.
+--
+encodeEmbeddedCBOR :: Word -> Encoding -> Encoding
+encodeEmbeddedCBOR sz x =
+    encodeTagEmbeddedCBOR
+ <> encodeWithinBytes sz x
+
+-- | Encode a bytes token where the contents is further CBOR encoded data.
+-- The correct final size of the bytes token must be supplied up front.
+--
+-- This is more efficient than running another encoder to produce bytes and
+-- then including the bytes token.
+--
+-- The trade-off however is that the size of the bytes token must be provided
+-- but it cannot be checked in advance, so the inner encoding may result in too
+-- few or too many bytes. This is checked afterwards however, so it will fail
+-- if there is a mismatch.
+--
+encodeWithinBytes :: Word -> Encoding -> Encoding
+encodeWithinBytes sz (Encoding enc) = Encoding (TkEmbedded sz (enc TkEnd))
+
+-- | Encode the tag for an embedded CBOR data item, tag 24.
+--
+-- This tag is used to indicate that the following bytes token contains further
+-- data in CBOR format.
+--
+-- @since 0.2.3.0
+encodeTagEmbeddedCBOR :: Encoding
+encodeTagEmbeddedCBOR = encodeTag 24
+

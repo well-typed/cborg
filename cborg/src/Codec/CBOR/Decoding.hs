@@ -66,6 +66,13 @@ module Codec.CBOR.Decoding
   , decodeMapLenOrIndef  -- :: Decoder s (Maybe Int)
   , decodeBreakOr        -- :: Decoder s Bool
 
+  -- ** Embedded CBOR data
+  -- $embedded-cbor
+  , decodeEmbeddedCBOR
+  , decodeTagEmbeddedCBOR
+  , decodeWithinBytes
+  , decodeBytesLen
+
   -- ** Inspecting the token type
   , peekTokenType        -- :: Decoder s TokenType
   , TokenType(..)
@@ -154,6 +161,7 @@ data DecodeAction s a
     | ConsumeInt32   (Int#  -> ST s (DecodeAction s a))
     | ConsumeListLen (Int#  -> ST s (DecodeAction s a))
     | ConsumeMapLen  (Int#  -> ST s (DecodeAction s a))
+    | ConsumeBytesLen(Int#  -> ST s (DecodeAction s a))
     | ConsumeTag     (Word# -> ST s (DecodeAction s a))
 
 -- 64bit variants for 32bit machines
@@ -1001,12 +1009,82 @@ peekByteOffset = Decoder (\k -> return (PeekByteOffset (\off# -> k (I64#
 -- > x <- decode
 -- > !after  <- peekByteOffset
 --
+-- @since 0.2.2.0
 decodeWithByteSpan :: Decoder s a -> Decoder s (a, ByteOffset, ByteOffset)
 decodeWithByteSpan da = do
     !before <- peekByteOffset
     x <- da
     !after  <- peekByteOffset
     return (x, before, after)
+
+--------------------------------------------------------------
+-- Encoded CBOR Data Item, Tag 24, RFC 7049 section 2.4.4.1
+
+-- $embedded-cbor
+-- | Sometimes it is beneficial to carry an embedded CBOR data item that
+-- is not meant to be decoded immediately at the time the enclosing data
+-- item is being parsed.  Tag 24 (CBOR data item) can be used to tag the
+-- embedded byte string as a data item encoded in CBOR format.
+--
+-- This can also be used as an encoding trick to provide a length prefix for
+-- the encoed bytes of a CBOR term.
+--
+-- See RFC 7049 section 2.4.4.1 .
+
+-- | Decode an embedded CBOR data item. This is a bytes token that contains
+-- further CBOR data.
+--
+-- @since 0.2.3.0
+decodeEmbeddedCBOR :: Decoder s a -> Decoder s a
+decodeEmbeddedCBOR da = do
+    decodeTagEmbeddedCBOR
+    decodeWithinBytes da
+
+-- | Decode the tag for an embedded CBOR data item, tag 24.
+--
+-- This tag is used to indicate that the following bytes token contains further
+-- data in CBOR format.
+--
+-- @since 0.2.3.0
+decodeTagEmbeddedCBOR :: Decoder s ()
+decodeTagEmbeddedCBOR = do
+    tag <- decodeTag
+    if tag == 24 then return ()
+                 else fail "decodeTagEmbeddedCBOR: expected tag 24"
+
+-- | Run a decoder on the contents of a bytes token. The decoder must consume
+-- the whole contents exactly.
+--
+-- This is more efficient than decoding the bytes token and then running
+-- another decoder on the bytes.
+--
+-- The trade-off however is that the size of the bytes token is not checked in
+-- advance, so the inner decoder may consume too few or too many bytes. This
+-- is checked afterwards however, so it will fail if there is a mismatch.
+--
+-- @since 0.2.3.0
+decodeWithinBytes :: Decoder s a -> Decoder s a
+decodeWithinBytes da = do
+    available <- decodeBytesLen
+    !before <- peekByteOffset
+    x <- da
+    !after  <- peekByteOffset
+    let !consumed = after - before
+    if consumed == fromIntegral available
+      then return x
+      else fail $ "decodeWithinBytes: " ++ show available
+               ++ " bytes available but " ++ show consumed ++ " consumed"
+
+-- | This is an unsafe decoder primitive. It consumes and returns the length
+-- prefix of a bytes token. This leaves the decoder at a byte offset that is
+-- within a token. This is only useful to decode the body of a bytes token
+-- as further CBOR. This pattern is captured by the safer higher level
+-- functions 'decodeWithinBytes' and 'decodeEmbeddedCBOR'.
+--
+-- @since 0.2.3.0
+decodeBytesLen :: Decoder s Int
+decodeBytesLen = Decoder (\k -> return (ConsumeBytesLen (\n# -> k (I# n#))))
+{-# INLINE decodeBytesLen #-}
 
 {-
 expectExactly :: Word -> Decoder (Word :#: s) s

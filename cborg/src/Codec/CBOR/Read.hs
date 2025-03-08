@@ -349,6 +349,11 @@ go_fast !bs da@(ConsumeMapLen k) =
       DecodeFailure           -> go_fast_end bs da
       DecodedToken sz (I# n#) -> k n# >>= go_fast (BS.unsafeDrop sz bs)
 
+go_fast !bs da@(ConsumeBytesLen k) =
+    case tryConsumeBytesLen (BS.unsafeHead bs) bs of
+      DecodeFailure           -> go_fast_end bs da
+      DecodedToken sz (I# n#) -> k n# >>= go_fast (BS.unsafeDrop sz bs)
+
 go_fast !bs da@(ConsumeTag k) =
     case tryConsumeTag (BS.unsafeHead bs) bs of
       DecodeFailure           -> go_fast_end bs da
@@ -829,6 +834,11 @@ go_fast_end !bs (ConsumeMapLen k) =
     case tryConsumeMapLen (BS.unsafeHead bs) bs of
       DecodeFailure           -> return $! SlowFail bs "expected map len"
       DecodedToken sz (I# n#) -> k n# >>= go_fast_end (BS.unsafeDrop sz bs)
+
+go_fast_end !bs (ConsumeBytesLen k) =
+    case tryConsumeBytesLen (BS.unsafeHead bs) bs of
+      DecodeFailure           -> return $! SlowFail bs "expected bytes"
+      DecodedToken sz (I# n#) -> k n# >>= go_fast (BS.unsafeDrop sz bs)
 
 go_fast_end !bs (ConsumeTag k) =
     case tryConsumeTag (BS.unsafeHead bs) bs of
@@ -2110,6 +2120,49 @@ tryConsumeMapLenOrIndef hdr !bs = case word8ToWord hdr of
   0xbf -> DecodedToken 1 (-1) -- indefinite length
   _    -> DecodeFailure
 
+
+{-# INLINE tryConsumeBytesLen #-}
+tryConsumeBytesLen :: Word8 -> ByteString -> DecodedToken Int
+tryConsumeBytesLen hdr !bs = case word8ToWord hdr of
+
+  -- Bytes (type 2)
+  0x40 -> DecodedToken 1 0
+  0x41 -> DecodedToken 1 1
+  0x42 -> DecodedToken 1 2
+  0x43 -> DecodedToken 1 3
+  0x44 -> DecodedToken 1 4
+  0x45 -> DecodedToken 1 5
+  0x46 -> DecodedToken 1 6
+  0x47 -> DecodedToken 1 7
+  0x48 -> DecodedToken 1 8
+  0x49 -> DecodedToken 1 9
+  0x4a -> DecodedToken 1 10
+  0x4b -> DecodedToken 1 11
+  0x4c -> DecodedToken 1 12
+  0x4d -> DecodedToken 1 13
+  0x4e -> DecodedToken 1 14
+  0x4f -> DecodedToken 1 15
+  0x50 -> DecodedToken 1 16
+  0x51 -> DecodedToken 1 17
+  0x52 -> DecodedToken 1 18
+  0x53 -> DecodedToken 1 19
+  0x54 -> DecodedToken 1 20
+  0x55 -> DecodedToken 1 21
+  0x56 -> DecodedToken 1 22
+  0x57 -> DecodedToken 1 23
+  0x58 -> DecodedToken 2 (word8ToInt  (eatTailWord8 bs))
+  0x59 -> DecodedToken 3 (word16ToInt (eatTailWord16 bs))
+#if defined(ARCH_64bit)
+  0x5a -> DecodedToken 5 (word32ToInt (eatTailWord32 bs))
+#else
+  0x5a -> case word32ToInt (eatTailWord32 bs) of
+            Just n  -> DecodedToken 5 n
+            Nothing -> DecodeFailure
+#endif
+  0x5b -> case word64ToInt (eatTailWord64 bs) of
+            Just n  -> DecodedToken 9 n
+            Nothing -> DecodeFailure
+  _    -> DecodeFailure
 
 {-# INLINE tryConsumeTag #-}
 tryConsumeTag :: Word8 -> ByteString -> DecodedToken Word
