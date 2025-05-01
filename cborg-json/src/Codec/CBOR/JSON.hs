@@ -78,6 +78,7 @@ decodeValue lenient = do
       TypeListLen      -> decodeListLen >>= decodeListN lenient
       TypeListLenIndef -> decodeListLenIndef >> decodeListIndef lenient []
       TypeMapLen       -> decodeMapLen >>= flip (decodeMapN lenient) mempty
+      TypeMapLenIndef  -> decodeMapLenIndef >> decodeMapIndef lenient mempty
 
       TypeBytes   -> bytesToBase64Text <$> decodeBytes
 
@@ -117,18 +118,31 @@ decodeMapN !lenient !n acc =
     case n of
       0 -> return $! Object acc
       _ -> do
-        !tk <- decodeValue lenient >>= \v -> case v of
-                 String s           -> return s
-                 -- These cases are only allowed when --lenient is passed,
-                 -- as printing them as strings may result in key collisions.
-                 Number d | lenient -> return $ T.pack (show d)
-                 Bool   b | lenient -> return $ T.pack (show b)
-                 _        -> fail "Could not decode map key type"
-        !tv  <- decodeValue lenient
-        decodeMapN lenient (n-1) (insert tk tv acc)
+        acc' <- decodeKV lenient acc
+        decodeMapN lenient (n-1) acc'
+
+decodeMapIndef :: Bool -> Aeson.Object -> Decoder s Value
+decodeMapIndef !lenient acc = do
+    stop <- decodeBreakOr
+    if stop then return $! Object acc
+            else do acc' <- decodeKV lenient acc
+                    decodeMapIndef lenient acc'
+
+decodeKV :: Bool -> KM.KeyMap Value -> Decoder s (KM.KeyMap Value)
+decodeKV lenient acc = do
+    !tk <- decodeValue lenient >>= \v -> case v of
+             String s           -> return s
+             -- These cases are only allowed when --lenient is passed,
+             -- as printing them as strings may result in key collisions.
+             Number d | lenient -> return $ T.pack (show d)
+             Bool   b | lenient -> return $ T.pack (show b)
+             _        -> fail "Could not decode map key type"
+    !tv  <- decodeValue lenient
+    return $! insert tk tv acc
   where
 #if MIN_VERSION_aeson(2,0,0)
     insert k v m = KM.insert (K.fromText k) v m
 #else
     insert k v m = HM.insert k v m
 #endif
+
