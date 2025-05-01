@@ -92,6 +92,7 @@ test-suite tests
     base-orphans,
     base16-bytestring       >= 1.0     && < 1.1,
     bytestring              >= 0.10.4  && < 0.13,
+    containers              >= 0.5     && < 0.8,
     cborg,
     cborg-json,
     aeson                   >= 0.7     && < 2.3,
