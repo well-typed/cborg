@@ -160,7 +160,7 @@ test-suite tests
     base16-bytestring       >= 1.0     && < 1.1,
     deepseq                 >= 1.0     && < 1.6,
     half                    >= 0.2.2.3 && < 0.4,
-    QuickCheck              >= 2.9     && < 2.16,
+    QuickCheck              >= 2.9     && < 2.17,
     random,
     scientific              >= 0.3     && < 0.4,
     tasty                   >= 0.11    && < 1.6,
