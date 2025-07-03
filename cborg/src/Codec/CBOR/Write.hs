@@ -67,10 +67,6 @@ import           GHC.Integer.GMP.Internals             (BigNat)
 #endif
 #endif
 
-#if __GLASGOW_HASKELL__ < 710
-import           GHC.Word
-#endif
-
 import qualified Codec.CBOR.ByteArray.Sliced           as BAS
 import           Codec.CBOR.Encoding
 import           Codec.CBOR.Magic
