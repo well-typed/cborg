@@ -74,7 +74,7 @@ library
     ghc-prim                >= 0.5.3   && < 0.14,
     half                    >= 0.2.2.3 && < 0.4,
     hashable                >= 1.2     && < 2,
-    primitive               >= 0.5     && < 0.10,
+    primitive               >= 0.8.0.0 && < 0.10,
     strict                  >= 0.4     && < 0.6,
     text                    >= 1.1     && < 2.2,
     these                   >= 1.1     && < 2.2,
@@ -114,15 +114,15 @@ test-suite tests
     Tests.GeneralisedUTF8
 
   build-depends:
-    base                    >= 4.11    && < 4.22,
-    bytestring              >= 0.10.4  && < 0.13,
+    base,
+    bytestring,
     directory               >= 1.0     && < 1.4,
     filepath                >= 1.0     && < 1.6,
-    text                    >= 1.1     && < 2.2,
-    time                    >= 1.4     && < 1.15,
-    containers              >= 0.5     && < 0.8,
-    unordered-containers    >= 0.2     && < 0.3,
-    primitive               >= 0.5     && < 0.10,
+    text,
+    time,
+    containers,
+    unordered-containers,
+    primitive,
     cborg,
     serialise,
     QuickCheck              >= 2.15    && < 2.17,
@@ -130,7 +130,7 @@ test-suite tests
     tasty-hunit             >= 0.9     && < 0.11,
     tasty-quickcheck        >= 0.8     && < 0.12,
     quickcheck-instances    >= 0.3.32  && < 0.4,
-    vector                  >= 0.10    && < 0.14
+    vector
 
 --------------------------------------------------------------------------------
 -- Benchmarks
