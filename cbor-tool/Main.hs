@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP          #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RankNTypes   #-}
 module Main
@@ -12,9 +11,6 @@ import           System.Exit                         ( exitFailure )
 import           System.IO                           ( hPutStrLn, stderr )
 import           Text.Printf                         ( printf )
 
-#if !MIN_VERSION_base(4,8,0)
-import           Control.Applicative
-#endif
 import qualified Data.Aeson                          as Aeson
 import           Data.Aeson.Encode.Pretty            as Aeson.Pretty
 import qualified Data.ByteString.Lazy                as LB

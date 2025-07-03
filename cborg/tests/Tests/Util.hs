@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 module Tests.Util
   ( splits2
@@ -14,10 +13,6 @@ import qualified Data.ByteString.Lazy as BSL
 import           Data.Word
 
 import           Test.Tasty.QuickCheck
-
-#if !MIN_VERSION_base(4,8,0)
-import           Control.Applicative
-#endif
 
 -- | Generate all 2-splits of a serialised CBOR value.
 splits2 :: BSL.ByteString -> [BSL.ByteString]

@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Micro.CBOR (serialise, deserialise) where
 
@@ -9,16 +8,7 @@ import Codec.Serialise.Encoding
 import Codec.Serialise.Decoding hiding (DecodeAction(Done, Fail))
 import qualified Codec.Serialise as Serialise
 
-#if ! MIN_VERSION_base(4,11,0)
-import           Data.Monoid
-#endif
-
 import qualified Data.ByteString.Lazy as BS
-
-#if !MIN_VERSION_base(4,8,0)
-import Control.Applicative
-import Data.Word
-#endif
 
 serialise :: Tree -> BS.ByteString
 serialise = Serialise.serialise

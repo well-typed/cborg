@@ -97,11 +97,7 @@ prepBenchmarkFiles = do
 
 -- | Do a garbage collection.
 doGC :: IO ()
-#if MIN_VERSION_base(4,7,0)
 doGC = performMinorGC >> performMajorGC
-#else
-doGC = performGC
-#endif
 
 -- Write a notice to the screen (with timing information).
 notice :: String -> IO a -> IO a

@@ -92,9 +92,7 @@ import           GHC.ST (ST(ST))
 import           GHC.IO (IO(IO), unsafeDupablePerformIO)
 import           GHC.Word
 import           GHC.Int
-#if MIN_VERSION_base(4,11,0)
 import           GHC.Float (castWord32ToFloat, castWord64ToDouble)
-#endif
 import           Foreign.Ptr
 
 #if defined(OPTIMIZE_GMP)
@@ -351,47 +349,11 @@ floatToWord16 = \x -> cast (Half.getHalf (Half.toHalf x))
 
 -- | Cast a 'Word32' to a 'Float'.
 wordToFloat32 :: Word32 -> Float
-#if MIN_VERSION_base(4,11,0)
 wordToFloat32 = GHC.Float.castWord32ToFloat
-#else
-wordToFloat32 (W32# w#) = F# (wordToFloat32# w#)
-{-# INLINE wordToFloat32 #-}
-
--- | Cast an unboxed word to an unboxed float.
-wordToFloat32# :: Word# -> Float#
-wordToFloat32# w# =
-    case newByteArray# 4# realWorld# of
-      (# s', mba# #) ->
-        case writeWord32Array# mba# 0# w# s' of
-          s'' ->
-            case readFloatArray# mba# 0# s'' of
-              (# _, f# #) -> f#
-{-# NOINLINE wordToFloat32# #-}
-#endif
 
 -- | Cast a 'Word64' to a 'Float'.
 wordToFloat64 :: Word64 -> Double
-#if MIN_VERSION_base(4,11,0)
 wordToFloat64 = GHC.Float.castWord64ToDouble
-#else
-wordToFloat64 (W64# w#) = D# (wordToFloat64# w#)
-{-# INLINE wordToFloat64 #-}
-
--- | Cast an unboxed word to an unboxed double.
-#if defined(ARCH_64bit)
-wordToFloat64# :: Word# -> Double#
-#else
-wordToFloat64# :: Word64# -> Double#
-#endif
-wordToFloat64# w# =
-    case newByteArray# 8# realWorld# of
-      (# s', mba# #) ->
-        case writeWord64Array# mba# 0# w# s' of
-          s'' ->
-            case readDoubleArray# mba# 0# s'' of
-              (# _, f# #) -> f#
-{-# NOINLINE wordToFloat64# #-}
-#endif
 
 --------------------------------------------------------------------------------
 -- Casting words and ints

@@ -32,10 +32,6 @@ module Codec.CBOR.Write
 import           Data.Bits
 import           Data.Int
 
-#if ! MIN_VERSION_base(4,11,0)
-import           Data.Monoid
-#endif
-
 import           Data.Word
 import           Foreign.Ptr
 
@@ -313,11 +309,7 @@ intMP =
       where
         sign :: Word     -- extend sign to whole length
         sign = fromIntegral (n `unsafeShiftR` intBits)
-#if MIN_VERSION_base(4,7,0)
         intBits = finiteBitSize (undefined :: Int) - 1
-#else
-        intBits = bitSize (undefined :: Int) - 1
-#endif
 
         mt   :: Word8    -- select major type
         mt   = fromIntegral (sign .&. 0x20)
@@ -351,11 +343,7 @@ int64MP =
       where
         sign :: Word64   -- extend sign to whole length
         sign = fromIntegral (n `unsafeShiftR` intBits)
-#if MIN_VERSION_base(4,7,0)
         intBits = finiteBitSize (undefined :: Int64) - 1
-#else
-        intBits = bitSize (undefined :: Int64) - 1
-#endif
 
         mt   :: Word8    -- select major type
         mt   = fromIntegral (sign .&. 0x20)

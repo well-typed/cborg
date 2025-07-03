@@ -39,10 +39,6 @@ import           System.Random (Random)
 
 import           Test.QuickCheck
 
-#if !MIN_VERSION_base(4,8,0)
-import           Control.Applicative
-#endif
-
 -- | QuickCheck generator for large integers
 --
 newtype LargeInteger = LargeInteger { getLargeInteger :: Integer }

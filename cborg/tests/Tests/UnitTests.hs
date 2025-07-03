@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP               #-}
 {-# LANGUAGE NamedFieldPuns    #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Tests.UnitTests (testTree) where
@@ -12,11 +11,6 @@ import qualified Tests.Reference.Implementation as Ref
 import           Tests.Reference.TestVectors
 import           Tests.Reference (termToJson, equalJson)
 import           Tests.Term as Term (toRefTerm, serialise, deserialise)
-
-#if !MIN_VERSION_base(4,8,0)
-import           Control.Applicative
-#endif
-
 
 -------------------------------------------------------------------------------
 -- Unit tests for test vector from CBOR spec RFC7049 Appendix A

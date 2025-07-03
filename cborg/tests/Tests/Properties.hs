@@ -69,10 +69,6 @@ import           Tests.Term
                    ( fromRefTerm, toRefTerm, eqTerm, canonicaliseTerm )
 import           Tests.Util
 
-#if !MIN_VERSION_base(4,8,0)
-import           Control.Applicative
-#endif
-
 
 #if MIN_VERSION_bytestring(0,11,1)
 import qualified Data.ByteString.Short as SBS

@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans -fno-warn-name-shadowing #-}
 module Macro.Load (readPkgIndex) where
 
@@ -25,20 +24,8 @@ import System.FilePath (normalise, splitDirectories, takeExtension)
 import qualified Codec.Archive.Tar       as Tar
 import qualified Codec.Archive.Tar.Entry as Tar
 
-#if MIN_VERSION_base(4,11,0)
 import Prelude hiding ((<>))
-#endif
 import Data.Semigroup hiding (option)
-
-#if !MIN_VERSION_base(4,8,0)
-import Control.Applicative (Applicative(..))
-import Data.Monoid hiding ((<>))
-#endif
-
-#if !MIN_VERSION_base(4,9,0)
-instance Semigroup Doc where
-  a <> b = mappend a b
-#endif
 
 readPkgIndex :: BS.ByteString -> Either String [GenericPackageDescription]
 readPkgIndex = fmap extractCabalFiles . readTarIndex

@@ -289,10 +289,6 @@ instance Monad (Decoder s) where
     {-# INLINE (>>) #-}
     (>>) = (*>)
 
-#if !MIN_VERSION_base(4,13,0)
-    fail = Fail.fail
-#endif
-
 -- | @since 0.2.0.0
 instance Fail.MonadFail (Decoder s) where
     fail msg = Decoder $ \_ -> return (Fail msg)

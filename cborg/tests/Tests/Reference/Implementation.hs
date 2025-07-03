@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, BangPatterns #-}
+{-# LANGUAGE BangPatterns #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      : Codec.CBOR
@@ -84,11 +84,6 @@ import           Control.Monad (ap)
 import           Test.QuickCheck.Arbitrary
 import           Test.QuickCheck.Gen
 
-#if !MIN_VERSION_base(4,8,0)
-import           Data.Monoid (Monoid(..))
-import           Control.Applicative
-#endif
-
 import           Tests.Reference.Generators
 
 
@@ -119,9 +114,6 @@ instance Monad Decoder where
   d >>= f  = Decoder (\ws -> case runDecoder d ws of
                                Nothing       -> Nothing
                                Just (x, ws') -> runDecoder (f x) ws')
-#if !MIN_VERSION_base(4,13,0)
-  fail = Fail.fail
-#endif
 
 instance Fail.MonadFail Decoder where
   fail _   = Decoder (\_ -> Nothing)

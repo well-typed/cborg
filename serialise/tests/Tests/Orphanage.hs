@@ -2,24 +2,15 @@
 {-# LANGUAGE DataKinds          #-}
 {-# LANGUAGE FlexibleContexts   #-}
 {-# LANGUAGE StandaloneDeriving #-}
-#if MIN_VERSION_base(4,10,0)
 {-# LANGUAGE TypeApplications   #-}
-#endif
 module Tests.Orphanage where
 
-#if !MIN_VERSION_base(4,8,0)
-import           Control.Applicative
-import           Data.Monoid as Monoid
-#endif
-
-#if MIN_VERSION_base(4,9,0) && !MIN_VERSION_QuickCheck(2,10,0)
+#if !MIN_VERSION_QuickCheck(2,10,0)
 import qualified Data.Semigroup as Semigroup
 #endif
 
-#if MIN_VERSION_base(4,10,0)
 import           Data.Proxy
 import qualified Type.Reflection as Refl
-#endif
 
 import           GHC.Fingerprint.Type
 import           Data.Ord
@@ -152,7 +143,7 @@ instance Arbitrary CDouble where
 
 -- Miscellaneous types from base
 
-#if MIN_VERSION_base(4,9,0) && !MIN_VERSION_QuickCheck(2,10,0)
+#if !MIN_VERSION_QuickCheck(2,10,0)
 instance Arbitrary a => Arbitrary (Semigroup.Min a) where
   arbitrary = fmap Semigroup.Min arbitrary
   shrink = map Semigroup.Min . shrink . Semigroup.getMin
@@ -201,7 +192,7 @@ instance (Vector.Primitive.Prim a, Arbitrary a
     arbitrary = Vector.Primitive.fromList <$> arbitrary
 #endif
 
-#if MIN_VERSION_base(4,7,0) && !MIN_VERSION_QuickCheck(2,10,0)
+#if !MIN_VERSION_QuickCheck(2,10,0)
 instance Arbitrary (Proxy a) where
   arbitrary = return Proxy
 #endif
@@ -209,9 +200,7 @@ instance Arbitrary (Proxy a) where
 instance Arbitrary Fingerprint where
   arbitrary = Fingerprint <$> arbitrary <*> arbitrary
 
-#if MIN_VERSION_base(4,10,0)
 data Kind a = Type a
 
 instance Arbitrary Refl.SomeTypeRep where
   arbitrary = return (Refl.someTypeRep $ Proxy @([Either (Maybe Int) (Proxy ('Type String))]))
-#endif
