@@ -1,5 +1,4 @@
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP          #-}
 
 module Codec.CBOR.JSON
  ( encodeValue
@@ -20,12 +19,8 @@ import qualified Data.Text                           as T
 import qualified Data.Text.Encoding                  as TE
 import qualified Data.Vector                         as V
 
-#if MIN_VERSION_aeson(2,0,0)
 import qualified Data.Aeson.Key                      as K
 import qualified Data.Aeson.KeyMap                   as KM
-#else
-import qualified Data.HashMap.Lazy                   as HM
-#endif
 
 -- | Encode a JSON value into CBOR.
 encodeValue :: Value -> Encoding
@@ -43,15 +38,9 @@ encodeObject vs =
      encodeMapLen (fromIntegral size)
   <> foldrWithKey (\k v r -> encodeString' k <> encodeValue v <> r) mempty vs
   where
-#if MIN_VERSION_aeson(2,0,0)
     size = KM.size vs
     foldrWithKey = KM.foldrWithKey
     encodeString' = encodeString . K.toText
-#else
-    size = HM.size vs
-    foldrWithKey = HM.foldrWithKey
-    encodeString' = encodeString
-#endif
 
 encodeArray :: Aeson.Array -> Encoding
 encodeArray vs =
@@ -127,8 +116,4 @@ decodeMapN !lenient !n acc =
         !tv  <- decodeValue lenient
         decodeMapN lenient (n-1) (insert tk tv acc)
   where
-#if MIN_VERSION_aeson(2,0,0)
     insert k v m = KM.insert (K.fromText k) v m
-#else
-    insert k v m = HM.insert k v m
-#endif
