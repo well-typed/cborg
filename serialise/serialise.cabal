@@ -159,7 +159,7 @@ benchmark instances
     cborg,
     serialise,
 
-    deepseq                 >= 1.0     && < 1.6,
+    deepseq                 >= 1.4.4.0 && < 1.6,
     criterion               >= 1.0     && < 1.7
 
 
@@ -198,7 +198,7 @@ benchmark micro
     serialise,
 
     aeson                   >= 0.7     && < 2.3,
-    deepseq                 >= 1.0     && < 1.6,
+    deepseq                 >= 1.4.4.0 && < 1.6,
     criterion               >= 1.0     && < 1.7,
     cereal                  >= 0.5.2.0 && < 0.6,
     cereal-vector           >= 0.2     && < 0.3,
@@ -247,7 +247,7 @@ benchmark versus
 
     filepath                >= 1.0     && < 1.6,
     containers,
-    deepseq                 >= 1.0     && < 1.6,
+    deepseq                 >= 1.4.4.0 && < 1.6,
     aeson                   >= 0.7     && < 2.3,
     cereal                  >= 0.5.2.0 && < 0.6,
     half,
