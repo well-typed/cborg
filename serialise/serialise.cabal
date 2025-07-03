@@ -50,11 +50,6 @@ source-repository head
 --------------------------------------------------------------------------------
 -- Flags
 
-flag newtime15
-  default: True
-  manual: False
-  description: Use the new time 1.5 library
-
 library
   default-language:  Haskell2010
   ghc-options:       -Wall
@@ -71,28 +66,21 @@ library
     Codec.Serialise.Internal.GeneralisedUTF8
 
   build-depends:
-    base                    >= 4.11    && < 4.22,
+    base                    >= 4.13    && < 4.22,
     array                   >= 0.4     && < 0.6,
     bytestring              >= 0.10.4  && < 0.13,
     cborg                   == 0.2.*,
-    containers              >= 0.5     && < 0.8,
-    ghc-prim                >= 0.3.1.0 && < 0.14,
+    containers              >= 0.6.2.1 && < 0.8,
+    ghc-prim                >= 0.5.3   && < 0.14,
     half                    >= 0.2.2.3 && < 0.4,
-    hashable                >= 1.2     && < 2.0,
+    hashable                >= 1.2     && < 2,
     primitive               >= 0.5     && < 0.10,
     strict                  >= 0.4     && < 0.6,
     text                    >= 1.1     && < 2.2,
     these                   >= 1.1     && < 2.2,
     unordered-containers    >= 0.2     && < 0.3,
-    vector                  >= 0.10    && < 0.14
-
-  if flag(newtime15)
-    build-depends:
-      time                  >= 1.5     && < 1.15
-  else
-    build-depends:
-      time                  >= 1.4     && < 1.6,
-      old-locale
+    vector                  >= 0.10    && < 0.14,
+    time                    >= 1.9.3   && < 1.15
 
   if impl(ghc >= 8.0)
     ghc-options: -Wcompat -Wnoncanonical-monad-instances
@@ -163,23 +151,17 @@ benchmark instances
     Instances.Time
 
   build-depends:
-    base                    >= 4.11    && < 4.22,
+    base,
     binary                  >= 0.7     && < 0.11,
-    bytestring              >= 0.10.4  && < 0.13,
-    vector                  >= 0.10    && < 0.14,
+    bytestring,
+    time,
+    vector,
     cborg,
     serialise,
 
     deepseq                 >= 1.0     && < 1.6,
     criterion               >= 1.0     && < 1.7
 
-  if flag(newtime15)
-    build-depends:
-      time                  >= 1.5     && < 1.15
-  else
-    build-depends:
-      time                  >= 1.4     && < 1.5,
-      old-locale
 
 benchmark micro
   type:              exitcode-stdio-1.0
@@ -207,11 +189,11 @@ benchmark micro
     SimpleVersus
 
   build-depends:
-    base                    >= 4.11    && < 4.22,
+    base,
     binary                  >= 0.7     && < 0.11,
-    bytestring              >= 0.10.4  && < 0.13,
-    ghc-prim                >= 0.3.1.0 && < 0.14,
-    vector                  >= 0.10    && < 0.14,
+    bytestring,
+    ghc-prim,
+    vector,
     cborg,
     serialise,
 
@@ -220,7 +202,6 @@ benchmark micro
     criterion               >= 1.0     && < 1.7,
     cereal                  >= 0.5.2.0 && < 0.6,
     cereal-vector           >= 0.2     && < 0.3,
-    semigroups              >= 0.18    && < 0.21,
     store                   >= 0.7.1   && < 0.8
 
 benchmark versus
@@ -253,35 +234,26 @@ benchmark versus
     Macro.CBOR
 
   build-depends:
-    base                    >= 4.11    && < 4.22,
+    base,
     array                   >= 0.4     && < 0.6,
     binary                  >= 0.7     && < 0.11,
-    bytestring              >= 0.10.4  && < 0.13,
+    bytestring,
     directory               >= 1.0     && < 1.4,
-    ghc-prim                >= 0.3.1.0 && < 0.14,
-    fail                    >= 4.9.0.0 && < 4.10,
-    text                    >= 1.1     && < 2.2,
-    vector                  >= 0.10    && < 0.14,
+    ghc-prim,
+    text,
+    vector,
     cborg,
     serialise,
 
     filepath                >= 1.0     && < 1.6,
-    containers              >= 0.5     && < 0.8,
+    containers,
     deepseq                 >= 1.0     && < 1.6,
     aeson                   >= 0.7     && < 2.3,
     cereal                  >= 0.5.2.0 && < 0.6,
-    half                    >= 0.2.2.3 && < 0.4,
+    half,
     tar                     >= 0.4     && < 0.7,
     zlib                    >= 0.5     && < 0.8,
     pretty                  >= 1.0     && < 1.2,
     criterion               >= 1.0     && < 1.7,
     store                   >= 0.7.1   && < 0.8,
-    semigroups
-
-  if flag(newtime15)
-    build-depends:
-      time                  >= 1.5     && < 1.15
-  else
-    build-depends:
-      time                  >= 1.4     && < 1.5,
-      old-locale
+    time
