@@ -88,12 +88,7 @@ import           Data.Time                           (UTCTime (..), addUTCTime)
 import           Data.Time.Calendar                  (fromGregorian)
 import           Data.Time.Clock.POSIX               (POSIXTime, utcTimeToPOSIXSeconds,
                                                       posixSecondsToUTCTime)
-#if MIN_VERSION_time(1,5,0)
 import           Data.Time.Format                    (defaultTimeLocale, parseTimeM)
-#else
-import           Data.Time.Format                    (parseTime)
-import           System.Locale                       (defaultTimeLocale)
-#endif
 import           System.Exit                         (ExitCode(..))
 
 import           Prelude hiding (decodeFloat, encodeFloat, foldr)
@@ -1418,11 +1413,7 @@ utcFromReal f = addUTCTime (fromRational (toRational f)) epoch
 
 -- | @'UTCTime'@ parsing, from a regular @'String'@.
 parseUTCrfc3339  :: String -> Maybe UTCTime
-#if MIN_VERSION_time(1,5,0)
 parseUTCrfc3339  = parseTimeM False defaultTimeLocale "%Y-%m-%dT%H:%M:%S%Q%Z"
-#else
-parseUTCrfc3339  = parseTime        defaultTimeLocale "%Y-%m-%dT%H:%M:%S%Q%Z"
-#endif
 
 -- | Force the unnecessarily lazy @'UTCTime'@ representation.
 forceUTCTime :: UTCTime -> UTCTime
