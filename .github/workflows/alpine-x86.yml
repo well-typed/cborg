@@ -1,0 +1,29 @@
+name: Haskell-CI
+# TODO: change to be on trigger only.
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  x86:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    - name: Setup latest Alpine Linux
+      uses: jirutka/setup-alpine@v1
+      with:
+        arch: x86
+  
+    - name: Run script inside Alpine chroot as root
+      shell: alpine.sh --root {0} 
+      run: |
+        cat /etc/alpine-release
+        apk add nodejs npm
+
+    - name: Run script inside Alpine chroot as the default user (unprivileged)
+      shell: alpine.sh {0}
+      run: |
+        ls -la
