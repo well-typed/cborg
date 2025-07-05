@@ -1,1 +1,8 @@
 branches: master
+
+constraint-set dupIO
+  -- https://github.com/well-typed/dupIO/pull/27
+  ghc: <9.12
+  constraints: cborg +dupIO
+  tests: True
+  run-tests: True
