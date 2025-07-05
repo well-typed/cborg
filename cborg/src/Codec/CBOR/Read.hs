@@ -41,9 +41,6 @@ module Codec.CBOR.Read
 
 #include "cbor.h"
 
-#if !MIN_VERSION_base(4,8,0)
-import           Control.Applicative
-#endif
 import           GHC.Int
 
 import           Control.DeepSeq
@@ -93,11 +90,9 @@ instance NFData DeserialiseFailure where
   rnf (DeserialiseFailure offset msg) = rnf offset `seq` rnf msg `seq` ()
 
 instance Exception DeserialiseFailure where
-#if MIN_VERSION_base(4,8,0)
     displayException (DeserialiseFailure off msg) =
       "Codec.CBOR: deserialising failed at offset "
            ++ show off ++ " : " ++ msg
-#endif
 
 -- | An Incremental decoder, used to represent the result of
 -- attempting to run a decoder over a given input, and return a value

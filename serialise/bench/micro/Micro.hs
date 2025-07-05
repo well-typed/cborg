@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP          #-}
 {-# LANGUAGE BangPatterns #-}
 module Micro
   ( benchmarks -- :: [Benchmark]
@@ -111,10 +110,3 @@ benchmarks =
     -- bytestring that may contain multiple chunks.
     combineChunks :: BS.ByteString -> BS.ByteString
     combineChunks = BS.fromStrict . BS.toStrict
-
---------------------------------------------------------------------------------
-
--- An NFData instance for Ptr is in deepseq HEAD/1.4.2, but it's not released.
-#if !MIN_VERSION_deepseq(1,4,2)
-instance NFData (Ptr a) where rnf !_ = ()
-#endif

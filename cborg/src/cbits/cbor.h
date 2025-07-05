@@ -2,14 +2,6 @@
 #include "MachDeps.h"
 
 /*
-** GHC 7.10 and above include efficient byte-swapping primitives,
-** which are useful for efficient byte-mangling routines.
-*/
-#if __GLASGOW_HASKELL__ >= 710
-#define HAVE_BYTESWAP_PRIMOPS
-#endif
-
-/*
 ** On Intel 32/64 bit machines, memory access to unaligned addresses
 ** is permitted (and generally efficient, too). With this in mind,
 ** some operations can be implemented more efficiently.

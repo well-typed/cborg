@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                #-}
 {-# LANGUAGE NamedFieldPuns     #-}
 module Tests.Reference (
     testTree
@@ -17,9 +16,7 @@ import qualified Data.Text.Encoding as T
 import qualified Data.Vector as V
 import           Data.Scientific (fromFloatDigits, toRealFloat)
 import           Data.Aeson as Aeson
-#if MIN_VERSION_aeson(2,0,0)
 import           Data.Aeson.Key as Aeson.Key
-#endif
 import           Data.Word
 import qualified Numeric.Half as Half
 
@@ -72,13 +69,8 @@ equalJson (Aeson.Number expected) (Aeson.Number actual)
 
 equalJson expected actual = expected @=? actual
 
-#if MIN_VERSION_aeson(2,0,0)
 stringToJsonKey :: String -> Aeson.Key.Key
 stringToJsonKey = Aeson.Key.fromString
-#else
-stringToJsonKey :: String -> T.Text
-stringToJsonKey = T.pack
-#endif
 
 termToJson :: CBOR.Term -> Aeson.Value
 termToJson (TUInt    n)   = Aeson.Number (fromIntegral (fromUInt n))

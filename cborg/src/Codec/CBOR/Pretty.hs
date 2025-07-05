@@ -36,9 +36,6 @@ import qualified Control.Monad.Fail as Fail
 import           Control.Monad                       (replicateM_)
 import           GHC.Int (Int64)
 import           Numeric
-#if !MIN_VERSION_base(4,8,0)
-import           Control.Applicative
-#endif
 
 --------------------------------------------------------------------------------
 
@@ -105,9 +102,6 @@ instance Monad PP where
     Right (toks', ind', ss', x) -> let PP g' = g x
       in g' toks' ind' ss'
   return = pure
-#if !MIN_VERSION_base(4,13,0)
-  fail = Fail.fail
-#endif
 
 instance Fail.MonadFail PP where
   fail s = PP $ \_ _ _ -> Left s

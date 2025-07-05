@@ -12,9 +12,6 @@ module Tests.Regress.Issue67
 import           Data.Int
 import           Data.Monoid                ((<>))
 import           Data.Word
-#if !MIN_VERSION_base(4,8,0)
-import           Control.Applicative        ((<$>), (<*>))
-#endif
 
 import qualified Data.ByteString.Lazy as L
 import qualified Data.Vector as V

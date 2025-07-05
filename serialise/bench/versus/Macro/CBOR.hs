@@ -1,5 +1,4 @@
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
 -- For PackageDescription and friends
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 -- For encodeCtrN/decodeCtrBodyN/etc
@@ -14,18 +13,10 @@ import Codec.Serialise.Decoding hiding (DecodeAction(Done, Fail))
 import Codec.CBOR.Read
 import Codec.CBOR.Write
 
-#if ! MIN_VERSION_base(4,11,0)
-import           Data.Monoid
-#endif
-
 import qualified Data.ByteString.Lazy as BS
 import qualified Data.ByteString.Builder as BS
 
 import Control.Exception (throw)
-#if !MIN_VERSION_base(4,8,0)
-import Control.Applicative
-import Data.Word
-#endif
 
 serialise :: [GenericPackageDescription] -> BS.ByteString
 --serialise :: Serialise a => a -> BS.ByteString

@@ -48,16 +48,12 @@ import           Data.Fixed
 import           Data.Ratio
 import           Data.Ord
 
-#if MIN_VERSION_base(4,8,0)
 import           Numeric.Natural
 import           Data.Functor.Identity
 import           Data.Void                           (Void, absurd)
-#endif
 
-#if MIN_VERSION_base(4,9,0)
 import qualified Data.Semigroup                      as Semigroup
 import qualified Data.List.NonEmpty                  as NonEmpty
-#endif
 
 import qualified Data.Foldable                       as Foldable
 import qualified Data.ByteString                     as BS
@@ -92,12 +88,7 @@ import           Data.Time                           (UTCTime (..), addUTCTime)
 import           Data.Time.Calendar                  (fromGregorian)
 import           Data.Time.Clock.POSIX               (POSIXTime, utcTimeToPOSIXSeconds,
                                                       posixSecondsToUTCTime)
-#if MIN_VERSION_time(1,5,0)
 import           Data.Time.Format                    (defaultTimeLocale, parseTimeM)
-#else
-import           Data.Time.Format                    (parseTime)
-import           System.Locale                       (defaultTimeLocale)
-#endif
 import           System.Exit                         (ExitCode(..))
 
 import           Prelude hiding (decodeFloat, encodeFloat, foldr)
@@ -105,15 +96,11 @@ import qualified Prelude
 #if MIN_VERSION_base(4,16,0)
 import           GHC.Exts (Levity(..))
 #endif
-#if MIN_VERSION_base(4,10,0)
 import           Type.Reflection
 import           Type.Reflection.Unsafe
 import           GHC.Fingerprint
 import           GHC.Exts (VecCount(..), VecElem(..), RuntimeRep(..))
 import           Data.Kind (Type)
-#else
-import           Data.Typeable.Internal
-#endif
 import           GHC.Generics
 
 import           Codec.CBOR.Decoding
@@ -196,7 +183,6 @@ defaultDecodeList = do
 --------------------------------------------------------------------------------
 -- Another case: NonEmpty lists
 
-#if MIN_VERSION_base(4,9,0)
 -- | @since 0.2.0.0
 instance Serialise a => Serialise (NonEmpty.NonEmpty a) where
   encode = defaultEncodeList . NonEmpty.toList
@@ -205,17 +191,14 @@ instance Serialise a => Serialise (NonEmpty.NonEmpty a) where
     case NonEmpty.nonEmpty l of
       Nothing -> fail "Expected a NonEmpty list, but an empty list was found!"
       Just xs -> return xs
-#endif
 
 --------------------------------------------------------------------------------
 -- Primitive and integral instances
 
-#if MIN_VERSION_base(4,8,0)
 -- | @since 0.2.4.0
 instance Serialise Void where
     encode = absurd
     decode = fail "tried to decode void"
-#endif
 
 -- | @since 0.2.0.0
 instance Serialise () where
@@ -282,7 +265,6 @@ instance Serialise Integer where
     encode = encodeInteger
     decode = decodeInteger
 
-#if MIN_VERSION_base(4,8,0)
 -- | @since 0.2.0.0
 instance Serialise Natural where
     encode = encodeInteger . toInteger
@@ -291,7 +273,6 @@ instance Serialise Natural where
       if n >= 0
         then return (fromInteger n)
         else fail "Expected non-negative Natural; but got a negative number"
-#endif
 
 -- | @since 0.2.0.0
 instance Serialise Float where
@@ -311,7 +292,6 @@ instance Serialise Half.Half where
 --------------------------------------------------------------------------------
 -- Core types
 
-#if MIN_VERSION_base(4,7,0)
 -- | Values are serialised in units of least precision represented as
 --   @Integer@.
 --
@@ -324,7 +304,6 @@ instance Serialise (Fixed e) where
 instance Serialise (Proxy a) where
     encode _ = encodeNull
     decode   = Proxy <$ decodeNull
-#endif
 
 -- | @since 0.2.0.0
 instance Serialise Char where
@@ -487,7 +466,6 @@ instance Serialise a => Serialise (Last a) where
     encode (Last b) = encode b
     decode = Last <$> decode
 
-#if MIN_VERSION_base(4,8,0)
 -- | @since 0.2.0.0
 instance Serialise (f a) => Serialise (Alt f a) where
     encode (Alt b) = encode b
@@ -497,7 +475,6 @@ instance Serialise (f a) => Serialise (Alt f a) where
 instance Serialise a => Serialise (Identity a) where
     encode (Identity b) = encode b
     decode = Identity <$> decode
-#endif
 
 -- | @since 0.2.0.0
 instance Serialise ExitCode where
@@ -521,8 +498,6 @@ instance Serialise ExitCode where
                 return $ ExitFailure i
         _ -> fail "Bad list length"
 
--- Semigroup instances for GHC 8.0+
-#if MIN_VERSION_base(4,9,0)
 -- | @since 0.2.0.0
 instance Serialise a => Serialise (Semigroup.Min a) where
   encode = encode . Semigroup.getMin
@@ -553,7 +528,6 @@ instance Serialise a => Serialise (Semigroup.Option a) where
 instance Serialise a => Serialise (Semigroup.WrappedMonoid a) where
   encode = encode . Semigroup.unwrapMonoid
   decode = fmap Semigroup.WrapMonoid decode
-#endif
 
 --------------------------------------------------------------------------------
 -- Foreign types
@@ -1131,7 +1105,6 @@ instance Serialise Fingerprint where
 
 -- | @since 0.2.0.0
 instance Serialise TyCon where
-#if MIN_VERSION_base(4,10,0)
   encode tc
     = encodeListLen 6
    <> encodeWord 0
@@ -1146,35 +1119,7 @@ instance Serialise TyCon where
     case tag of
       0 -> mkTyCon <$> decode <*> decode <*> decode <*> decode <*> decode
       _ -> fail "unexpected tag"
-#elif MIN_VERSION_base(4,9,0)
-  encode tycon
-    = encodeListLen 4
-   <> encodeWord 0
-   <> encode (tyConPackage tycon)
-   <> encode (tyConModule  tycon)
-   <> encode (tyConName    tycon)
-#else
-  encode (TyCon _ pkg modname name)
-    = encodeListLen 4
-   <> encodeWord 0
-   <> encode pkg
-   <> encode modname
-   <> encode name
-#endif
 
-#if !MIN_VERSION_base(4,10,0)
-  decode = do
-    decodeListLenOf 4
-    tag <- decodeWord
-    case tag of
-      0 -> do !pkg     <- decode
-              !modname <- decode
-              !name    <- decode
-              return $! mkTyCon3 pkg modname name
-      _ -> fail "unexpected tag"
-#endif
-
-#if MIN_VERSION_base(4,10,0)
 -- | @since 0.2.0.0
 instance Serialise VecCount where
   encode c = encodeListLen 1 <> encodeWord (fromIntegral $ fromEnum c)
@@ -1218,12 +1163,10 @@ instance Serialise RuntimeRep where
       AddrRep       -> encodeListLen 1 <> encodeWord 9
       FloatRep      -> encodeListLen 1 <> encodeWord 10
       DoubleRep     -> encodeListLen 1 <> encodeWord 11
-#if MIN_VERSION_base(4,13,0)
       Int8Rep       -> encodeListLen 1 <> encodeWord 12
       Int16Rep      -> encodeListLen 1 <> encodeWord 13
       Word8Rep      -> encodeListLen 1 <> encodeWord 14
       Word16Rep     -> encodeListLen 1 <> encodeWord 15
-#endif
 #if MIN_VERSION_base(4,14,0)
       Int32Rep      -> encodeListLen 1 <> encodeWord 16
       Word32Rep     -> encodeListLen 1 <> encodeWord 17
@@ -1249,12 +1192,10 @@ instance Serialise RuntimeRep where
       9  | len == 1 -> pure AddrRep
       10 | len == 1 -> pure FloatRep
       11 | len == 1 -> pure DoubleRep
-#if MIN_VERSION_base(4,13,0)
       12 | len == 1 -> pure Int8Rep
       13 | len == 1 -> pure Int16Rep
       14 | len == 1 -> pure Word8Rep
       15 | len == 1 -> pure Word16Rep
-#endif
 #if MIN_VERSION_base(4,14,0)
       16 | len == 1 -> pure Int32Rep
       17 | len == 1 -> pure Word32Rep
@@ -1392,50 +1333,6 @@ instance Serialise SomeTypeRep where
   encode (SomeTypeRep rep) = encodeTypeRep rep
   decode = decodeSomeTypeRep
 
-#else
-
--- | @since 0.2.0.0
-instance Serialise TypeRep where
-#if MIN_VERSION_base(4,8,0)
-  encode (TypeRep fp tycon kirep tyrep)
-    = encodeListLen 5
-   <> encodeWord 0
-   <> encode fp
-   <> encode tycon
-   <> encode kirep
-   <> encode tyrep
-
-  decode = do
-    decodeListLenOf 5
-    tag <- decodeWord
-    case tag of
-      0 -> do !fp    <- decode
-              !tycon <- decode
-              !kirep <- decode
-              !tyrep <- decode
-              return $! TypeRep fp tycon kirep tyrep
-      _ -> fail "unexpected tag"
-#else
-  encode (TypeRep fp tycon tyrep)
-    = encodeListLen 4
-   <> encodeWord 0
-   <> encode fp
-   <> encode tycon
-   <> encode tyrep
-
-  decode = do
-    decodeListLenOf 4
-    tag <- decodeWord
-    case tag of
-      0 -> do !fp    <- decode
-              !tycon <- decode
-              !tyrep <- decode
-              return $! TypeRep fp tycon tyrep
-      _ -> fail "unexpected tag"
-#endif
-
-#endif /* !MIN_VERBOSE_base(4,10,0) */
-
 --------------------------------------------------------------------------------
 -- Time instances
 --
@@ -1516,11 +1413,7 @@ utcFromReal f = addUTCTime (fromRational (toRational f)) epoch
 
 -- | @'UTCTime'@ parsing, from a regular @'String'@.
 parseUTCrfc3339  :: String -> Maybe UTCTime
-#if MIN_VERSION_time(1,5,0)
 parseUTCrfc3339  = parseTimeM False defaultTimeLocale "%Y-%m-%dT%H:%M:%S%Q%Z"
-#else
-parseUTCrfc3339  = parseTime        defaultTimeLocale "%Y-%m-%dT%H:%M:%S%Q%Z"
-#endif
 
 -- | Force the unnecessarily lazy @'UTCTime'@ representation.
 forceUTCTime :: UTCTime -> UTCTime

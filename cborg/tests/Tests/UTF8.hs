@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP #-}
 module Tests.UTF8
   ( testTree -- :: TestTree
   ) where
@@ -6,10 +5,6 @@ module Tests.UTF8
 import           Control.DeepSeq
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
-
-#if ! MIN_VERSION_base(4,11,0)
-import           Data.Monoid
-#endif
 
 import qualified Data.Text.Encoding as T
 
@@ -19,10 +14,6 @@ import           Tests.Util
 
 import           Test.Tasty
 import           Test.Tasty.QuickCheck
-
-#if !MIN_VERSION_base(4,8,0)
-import           Control.Applicative
-#endif
 
 -- | Wrapper for ByteString with Arbitrary instance that might produce a valid
 -- UTF-8 encoding of a string.

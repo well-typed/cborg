@@ -1,5 +1,4 @@
 {-# LANGUAGE BangPatterns        #-}
-{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE MagicHash           #-}
 {-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE UnboxedTuples       #-}
@@ -69,13 +68,9 @@ mkByteArray n xs = runST $ do
 -- | A conservative estimate of pinned-ness.
 isByteArrayPinned :: Prim.ByteArray -> Bool
 isByteArrayPinned (Prim.ByteArray _ba) =
-#if __GLASGOW_HASKELL__ > 800
     case isByteArrayPinned# _ba of
       0# -> False
       _  -> True
-#else
-    False
-#endif
 
 touch :: a -> IO ()
 touch x = IO $ \s -> case touch# x s of s' -> (# s', () #)

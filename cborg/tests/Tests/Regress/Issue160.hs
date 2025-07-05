@@ -1,14 +1,9 @@
-{-# LANGUAGE CPP #-}
 module Tests.Regress.Issue160 ( testTree ) where
 
 import           Codec.CBOR.Decoding
 import           Codec.CBOR.Read
 
 import           Control.DeepSeq
-#if !MIN_VERSION_base(4,8,0)
-import           Control.Applicative
-import           Data.Monoid (Monoid(..))
-#endif
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import           Data.Text (Text)

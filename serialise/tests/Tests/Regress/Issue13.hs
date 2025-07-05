@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-
 -- Issue #13: unsafe usage of a ForeignPtr leads to undefined behavior,
 -- as we get handed a stale pointer.
 module Tests.Regress.Issue13
@@ -7,9 +5,6 @@ module Tests.Regress.Issue13
   ) where
 
 import           Data.Monoid                         ((<>))
-#if !MIN_VERSION_base(4,8,0)
-import           Control.Applicative                 ((<$>), (<*>))
-#endif
 
 import qualified Data.Text                           as T
 import           Test.Tasty

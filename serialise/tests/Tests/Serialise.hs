@@ -9,19 +9,13 @@ module Tests.Serialise
   , testGenerics -- :: TestTree
   ) where
 
-#if MIN_VERSION_base(4,8,0)
 import           Data.Functor.Identity
 import           Numeric.Natural
-#endif
 
-#if MIN_VERSION_base(4,9,0)
 import           Data.List.NonEmpty ( NonEmpty )
 import qualified Data.Semigroup as Semigroup
-#endif
 
-#if MIN_VERSION_base(4,10,0)
 import qualified Type.Reflection                as Refl
-#endif
 
 import           Data.Char (ord)
 import           Data.Complex
@@ -181,10 +175,7 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T (Canonical Float))
       , mkTest (T :: T (Canonical Double))
       , mkTest (T :: T [()])
-#if MIN_VERSION_base(4,10,0)
       , mkTest (T :: T (Refl.SomeTypeRep))
-#endif
-#if MIN_VERSION_base(4,9,0)
       , mkTest (T :: T (NonEmpty ()))
       , mkTest (T :: T (Semigroup.Min ()))
       , mkTest (T :: T (Semigroup.Max ()))
@@ -194,8 +185,6 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T (Semigroup.Option ()))
 #endif
       , mkTest (T :: T (Semigroup.WrappedMonoid ()))
-#endif
-#if MIN_VERSION_base(4,7,0)
       , mkTest (T :: T (Fixed E0))
       , mkTest (T :: T (Fixed E1))
       , mkTest (T :: T (Fixed E2))
@@ -204,7 +193,6 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T (Fixed E9))
       , mkTest (T :: T (Fixed E12))
       , mkTest (T :: T (Proxy ()))
-#endif
       , mkTest (T :: T Char)
       , mkTest (T :: T CChar)
       , mkTest (T :: T CSChar)
@@ -262,11 +250,9 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T (Dual (Maybe (Sum Int))))
       , mkTest (T :: T All)
       , mkTest (T :: T Any)
-#if MIN_VERSION_base(4,8,0)
       , mkTest (T :: T (Alt Maybe Int))
       , mkTest (T :: T (Identity ()))
       , mkTest (T :: T Natural)
-#endif
       , mkTest (T :: T (Sum Int))
       , mkTest (T :: T (Product Int))
       , mkTest (T :: T (Map.Map Int String))

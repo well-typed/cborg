@@ -1,12 +1,8 @@
-{-# LANGUAGE CPP                  #-}
 module Tests.Regress.FlatTerm
   ( testTree -- :: TestTree
   ) where
 
 import           Data.Int
-#if !MIN_VERSION_base(4,8,0)
-import           Data.Word
-#endif
 
 import           Test.Tasty
 import           Test.Tasty.HUnit

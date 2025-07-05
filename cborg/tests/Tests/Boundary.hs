@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiWayIf                 #-}
@@ -26,9 +25,6 @@ import           Tests.Util
 import           Test.Tasty
 import           Test.Tasty.QuickCheck
 
-#if !MIN_VERSION_base(4,8,0)
-import           Control.Applicative
-#endif
 
 -- | CBOR can represent 64 bit negative and positive integers, hence we need
 -- wrapper for Integer to represent the whole range.
