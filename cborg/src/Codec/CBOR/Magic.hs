@@ -156,7 +156,7 @@ grabWord8 (Ptr ip#) = W8# (indexWord8OffAddr# ip# 0#)
 -- On x86 machines with GHC 7.10, we have byteswap primitives
 -- available to make this conversion very fast.
 
-#if MIN_VERSION_ghc_prim(0,8,0)
+#if MIN_VERSION_base(4,16,0)
 grabWord16 (Ptr ip#) = W16# (wordToWord16# (byteSwap16# (word16ToWord# (indexWord16OffAddr# ip# 0#))))
 grabWord32 (Ptr ip#) = W32# (wordToWord32# (byteSwap32# (word32ToWord# (indexWord32OffAddr# ip# 0#))))
 #else
@@ -195,7 +195,7 @@ grabWord16 (Ptr ip#) =
        w1# -> w16 w0# `unsafeShiftL` 8 .|.
               w16 w1#
   where
-#if MIN_VERSION_ghc_prim(0,8,0)
+#if MIN_VERSION_base(4,16,0)
     w16 w# = W16# (wordToWord16# (word8ToWord# w#))
 #else
     w16 w# = W16# w#
@@ -214,7 +214,7 @@ grabWord32 (Ptr ip#) =
                   w32 w2# `unsafeShiftL`  8 .|.
                   w32 w3#
   where
-#if MIN_VERSION_ghc_prim(0,8,0)
+#if MIN_VERSION_base(4,16,0)
     w32 w# = W32# (wordToWord32# (word8ToWord# w#))
 #else
     w32 w# = W32# w#
@@ -245,7 +245,7 @@ grabWord64 (Ptr ip#) =
                           w64 w6# `unsafeShiftL`  8 .|.
                           w64 w7#
   where
-#if MIN_VERSION_ghc_prim(0,8,0)
+#if MIN_VERSION_base(4,16,0)
     toWord :: Word8# -> Word#
     toWord w# = word8ToWord# w#
 #else
@@ -403,7 +403,7 @@ int64ToWord64 :: Int64 -> Word64
 int64ToWord64 = fromIntegral
 {-# INLINE int64ToWord64 #-}
 
-#if MIN_VERSION_ghc_prim(0,8,0)
+#if MIN_VERSION_base(4,16,0)
 word8ToWord  (W8#  w#) = W# (word8ToWord# w#)
 word16ToWord (W16# w#) = W# (word16ToWord# w#)
 word32ToWord (W32# w#) = W# (word32ToWord# w#)
@@ -438,7 +438,7 @@ word64ToWord (W64# w64#) =
 {-# INLINE word32ToWord #-}
 {-# INLINE word64ToWord #-}
 
-#if MIN_VERSION_ghc_prim(0,8,0)
+#if MIN_VERSION_base(4,16,0)
 word8ToInt  (W8#  w#) = I# (word2Int# (word8ToWord# w#))
 word16ToInt (W16# w#) = I# (word2Int# (word16ToWord# w#))
 #if defined(ARCH_64bit)

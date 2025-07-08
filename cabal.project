@@ -5,6 +5,9 @@ packages:
   binary-serialise-cbor/
   cborg-json/
 
+tests: True
+benchmarks: True
+
 -- Needed for serialise benchmarks
 allow-newer:
   store-core:text

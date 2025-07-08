@@ -56,6 +56,9 @@ library
     base       >= 4.11 && < 4.22,
     bytestring < 1.0,
 
-    cborg     == 0.2.*,
+    cborg     == 0.2.*
+
+  -- https://github.com/haskell/cabal/issues/11052
+  build-depends:
     serialise == 0.2.*
 
