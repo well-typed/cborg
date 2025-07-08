@@ -45,3 +45,8 @@ jobs:
         shell: alpine.sh {0}
         run: |
            cabal build all --with-compiler=ghc-9.10.2
+
+      - name: cabal test
+        shell: alpine.sh {0}
+        run: |
+           cabal test all --with-compiler=ghc-9.10.2
