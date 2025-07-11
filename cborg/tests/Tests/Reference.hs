@@ -1,4 +1,5 @@
 {-# LANGUAGE NamedFieldPuns     #-}
+{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 module Tests.Reference (
     testTree
   , termToJson

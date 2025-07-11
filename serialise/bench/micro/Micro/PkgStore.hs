@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans -fsimpl-tick-factor=500 #-}
+{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 module Micro.PkgStore (serialise, deserialise) where
 
 import Micro.Types

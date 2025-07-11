@@ -12,7 +12,7 @@ import           Codec.CBOR.Write (toLazyByteString, toStrictByteString)
 
 import           Criterion.Main
                    ( defaultMain, Benchmark, bgroup, bench, env, nf, whnf )
-import qualified Data.Aeson as Aeson (Value, decode, encode)
+import qualified Data.Aeson as Aeson (Value, decode, encode, throwDecode)
 
 
 dataFile :: FilePath
@@ -36,8 +36,7 @@ loadLargeJSONBytes = do
 loadLargeJSON :: IO Aeson.Value
 loadLargeJSON = do
     bytes <- loadLargeJSONBytes
-    let Just json = Aeson.decode bytes
-    return json
+    Aeson.throwDecode bytes
 
 loadLargeCBORBytes :: IO LBS.ByteString
 loadLargeCBORBytes =

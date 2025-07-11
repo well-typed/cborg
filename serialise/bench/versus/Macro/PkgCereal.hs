@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans -fsimpl-tick-factor=500 #-}
+{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 module Macro.PkgCereal where
 
 import Macro.Types
