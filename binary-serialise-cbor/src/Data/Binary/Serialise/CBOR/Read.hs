@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE RankNTypes #-}
 
 -- |
@@ -21,6 +22,13 @@ import           Codec.CBOR.Read as X hiding (deserialiseFromBytes)
 import qualified Codec.CBOR.Read as Read
 import           Codec.CBOR.Decoding (Decoder)
 import qualified Data.ByteString.Lazy as LBS
+
+-- To avoid -Wunused-packages warnings.
+-- We only re-export its interface, but not using it in any module of
+-- binary-serialise-cbor
+#ifdef MIN_VERSION_serialise
+import Codec.Serialise ()
+#endif
 
 deserialiseFromBytes :: (forall s. Decoder s a)
                      -> LBS.ByteString

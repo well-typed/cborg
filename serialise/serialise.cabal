@@ -67,11 +67,9 @@ library
 
   build-depends:
     base                    >= 4.13    && < 4.22,
-    array                   >= 0.4     && < 0.6,
     bytestring              >= 0.10.4  && < 0.13,
     cborg                   == 0.2.*,
     containers              >= 0.6.2.1 && < 0.8,
-    ghc-prim                >= 0.5.3   && < 0.14,
     half                    >= 0.2.2.3 && < 0.4,
     hashable                >= 1.2     && < 2,
     primitive               >= 0.8.0.0 && < 0.10,
@@ -152,11 +150,9 @@ benchmark instances
 
   build-depends:
     base,
-    binary                  >= 0.7     && < 0.11,
     bytestring,
     time,
     vector,
-    cborg,
     serialise,
 
     deepseq                 >= 1.4.4.0 && < 1.6,
@@ -192,7 +188,6 @@ benchmark micro
     base,
     binary                  >= 0.7     && < 0.11,
     bytestring,
-    ghc-prim,
     vector,
     cborg,
     serialise,
@@ -239,9 +234,6 @@ benchmark versus
     binary                  >= 0.7     && < 0.11,
     bytestring,
     directory               >= 1.0     && < 1.4,
-    ghc-prim,
-    text,
-    vector,
     cborg,
     serialise,
 
@@ -250,7 +242,6 @@ benchmark versus
     deepseq                 >= 1.4.4.0 && < 1.6,
     aeson                   >= 0.7     && < 2.3,
     cereal                  >= 0.5.2.0 && < 0.6,
-    half,
     tar                     >= 0.4     && < 0.7,
     zlib                    >= 0.5     && < 0.8,
     pretty                  >= 1.0     && < 1.2,

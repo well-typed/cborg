@@ -316,7 +316,7 @@ toWord8  :: Word# -> Word8
 toWord16 :: Word# -> Word16
 toWord32 :: Word# -> Word32
 toWord64 :: Word# -> Word64
-#if MIN_VERSION_ghc_prim(0,8,0)
+#if MIN_VERSION_base(4,16,0)
 toInt8   n = I8#  (intToInt8# n)
 toInt16  n = I16# (intToInt16# n)
 toInt32  n = I32# (intToInt32# n)
