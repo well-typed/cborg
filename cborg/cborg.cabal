@@ -98,6 +98,9 @@ library
     primitive               >= 0.8.0.0 && < 0.10,
     text                    >= 1.2.4.0 && < 1.3 || >= 2.0 && <2.2
 
+  if !arch(x86_64) && impl(ghc <9.4)
+    build-depends: ghc-prim
+
   if flag(optimize-gmp)
     cpp-options:            -DOPTIMIZE_GMP
     if impl(ghc >= 9.0)

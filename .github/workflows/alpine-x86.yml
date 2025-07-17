@@ -1,0 +1,59 @@
+name: Alpine Chroot
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  x86:
+    name: x86 - ${{ matrix.ghc }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ghc:
+        - '9.10.2'
+        - '8.8.4'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup latest Alpine Linux
+        uses: jirutka/setup-alpine@v1
+        with:
+          arch: x86
+
+      - name: apk add
+        shell: alpine.sh --root {0}
+        run: |
+          cat /etc/alpine-release
+          apk add binutils-gold curl gcc g++ git gmp-dev libc-dev libffi-dev make musl-dev ncurses-dev openssh-client perl tar zlib-dev zlib-static
+
+      - name: Install ghcup
+        shell: alpine.sh --root {0}
+        run: |
+          if [ "x$GHCUP_INSTALL_BASE_PREFIX" != "x/usr/local" ]; then false; fi
+          curl https://downloads.haskell.org/~ghcup/0.1.50.2/i386-linux-ghcup-0.1.50.2 > /usr/local/bin/ghcup
+          chmod a+x /usr/local/bin/ghcup
+
+      - name: Install ghc and cabal
+        shell: alpine.sh --root {0}
+        run: |
+          ghcup -v list
+          ghcup -v install ghc ${{ matrix.ghc }}
+          ghcup -v install cabal 3.14.2.0
+
+      - name: cabal update
+        shell: alpine.sh {0}
+        run: |
+           cabal update --ignore-project
+
+      - name: cabal build
+        shell: alpine.sh {0}
+        run: |
+           cabal build all --with-compiler=ghc-${{ matrix.ghc }}
+
+      - name: cabal test
+        shell: alpine.sh {0}
+        run: |
+           cabal test all --with-compiler=ghc-${{ matrix.ghc }}
