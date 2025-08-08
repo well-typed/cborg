@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE DefaultSignatures   #-}
+{-# LANGUAGE EmptyCase           #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE PolyKinds           #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -1439,12 +1440,11 @@ class GSerialiseDecode f where
 
 -- | @since 0.2.0.0
 instance GSerialiseEncode V1 where
-    -- Data types without constructors are still serialised as null value
-    gencode _ = encodeNull
+    gencode x = case x of {}
 
 -- | @since 0.2.0.0
 instance GSerialiseDecode V1 where
-    gdecode   = error "V1 don't have contructors" <$ decodeNull
+    gdecode   = fail "V1 don't have contructors"
 
 -- | @since 0.2.0.0
 instance GSerialiseEncode U1 where
