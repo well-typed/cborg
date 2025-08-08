@@ -1,5 +1,11 @@
 # Revision history for serialise
 
+## 0.3.0.0  -- 2025-mm-dd
+
+* Generic encoding of empty data-types will not succeed anymore.
+  Previously they were encoded as null.
+  The new behaviour is consistent with `Serialise Void` instance.
+
 ## 0.2.6.1  -- 2023-11-13
 
 * Support GHC 9.8
