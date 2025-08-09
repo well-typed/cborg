@@ -1,1 +1,6 @@
 branches: master
+
+constraint-set dupIO
+  constraints: cborg +dupIO
+  tests: True
+  run-tests: True
