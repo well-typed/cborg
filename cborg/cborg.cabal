@@ -127,6 +127,7 @@ test-suite cborg-tests
     Tests.Boundary
     Tests.ATerm
     Tests.ByteOffset
+    Tests.GetInputSpan
     Tests.Canonical
     Tests.PreEncoded
     Tests.Regress

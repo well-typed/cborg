@@ -1,5 +1,9 @@
 # Revision history for cborg
 
+## 0.3.0.0
+
+* Add support for grabbing the input bytes of intervals, i.e. `getInputSpan`.
+
 ## 0.2.10.0
 
 * Return `TypeUInt64` and `TypeNInt64` from `tokenType` when appropriate, fixing [#324](https://github.com/well-typed/cborg/issues/324)

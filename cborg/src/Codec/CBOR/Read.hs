@@ -217,7 +217,7 @@ runDecodeAction da = do
     mbs <- needChunk
     case mbs of
       Nothing -> decodeFail BS.empty 0 "end of input"
-      Just bs -> go_slow da bs 0
+      Just bs -> go_slow da bs 0 NoMarks
 
 -- The decoder is split into a fast path and a slow path. The fast path is
 -- used for a single input chunk. It decodes as far as it can, reading only
@@ -245,6 +245,9 @@ data SlowPath s a
 #else
    | SlowPeekByteOffset            {-# UNPACK #-} !ByteString (Int#         -> ST s (DecodeAction s a))
 #endif
+   | SlowMarkInput                 {-# UNPACK #-} !ByteString (ST s (DecodeAction s a))
+   | SlowUnmarkInput               {-# UNPACK #-} !ByteString (ST s (DecodeAction s a))
+   | SlowGetInputSpan              {-# UNPACK #-} !ByteString (LBS.ByteString -> ST s (DecodeAction s a))
    | SlowDecodeAction              {-# UNPACK #-} !ByteString (DecodeAction s a)
    | SlowFail                      {-# UNPACK #-} !ByteString String
 
@@ -701,6 +704,9 @@ go_fast !bs (PeekTokenType k) =
 go_fast !bs (PeekAvailable k) = k (case BS.length bs of I# len# -> len#) >>= go_fast bs
 
 go_fast !bs da@PeekByteOffset{} = go_fast_end bs da
+go_fast !bs da@MarkInput{}      = go_fast_end bs da
+go_fast !bs da@UnmarkInput{}    = go_fast_end bs da
+go_fast !bs da@GetInputSpan{}   = go_fast_end bs da
 go_fast !bs da@D.Fail{} = go_fast_end bs da
 go_fast !bs da@D.Done{} = go_fast_end bs da
 
@@ -721,6 +727,9 @@ go_fast_end !bs (D.Done x)        = return $! FastDone bs x
 go_fast_end !bs (PeekAvailable k) = k (case BS.length bs of I# len# -> len#) >>= go_fast_end bs
 
 go_fast_end !bs (PeekByteOffset k) = return $! SlowPeekByteOffset bs k
+go_fast_end !bs (MarkInput k)      = return $! SlowMarkInput bs k
+go_fast_end !bs (UnmarkInput k)    = return $! SlowUnmarkInput bs k
+go_fast_end !bs (GetInputSpan k)   = return $! SlowGetInputSpan bs k
 
 -- the next two cases only need the 1 byte token header
 go_fast_end !bs da | BS.null bs = return $! SlowDecodeAction bs da
@@ -1198,6 +1207,65 @@ go_fast_end !bs (ConsumeMapLenOrIndef k) =
       DecodedToken sz (I# n#) -> k n# >>= go_fast_end (BS.unsafeDrop sz bs)
 
 
+-- Marks is a record of byteoffsets for input marks as well as input chunks seen since the first mark.
+-- The structure is a stack to support nesting marks / getInputSpan
+data Marks
+    = NoMarks
+    | Marks !ByteOffsets !Chunks
+  deriving Show
+
+-- | Non-empty strict stack of 'ByteOffset's
+data ByteOffsets
+    = BO_Last !ByteOffset
+    | BO_Cons !ByteOffset !ByteOffsets
+  deriving Show
+
+headByteOffsets :: ByteOffsets -> ByteOffset
+headByteOffsets (BO_Cons off _) = off
+headByteOffsets (BO_Last off)   = off
+
+-- | Strict stack of chunks (ByteString) paired with offsets.
+data Chunks
+    = C_Nil
+    | C_Cons !ByteOffset !ByteString !Chunks
+  deriving Show
+
+slowMarkInput :: ByteString -> ByteOffset -> Marks -> Marks
+slowMarkInput bs off NoMarks             = Marks (BO_Last off)      (C_Cons off bs C_Nil)
+slowMarkInput _  off (Marks offs chunks) = Marks (BO_Cons off offs) chunks
+
+slowUnmarkInput :: Marks -> Marks
+slowUnmarkInput NoMarks                         = NoMarks
+slowUnmarkInput (Marks (BO_Last _)      _)      = NoMarks
+slowUnmarkInput (Marks (BO_Cons _ offs) chunks) = Marks offs chunks
+
+slowMarkChunk :: ByteString -> ByteOffset -> Marks -> Marks
+slowMarkChunk _  _    NoMarks            = NoMarks
+slowMarkChunk bs off (Marks offs chunks) = Marks offs (C_Cons off bs chunks)
+
+slowGetInputSpan :: ByteOffset -> Marks -> LBS.ByteString
+slowGetInputSpan _       NoMarks = LBS.empty
+slowGetInputSpan !offset (Marks offs chunks) =
+    -- traceShow (off, offset, chunks) $ traceShowId $
+    slowGetInputSpan1 (headByteOffsets offs) offset chunks
+
+slowGetInputSpan1 :: ByteOffset -> ByteOffset -> Chunks -> LBS.ByteString
+slowGetInputSpan1 !_ !_ C_Nil = LBS.empty
+slowGetInputSpan1 !a !b (C_Cons c bs chunks) =
+    assert (b >= c) $
+    if a <= c
+    -- a <= b, a <= c: take a prefix of the current chunk, recurse
+    then slowGetInputSpan2 [BS.take (int64ToInt (b - c)) bs] a chunks
+    -- c < a <= b: the input span is completely inside the current chunk.
+    else LBS.fromStrict $ BS.take (int64ToInt (b - a)) $ BS.drop (int64ToInt (a - c)) bs
+
+slowGetInputSpan2 :: [ByteString] -> ByteOffset -> Chunks -> LBS.ByteString
+slowGetInputSpan2 bss !_ C_Nil = LBS.fromChunks bss
+slowGetInputSpan2 bss !a (C_Cons c bs chunks)
+    | a < c     = slowGetInputSpan2 (bs : bss) a chunks
+    | a == c    = LBS.fromChunks (bs : bss)
+    | otherwise = LBS.fromChunks (BS.drop (int64ToInt (a - c)) bs : bss)
+
 -- The slow path starts off by running the fast path on the current chunk
 -- then looking at where it finished, fixing up the chunk boundary issues,
 -- getting more input and going around again.
@@ -1205,9 +1273,9 @@ go_fast_end !bs (ConsumeMapLenOrIndef k) =
 -- The offset here is the offset after of all data consumed so far,
 -- so not including the current chunk.
 --
-go_slow :: DecodeAction s a -> ByteString -> ByteOffset
+go_slow :: DecodeAction s a -> ByteString -> ByteOffset -> Marks
         -> IncrementalDecoder s (ByteString, ByteOffset, a)
-go_slow da bs !offset = do
+go_slow da bs !offset !marks = do
   slowpath <- lift $ go_fast bs da
   case slowpath of
     FastDone bs' x -> return (bs', offset', x)
@@ -1215,31 +1283,31 @@ go_slow da bs !offset = do
         !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
 
     SlowConsumeTokenBytes bs' k len -> do
-      (bstr, bs'') <- getTokenVarLen len bs' offset'
-      lift (k bstr) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len)
+      (bstr, bs'', marks') <- getTokenVarLen len bs' (offset' + intToInt64 (BS.length bs')) marks
+      lift (k bstr) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len) marks'
       where
         !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
 
     SlowConsumeTokenByteArray bs' k len -> do
-      (bstr, bs'') <- getTokenVarLen len bs' offset'
+      (bstr, bs'', marks') <- getTokenVarLen len bs' (offset' + intToInt64 (BS.length bs')) marks
       let !str = BA.fromByteString bstr
-      lift (k str) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len)
+      lift (k str) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len) marks'
       where
         !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
 
     SlowConsumeTokenString bs' k len -> do
-      (bstr, bs'') <- getTokenVarLen len bs' offset'
+      (bstr, bs'', marks') <- getTokenVarLen len bs' (offset' + intToInt64 (BS.length bs')) marks
       case T.decodeUtf8' bstr of
         Right str -> lift (k str) >>= \daz ->
-                     go_slow daz bs'' (offset' + intToInt64 len)
+                     go_slow daz bs'' (offset' + intToInt64 len) marks'
         Left _e   -> decodeFail bs' offset' "invalid UTF8"
       where
         !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
 
     SlowConsumeTokenUtf8ByteArray bs' k len -> do
-      (bstr, bs'') <- getTokenVarLen len bs' offset'
+      (bstr, bs'', marks') <- getTokenVarLen len bs' (offset' + intToInt64 (BS.length bs')) marks
       let !str = BA.fromByteString bstr
-      lift (k str) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len)
+      lift (k str) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len) marks'
       where
         !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
 
@@ -1250,7 +1318,7 @@ go_slow da bs !offset = do
       mbs <- needChunk
       case mbs of
         Nothing   -> decodeFail bs' offset' "end of input"
-        Just bs'' -> go_slow da' bs'' offset'
+        Just bs'' -> go_slow da' bs'' offset' (slowMarkChunk bs'' offset' marks)
       where
         !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
 
@@ -1258,7 +1326,7 @@ go_slow da bs !offset = do
       -- of course we should only end up here when we really are out of
       -- input, otherwise go_fast_end could have continued
       assert (BS.length bs' < tokenSize (BS.head bs')) $
-      go_slow_fixup da' bs' offset'
+      go_slow_fixup da' bs' offset' marks
       where
         !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
 
@@ -1270,9 +1338,24 @@ go_slow da bs !offset = do
         (k off#)
 
 #endif
-        >>= \daz -> go_slow daz bs' offset'
+        >>= \daz -> go_slow daz bs' offset' marks
       where
         !offset'@(I64# off#) = offset + intToInt64 (BS.length bs - BS.length bs')
+
+    SlowMarkInput bs' k ->
+        lift k >>= \daz -> go_slow daz bs' offset' (slowMarkInput bs' offset' marks)
+      where
+        !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
+
+    SlowUnmarkInput bs' k ->
+        lift k >>= \daz -> go_slow daz bs' offset' (slowUnmarkInput marks)
+      where
+        !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
+
+    SlowGetInputSpan bs' k ->
+        lift (k (slowGetInputSpan offset' marks)) >>= \daz -> go_slow daz bs' offset' marks
+      where
+        !offset' = offset + intToInt64 (BS.length bs - BS.length bs')
 
     SlowFail bs' msg -> decodeFail bs' offset' msg
       where
@@ -1283,9 +1366,9 @@ go_slow da bs !offset = do
 -- Our goal is to get enough input so that go_fast_end can consume exactly one
 -- token without need for further fixups.
 --
-go_slow_fixup :: DecodeAction s a -> ByteString -> ByteOffset
+go_slow_fixup :: DecodeAction s a -> ByteString -> ByteOffset -> Marks
               -> IncrementalDecoder s (ByteString, ByteOffset, a)
-go_slow_fixup da !bs !offset = do
+go_slow_fixup da !bs !offset !marks = do
     let !hdr = BS.head bs
         !sz  = tokenSize hdr
     mbs <- needChunk
@@ -1295,18 +1378,20 @@ go_slow_fixup da !bs !offset = do
       Just bs'
           -- We have enough input now, try reading one final token
         | BS.length bs + BS.length bs' >= sz
-       -> go_slow_overlapped da sz bs bs' offset
+       -> go_slow_overlapped da sz bs bs' offset marks'
 
           -- We still don't have enough input, get more
         | otherwise
-       -> go_slow_fixup da (bs <> bs') offset
+       -> go_slow_fixup da (bs <> bs') offset marks'
+       where
+        marks' = slowMarkChunk bs' (offset + intToInt64 (BS.length bs)) marks
 
 -- We've now got more input, but we have one token that spanned the old and
 -- new input buffers, so we have to decode that one before carrying on
 go_slow_overlapped :: DecodeAction s a -> Int -> ByteString -> ByteString
-                   -> ByteOffset
+                   -> ByteOffset -> Marks
                    -> IncrementalDecoder s (ByteString, ByteOffset, a)
-go_slow_overlapped da sz bs_cur bs_next !offset =
+go_slow_overlapped da sz bs_cur bs_next !offset !marks =
 
     -- we have:
     --   sz            the size of the pending input token
@@ -1339,7 +1424,7 @@ go_slow_overlapped da sz bs_cur bs_next !offset =
       -- consumed exactly one token, now with no trailing data
       SlowDecodeAction bs_empty da' ->
         assert (BS.null bs_empty) $
-        go_slow da' bs' offset'
+        go_slow da' bs' offset' marks
 
       -- but the other possibilities can happen too
       FastDone bs_empty x ->
@@ -1348,28 +1433,28 @@ go_slow_overlapped da sz bs_cur bs_next !offset =
 
       SlowConsumeTokenBytes bs_empty k len ->
         assert (BS.null bs_empty) $ do
-        (bstr, bs'') <- getTokenShortOrVarLen bs' offset' len
-        lift (k bstr) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len)
+        (bstr, bs'', marks') <- getTokenShortOrVarLen bs' offset' len marks
+        lift (k bstr) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len) marks'
 
       SlowConsumeTokenByteArray bs_empty k len ->
         assert (BS.null bs_empty) $ do
-        (bstr, bs'') <- getTokenShortOrVarLen bs' offset' len
+        (bstr, bs'', marks') <- getTokenShortOrVarLen bs' offset' len marks
         let !ba = BA.fromByteString bstr
-        lift (k ba) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len)
+        lift (k ba) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len) marks'
 
       SlowConsumeTokenString bs_empty k len ->
         assert (BS.null bs_empty) $ do
-        (bstr, bs'') <- getTokenShortOrVarLen bs' offset' len
+        (bstr, bs'', marks') <- getTokenShortOrVarLen bs' offset' len marks
         case T.decodeUtf8' bstr of
           Right str -> lift (k str) >>= \daz ->
-                       go_slow daz bs'' (offset' + intToInt64 len)
+                       go_slow daz bs'' (offset' + intToInt64 len) marks'
           Left _e   -> decodeFail bs' offset' "invalid UTF8"
 
       SlowConsumeTokenUtf8ByteArray bs_empty k len ->
         assert (BS.null bs_empty) $ do
-        (bstr, bs'') <- getTokenShortOrVarLen bs' offset' len
+        (bstr, bs'', marks') <- getTokenShortOrVarLen bs' offset' len marks
         let !ba = BA.fromByteString bstr
-        lift (k ba) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len)
+        lift (k ba) >>= \daz -> go_slow daz bs'' (offset' + intToInt64 len) marks'
 
       SlowPeekByteOffset bs_empty k ->
         assert (BS.null bs_empty) $ do
@@ -1379,26 +1464,24 @@ go_slow_overlapped da sz bs_cur bs_next !offset =
 #else
           (k off#)
 #endif
-          >>= \daz -> go_slow daz bs' offset'
+          >>= \daz -> go_slow daz bs' offset' marks
         where
           !(I64# off#) = offset'
+
+      SlowMarkInput bs_empty k ->
+        assert (BS.null bs_empty) $
+        lift k >>= \daz -> go_slow daz bs' offset' (slowMarkInput bs' offset' marks)
+      SlowUnmarkInput bs_empty k ->
+        assert (BS.null bs_empty) $
+        lift k >>= \daz -> go_slow daz bs' offset' (slowUnmarkInput marks)
+      SlowGetInputSpan bs_empty k ->
+        assert (BS.null bs_empty) $
+        lift (k (slowGetInputSpan offset' marks)) >>= \daz -> go_slow daz bs' offset' marks
 
       SlowFail bs_unconsumed msg ->
         decodeFail (bs_unconsumed <> bs') offset'' msg
         where
           !offset'' = offset + intToInt64 (sz - BS.length bs_unconsumed)
-  where
-    {-# INLINE getTokenShortOrVarLen #-}
-    getTokenShortOrVarLen :: BS.ByteString
-                          -> ByteOffset
-                          -> Int
-                          -> IncrementalDecoder s (ByteString, ByteString)
-    getTokenShortOrVarLen bs' offset' len
-      | BS.length bs' < len = getTokenVarLen len bs' offset'
-      | otherwise           = let !bstr = BS.take len bs'
-                                  !bs'' = BS.drop len bs'
-                               in return (bstr, bs'')
-
 
 -- TODO FIXME: we can do slightly better here. If we're returning a
 -- lazy string (String, lazy Text, lazy ByteString) then we don't have
@@ -1408,9 +1491,13 @@ go_slow_overlapped da sz bs_cur bs_next !offset =
 -- TODO FIXME: also consider sharing or not sharing here, and possibly
 -- rechunking.
 
-getTokenVarLen :: Int -> ByteString -> ByteOffset
-               -> IncrementalDecoder s (ByteString, ByteString)
-getTokenVarLen len bs offset =
+getTokenVarLen
+  :: Int         -- ^ (remaining) length of the token
+  -> ByteString  -- ^ token prefix
+  -> ByteOffset  -- ^ offset in the input *after* the prefix chunk
+  -> Marks
+  -> IncrementalDecoder s (ByteString, ByteString, Marks)
+getTokenVarLen len bs offset marks =
     assert (len > BS.length bs) $ do
     mbs <- needChunk
     case mbs of
@@ -1419,25 +1506,41 @@ getTokenVarLen len bs offset =
         | let n = len - BS.length bs
         , BS.length bs' >= n ->
             let !tok = bs <> BS.unsafeTake n bs'
-             in return (tok, BS.drop n bs')
+             in return (tok, BS.drop n bs', slowMarkChunk bs' offset  marks)
 
         | otherwise -> getTokenVarLenSlow
                          [bs',bs]
                          (len - (BS.length bs + BS.length bs'))
-                         offset
+                         (offset + intToInt64 (BS.length bs'))
+                         (slowMarkChunk bs' offset marks)
 
-getTokenVarLenSlow :: [ByteString] -> Int -> ByteOffset
-                   -> IncrementalDecoder s (ByteString, ByteString)
-getTokenVarLenSlow bss n offset = do
+getTokenVarLenSlow
+  :: [ByteString] -- ^ prefix chunks, in reverse order
+  -> Int          -- ^ remaining length of the token
+  -> ByteOffset   -- ^ offset in the input *after* the prefix chunks
+  -> Marks
+  -> IncrementalDecoder s (ByteString, ByteString, Marks)
+getTokenVarLenSlow bss n offset marks = do
     mbs <- needChunk
     case mbs of
       Nothing -> decodeFail BS.empty offset "end of input"
       Just bs
         | BS.length bs >= n ->
             let !tok = BS.concat (reverse (BS.unsafeTake n bs : bss))
-             in return (tok, BS.drop n bs)
-        | otherwise -> getTokenVarLenSlow (bs:bss) (n - BS.length bs) offset
+             in return (tok, BS.drop n bs, slowMarkChunk bs offset marks)
+        | otherwise -> getTokenVarLenSlow (bs:bss) (n - BS.length bs) (offset + intToInt64 (BS.length bs)) marks
 
+
+{-# INLINE getTokenShortOrVarLen #-}
+getTokenShortOrVarLen :: BS.ByteString
+                          -> ByteOffset
+                          -> Int -> Marks
+                          -> IncrementalDecoder s (ByteString, ByteString, Marks)
+getTokenShortOrVarLen bs' offset' len marks
+      | BS.length bs' < len = getTokenVarLen len bs' offset' marks
+      | otherwise           = let !bstr = BS.take len bs'
+                                  !bs'' = BS.drop len bs'
+                               in return (bstr, bs'', marks)
 
 
 tokenSize :: Word8 -> Int

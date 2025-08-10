@@ -76,6 +76,10 @@ module Codec.CBOR.Decoding
   , peekByteOffset       -- :: Decoder s ByteOffset
   , decodeWithByteSpan
 
+  , markInput            -- :: Decoder s ()
+  , unmarkInput          -- :: Decoder s ()
+  , getInputSpan         -- :: Decoder s LazyByteString
+
   -- ** Canonical CBOR
   -- $canonical
   , decodeWordCanonical      -- :: Decoder s Word
@@ -118,6 +122,7 @@ import           GHC.Word
 import           GHC.Int
 import           Data.Text (Text)
 import           Data.ByteString (ByteString)
+import qualified Data.ByteString.Lazy as LBS
 import           Control.Applicative
 import           Control.Monad.ST
 import qualified Control.Monad.Fail as Fail
@@ -193,6 +198,9 @@ data DecodeAction s a
 #else
     | PeekByteOffset (Int#      -> ST s (DecodeAction s a))
 #endif
+    | MarkInput (ST s (DecodeAction s a))
+    | UnmarkInput (ST s (DecodeAction s a))
+    | GetInputSpan (LBS.ByteString -> ST s (DecodeAction s a))
 
       -- All the canonical variants
     | ConsumeWordCanonical    (Word# -> ST s (DecodeAction s a))
@@ -989,6 +997,25 @@ peekByteOffset = Decoder (\k -> return (PeekByteOffset (\off# -> k (I64#
 #endif
     ))))
 {-# INLINE peekByteOffset #-}
+
+-- |
+--
+-- @since 0.3.0.0
+markInput :: Decoder s ()
+markInput = Decoder (\k -> return (MarkInput (k ())))
+
+-- |
+--
+-- @since 0.3.0.0
+unmarkInput :: Decoder s ()
+unmarkInput = Decoder (\k -> return (UnmarkInput (k ())))
+
+-- |
+--
+-- @since 0.3.0.0
+getInputSpan :: Decoder s LBS.ByteString
+getInputSpan = Decoder (\k -> return (GetInputSpan k))
+
 
 -- | This captures the pattern of getting the byte offsets before and after
 -- decoding a subterm.

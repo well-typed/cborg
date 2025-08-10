@@ -67,6 +67,7 @@ import           Data.Text (Text)
 import qualified Data.Text.Encoding as TE
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
 import           Control.Monad.ST
 import qualified Control.Monad.ST.Lazy as ST.Lazy
 
@@ -473,6 +474,9 @@ fromFlatTerm decoder ft =
 #else
     go ts        (PeekByteOffset k)= k 0# >>= go ts
 #endif
+    go ts        (MarkInput k)     = k >>= go ts
+    go ts        (UnmarkInput k)   = k >>= go ts
+    go ts        (GetInputSpan k)  = k LBS.empty >>= go ts
 
     go _  (Fail msg) = return $ Left msg
     go [] (Done x)   = return $ Right x
