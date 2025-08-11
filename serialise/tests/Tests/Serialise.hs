@@ -1,6 +1,5 @@
 {-# LANGUAGE CPP                  #-}
 {-# LANGUAGE ConstraintKinds     #-}
-{-# LANGUAGE DeriveDataTypeable  #-}
 {-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -334,7 +333,7 @@ mkTest t = testGroup ("type: " ++ show (typeOf (undefined :: a)))
 
 -- Wrapper for CUSeconds with Arbitrary instance that works on x86_32.
 newtype CUSeconds_ = CUSeconds_ CUSeconds
-  deriving (Eq, Show, Typeable)
+  deriving (Eq, Show)
 
 instance Arbitrary CUSeconds_ where
   arbitrary = CUSeconds_ . CUSeconds <$> arbitraryBoundedIntegral
@@ -347,25 +346,25 @@ instance Serialise CUSeconds_ where
 -- Generic data types
 
 data Unit = Unit
-          deriving (Show,Eq,Typeable,Generic)
+          deriving (Show,Eq,Generic)
 data P1 = P1 Int
-          deriving (Show,Eq,Typeable,Generic)
+          deriving (Show,Eq,Generic)
 newtype N1 = N1 Int
-          deriving (Show,Eq,Typeable,Generic)
+          deriving (Show,Eq,Generic)
 data P2 = P2 Int Float
-          deriving (Show,Eq,Typeable,Generic)
+          deriving (Show,Eq,Generic)
 data P3 = P3 Int Float String
-          deriving (Show,Eq,Typeable,Generic)
+          deriving (Show,Eq,Generic)
 
 data C4 = C1 Int
         | C2 Int Float
         | C3 Int Float String
         | C4
-        deriving (Show,Eq,Typeable,Generic)
+        deriving (Show,Eq,Generic)
 
 data List a = Cons a (List a)
             | Nil
-            deriving (Show,Eq,Typeable,Generic)
+            deriving (Show,Eq,Generic)
 
 instance Serialise Unit
 instance Serialise P1
@@ -402,7 +401,7 @@ instance Arbitrary a => Arbitrary (List a) where
         cnv = foldr Cons Nil
 
 newtype BytesByteArray = BytesBA CBOR.BA.ByteArray
-                       deriving (Eq, Ord, Show, Typeable)
+                       deriving (Eq, Ord, Show)
 
 instance Serialise BytesByteArray where
     encode (BytesBA ba) = encodeByteArray $ CBOR.BA.toSliced ba
@@ -412,7 +411,7 @@ instance Arbitrary BytesByteArray where
     arbitrary = BytesBA . fromList <$> arbitrary
 
 newtype Utf8ByteArray = Utf8BA CBOR.BA.ByteArray
-                      deriving (Eq, Ord, Show, Typeable)
+                      deriving (Eq, Ord, Show)
 
 instance Serialise Utf8ByteArray where
     encode (Utf8BA ba) = encodeUtf8ByteArray $ CBOR.BA.toSliced ba

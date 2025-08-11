@@ -1,12 +1,10 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE DeriveDataTypeable #-}
 module Tests.Serialise.Canonical where
 
 import Data.Bits
 import Data.Int
-import Data.Typeable
 import Data.Word
 import Test.QuickCheck
 
@@ -15,7 +13,7 @@ import Codec.CBOR.Encoding as E
 import Codec.Serialise.Class
 
 newtype Canonical a = Canonical { fromCanonical :: a }
-  deriving (Typeable, Eq, Show)
+  deriving (Eq, Show)
 
 -- | Generate "proper" big integers (as standard Arbitrary Integer instance
 -- doesn't really do that) to test canonicity.
