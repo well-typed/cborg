@@ -86,7 +86,7 @@ library
 
   other-extensions:
     CPP, ForeignFunctionInterface, MagicHash,
-    UnboxedTuples, BangPatterns, DeriveDataTypeable,
+    UnboxedTuples, BangPatterns,
     RankNTypes
 
   build-depends:

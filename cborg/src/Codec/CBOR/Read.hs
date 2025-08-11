@@ -1,6 +1,5 @@
 {-# LANGUAGE BangPatterns           #-}
 {-# LANGUAGE CPP                    #-}
-{-# LANGUAGE DeriveDataTypeable     #-}
 {-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
@@ -65,7 +64,6 @@ import           GHC.IntWord64
 #endif
 import           GHC.Exts
 import           GHC.Float (float2Double)
-import           Data.Typeable
 import           Control.Exception
 
 -- We do all numeric conversions explicitly to be careful about overflows.
@@ -84,7 +82,7 @@ import           Codec.CBOR.Magic
 --
 -- @since 0.2.0.0
 data DeserialiseFailure = DeserialiseFailure ByteOffset String
-  deriving (Eq, Show, Typeable)
+  deriving (Eq, Show)
 
 instance NFData DeserialiseFailure where
   rnf (DeserialiseFailure offset msg) = rnf offset `seq` rnf msg `seq` ()
