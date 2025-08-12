@@ -73,7 +73,7 @@ bigBytes someEncodedInteger = LBS.pack $
       -- key 1
     , 0x01
       -- value 1: a pair of numbers.
-    , 0x82 
+    , 0x82
     ] ++ someEncodedInteger ++
     [ 0x1a, 0x05, 0xee, 0x4d, 0x20
     ]
