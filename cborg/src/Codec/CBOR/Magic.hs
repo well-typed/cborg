@@ -376,17 +376,6 @@ word32ToInt :: Word32 -> Maybe Int
 #endif
 word64ToInt :: Word64 -> Maybe Int
 
-#if defined(ARCH_32bit)
-word8ToInt64  :: Word8  -> Int64
-word16ToInt64 :: Word16 -> Int64
-word32ToInt64 :: Word32 -> Int64
-word64ToInt64 :: Word64 -> Maybe Int64
-
-word8ToWord64  :: Word8  -> Word64
-word16ToWord64 :: Word16 -> Word64
-word32ToWord64 :: Word32 -> Word64
-#endif
-
 intToInt64 :: Int -> Int64
 intToInt64 = fromIntegral
 {-# INLINE intToInt64 #-}
