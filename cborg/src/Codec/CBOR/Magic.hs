@@ -118,7 +118,7 @@ import qualified Numeric.Half as Half
 import           Data.Bits ((.|.), unsafeShiftL)
 #endif
 
-#if defined(ARCH_32bit) && !MIN_VERSION_base(4,16,0)
+#if !MIN_VERSION_base(4,16,0)
 import           GHC.IntWord64 (wordToWord64#, word64ToWord#,
                                 intToInt64#, int64ToInt#,
                                 leWord64#, ltWord64#, word64ToInt64#)
