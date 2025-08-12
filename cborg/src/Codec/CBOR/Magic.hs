@@ -19,6 +19,8 @@
 -- An internal module for doing magical, low-level, and unholy things
 -- in the name of efficiency.
 --
+-- Note: some functions have different types on 32bit architectures.
+--
 module Codec.CBOR.Magic
   ( -- * Word utilities
     grabWord8         -- :: Ptr () -> Word
@@ -59,7 +61,6 @@ module Codec.CBOR.Magic
   , intToWord64       -- :: Int    -> Word64
   , int64ToWord64     -- :: Int64  -> Word64
 
-#if defined(ARCH_32bit)
   , word8ToInt64      -- :: Word8  -> Int64
   , word16ToInt64     -- :: Word16 -> Int64
   , word32ToInt64     -- :: Word32 -> Int64
@@ -68,7 +69,6 @@ module Codec.CBOR.Magic
   , word8ToWord64     -- :: Word8  -> Word64
   , word16ToWord64    -- :: Word16 -> Word64
   , word32ToWord64    -- :: Word32 -> Word64
-#endif
 
     -- * 'Integer' utilities
   , nintegerFromBytes -- :: ByteString -> Integer
@@ -490,16 +490,24 @@ word64ToInt (W64# w#) =
 {-# INLINE word32ToInt #-}
 {-# INLINE word64ToInt #-}
 
-#if defined(ARCH_32bit)
-#if MIN_VERSION_base(4,16,0)
-word8ToInt64  (W8#  w#) = I64# (intToInt64# (word2Int# (word8ToWord# w#)))
-word16ToInt64 (W16# w#) = I64# (intToInt64# (word2Int# (word16ToWord# w#)))
-word32ToInt64 (W32# w#) = I64# (word64ToInt64# (wordToWord64# (word32ToWord# w#)))
+word8ToInt64   :: Word8  -> Int64
+word16ToInt64  :: Word16 -> Int64
+word32ToInt64  :: Word32 -> Int64
+word64ToInt64  :: Word64 -> Maybe Int64
+
+word8ToWord64  :: Word8  -> Word64
+word16ToWord64 :: Word16 -> Word64
+word32ToWord64 :: Word32 -> Word64
+
 word64ToInt64 (W64# w#) =
   case isTrue# (w# `ltWord64#` uncheckedShiftL64# (wordToWord64# 1##) 63#) of
     True  -> Just (I64# (word64ToInt64# w#))
     False -> Nothing
 
+#if MIN_VERSION_base(4,16,0)
+word8ToInt64  (W8#  w#) = I64# (intToInt64# (word2Int# (word8ToWord# w#)))
+word16ToInt64 (W16# w#) = I64# (intToInt64# (word2Int# (word16ToWord# w#)))
+word32ToInt64 (W32# w#) = I64# (word64ToInt64# (wordToWord64# (word32ToWord# w#)))
 word8ToWord64  (W8#  w#) = W64# (wordToWord64# (word8ToWord# w#))
 word16ToWord64 (W16# w#) = W64# (wordToWord64# (word16ToWord# w#))
 word32ToWord64 (W32# w#) = W64# (wordToWord64# (word32ToWord# w#))
@@ -507,11 +515,6 @@ word32ToWord64 (W32# w#) = W64# (wordToWord64# (word32ToWord# w#))
 word8ToInt64  (W8#  w#) = I64# (intToInt64# (word2Int# w#))
 word16ToInt64 (W16# w#) = I64# (intToInt64# (word2Int# w#))
 word32ToInt64 (W32# w#) = I64# (word64ToInt64# (wordToWord64# w#))
-word64ToInt64 (W64# w#) =
-  case isTrue# (w# `ltWord64#` uncheckedShiftL64# (wordToWord64# 1##) 63#) of
-    True  -> Just (I64# (word64ToInt64# w#))
-    False -> Nothing
-
 word8ToWord64  (W8#  w#) = W64# (wordToWord64# w#)
 word16ToWord64 (W16# w#) = W64# (wordToWord64# w#)
 word32ToWord64 (W32# w#) = W64# (wordToWord64# w#)
@@ -525,7 +528,6 @@ word32ToWord64 (W32# w#) = W64# (wordToWord64# w#)
 {-# INLINE word8ToWord64  #-}
 {-# INLINE word16ToWord64 #-}
 {-# INLINE word32ToWord64 #-}
-#endif
 
 --------------------------------------------------------------------------------
 -- Integer utilities
