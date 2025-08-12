@@ -3,11 +3,12 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Tests.Term (
     Term
-  , serialise
-  , deserialise
+  , serialiseTerm
+  , deserialiseTerm
   , toRefTerm
   , fromRefTerm
   , eqTerm
+  , eqTermProp
   , canonicaliseTerm
   , prop_fromToRefTerm
   , prop_toFromRefTerm
@@ -36,11 +37,11 @@ import           Control.Exception (throw)
 
 ------------------------------------------------------------------------------
 
-serialise :: Term -> LBS.ByteString
-serialise = toLazyByteString . encodeTerm
+serialiseTerm :: Term -> LBS.ByteString
+serialiseTerm = toLazyByteString . encodeTerm
 
-deserialise :: LBS.ByteString -> Term
-deserialise b =
+deserialiseTerm :: LBS.ByteString -> Term
+deserialiseTerm b =
     case deserialiseFromBytes decodeTerm b of
       Left failure        -> throw failure
       Right (trailing, _)  | not (LBS.null trailing)
@@ -141,6 +142,11 @@ eqTerm (THalf   f)   (THalf   f')    = floatToWord  f == floatToWord  f'
 eqTerm (TFloat  f)   (TFloat  f')    = floatToWord  f == floatToWord  f'
 eqTerm (TDouble f)   (TDouble f')    = doubleToWord f == doubleToWord f'
 eqTerm a b = a == b
+
+eqTermProp :: Term -> Term -> Property
+eqTermProp x y =
+    counterexample (show x ++ " =?= " ++ show y) $
+    eqTerm x y
 
 eqTermPair :: (Term, Term) -> (Term, Term) -> Bool
 eqTermPair (a,b) (a',b') = eqTerm a a' && eqTerm b b'

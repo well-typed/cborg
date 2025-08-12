@@ -111,8 +111,7 @@ library
 
   ghc-options: -Wcompat -Wnoncanonical-monad-instances
 
-
-test-suite tests
+test-suite cborg-tests
   type:              exitcode-stdio-1.0
   hs-source-dirs:    tests
   main-is:           Main.hs
@@ -126,6 +125,7 @@ test-suite tests
     Tests.UnitTests
     Tests.Properties
     Tests.Boundary
+    Tests.ATerm
     Tests.ByteOffset
     Tests.Canonical
     Tests.PreEncoded
