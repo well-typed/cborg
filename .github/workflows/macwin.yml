@@ -15,7 +15,7 @@ jobs:
       matrix:
         os: [macos-latest, windows-latest]
         # older GHCs don't work well on macos-latest (i.e. arm)
-        ghc: ['9.2','9.4','9.6','9.8', '9.10','9.12']
+        ghc: ['8.10', '9.0', '9.2','9.4','9.6','9.8', '9.10','9.12']
       fail-fast: false
     steps:
       - name: Set git to use LF
