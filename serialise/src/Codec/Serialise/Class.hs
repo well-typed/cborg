@@ -32,6 +32,7 @@ module Codec.Serialise.Class
  , encodeContainerSkel
  , encodeMapSkel
  , decodeMapSkel
+ , extendedEncodeUTCTime
  ) where
 
 import           Control.Applicative
@@ -1343,20 +1344,26 @@ instance Serialise SomeTypeRep where
 -- Internet Draft state,
 -- https://tools.ietf.org/html/draft-bormann-cbor-time-tag-00.
 --
+-- In 0.3.0.0 instance's 'encode' changed to use epoch-based encoding (tag 1).
+-- The instance is lossy if UTCTime has fractional seconds.
+--
 -- @since 0.2.0.0
 instance Serialise UTCTime where
-    encode t =
-        encodeTag 1000
-        <> encodeMapLen 2
-        <> encodeWord 1 <> encodeInt64 secs
-        <> encodeInt (-12) <> encodeWord64 psecs
+    encode t = encodeTag 1 <>
+      if frac /= 0
+      then encodeDouble (realToFrac posixSeconds)
+      else if toInteger (minBound :: Int64) <= secs && secs <= toInteger (maxBound :: Int64)
+      then encodeInt64 (fromInteger secs)
+      else encodeInteger secs
       where
-        (secs, frac) = case properFraction $ utcTimeToPOSIXSeconds t of
-                         -- fractional part must be positive
-                         (secs', frac')
-                           | frac' < 0  -> (secs' - 1, frac' + 1)
-                           | otherwise -> (secs', frac')
-        psecs = round $ frac * 1000000000000
+        posixSeconds :: POSIXTime
+        posixSeconds =  utcTimeToPOSIXSeconds t
+
+        (secs, frac) = case properFraction posixSeconds of
+                          -- fractional part must be positive
+                          (secs', frac')
+                            | frac' < 0  -> (secs' - 1, frac' + 1)
+                            | otherwise -> (secs', frac')
 
     decode = do
       tag <- decodeTag
@@ -1369,18 +1376,20 @@ instance Serialise UTCTime where
         1 -> do
           tt <- peekTokenType
           case tt of
-            TypeUInt    -> utcFromIntegral <$> decodeWord
-            TypeUInt64  -> utcFromIntegral <$> decodeWord64
-            TypeNInt    -> utcFromIntegral <$> decodeInt
-            TypeNInt64  -> utcFromIntegral <$> decodeInt64
+            -- cannot use decodeInt etc. as NInt64 tag
+            TypeUInt    -> utcFromIntegral <$> decodeInteger
+            TypeUInt64  -> utcFromIntegral <$> decodeInteger
+            TypeNInt    -> utcFromIntegral <$> decodeInteger
+            TypeNInt64  -> utcFromIntegral <$> decodeInteger
             TypeInteger -> utcFromIntegral <$> decodeInteger
             TypeFloat16 -> utcFromReal <$> decodeFloat
             TypeFloat32 -> utcFromReal <$> decodeFloat
             TypeFloat64 -> utcFromReal <$> decodeDouble
             _ -> fail "Expected numeric type following tag 1 (epoch offset)"
 
-        -- Extended time
-        1000 -> do
+        -- RFC9581: Extended time
+        -- at the moment only a small subset is accepted
+        1001 -> do
           len <- decodeMapLen
           when (len /= 2) $ fail "Expected list of length two (UTCTime)"
 
@@ -1398,7 +1407,23 @@ instance Serialise UTCTime where
               dt = realToFrac v0 + realToFrac psecs
           return $! forceUTCTime (posixSecondsToUTCTime dt)
 
-        _ -> fail "Expected timestamp (tag 0, 1, or 40)"
+        _ -> fail "Expected timestamp (tag 0, 1, or 1001)"
+
+-- | Serialise 'UTCTime' using extended time format ([rfc9581](https://www.ietf.org/rfc/rfc9581.html)).
+--
+-- @since 0.3.0.0
+extendedEncodeUTCTime :: UTCTime -> Encoding
+extendedEncodeUTCTime t = encodeTag 1001
+    <> encodeMapLen 2
+    <> encodeWord 1 <> encodeInt64 secs -- TODO: secs might overflow
+    <> encodeInt (-12) <> encodeWord64 psecs
+  where
+    (secs, frac) = case properFraction $ utcTimeToPOSIXSeconds t of
+                      -- fractional part must be positive
+                      (secs', frac')
+                        | frac' < 0  -> (secs' - 1, frac' + 1)
+                        | otherwise -> (secs', frac')
+    psecs = round $ frac * 1000000000000
 
 epoch :: UTCTime
 epoch = UTCTime (fromGregorian 1970 1 1) 0

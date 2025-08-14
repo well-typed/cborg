@@ -2,6 +2,8 @@
 
 ## 0.3.0.0  -- 2025-mm-dd
 
+* Serialize UTCTime using epoch date time (previously non-standard encoding)
+* Add `extendedEncodeUTCTime` for serialising 'UTCTime' using extended time format ([rfc9581](https://www.ietf.org/rfc/rfc9581.html))
 * Generic encoding of empty data-types will not succeed anymore.
   Previously they were encoded as null.
   The new behaviour is consistent with `Serialise Void` instance.
