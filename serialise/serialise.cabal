@@ -86,7 +86,7 @@ library
 --------------------------------------------------------------------------------
 -- Tests
 
-test-suite tests
+test-suite serialise-tests
   type:              exitcode-stdio-1.0
   hs-source-dirs:    tests
   main-is:           Main.hs

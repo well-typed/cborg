@@ -3,6 +3,7 @@
 {-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Tests.Serialise
   ( testTree     -- :: TestTree
   , testGenerics -- :: TestTree
@@ -51,6 +52,7 @@ import           System.Exit (ExitCode(..))
 import qualified Codec.CBOR.ByteArray           as CBOR.BA
 import           Codec.CBOR.FlatTerm (toFlatTerm, fromFlatTerm)
 import           Codec.Serialise
+import           Codec.Serialise.Class (extendedEncodeUTCTime)
 import           Codec.Serialise.Encoding
 import           Codec.Serialise.Decoding
 import qualified Codec.Serialise.Properties     as Props
@@ -81,8 +83,12 @@ data T a = T
 
 -- | Ensure that serializing and deserializing a term results in the original
 -- term.
-prop_serialiseId :: (Serialise a, Eq a) => T a -> a -> Bool
-prop_serialiseId _ = Props.serialiseIdentity
+prop_serialiseId :: (Serialise a, Eq a, Show a) => T a -> a -> Property
+prop_serialiseId _ x =
+  counterexample (show lbs) $
+  x === deserialise lbs
+  where lbs = serialise x
+  -- Props.serialiseIdentity doesn't print counterexample.
 
 -- | Ensure that serializing and deserializing a term (into @'FlatTerm'@ form)
 -- results in the original term.
@@ -235,7 +241,9 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T BytesByteArray)
       , mkTest (T :: T Utf8ByteArray)
       , mkTest (T :: T [Int])
-      , mkTest (T :: T UTCTime)
+      , mkTest (T :: T IntegralUTCTime)
+      , mkTest (T :: T FloatUTCTime)
+      , mkTest (T :: T ExtendedUTCTime)
       , mkTest (T :: T Version)
       , mkTest (T :: T Fingerprint)
       , mkTest (T :: T ExitCode)
@@ -341,6 +349,50 @@ instance Arbitrary CUSeconds_ where
 instance Serialise CUSeconds_ where
   encode (CUSeconds_ s) = encode s
   decode = CUSeconds_ <$> decode
+
+--------------------------------------------------------------------------------
+-- UTCTime wrappers
+
+-- Integral (i.e. no fractional seconds) UTCTime should roundtrip
+newtype IntegralUTCTime = IntegralUTCTime UTCTime
+  deriving (Eq, Show, Serialise)
+
+instance Arbitrary IntegralUTCTime where
+  arbitrary = do
+    t <- oneof
+      [ arbitrary
+      , (+ 0x10000000000000000) <$> arbitrary -- to overflow 64bit
+      , (subtract 0x10000000000000000) <$> arbitrary
+      ]
+    return (IntegralUTCTime (addUTCTime (fromInteger t) epoch))
+
+-- Non-integral UTCTime is serialised as floating point (double),
+-- its precision degrades the more away from epoch we are
+newtype FloatUTCTime = FloatUTCTime UTCTime
+  deriving (Show, Serialise)
+
+instance Eq FloatUTCTime where
+  -- floating point rounding causes small loss of precision
+  FloatUTCTime x == FloatUTCTime y =
+    abs (diffUTCTime x y) < 1e-9
+
+instance Arbitrary FloatUTCTime where
+  arbitrary = do
+    t <- arbitrary
+    return (FloatUTCTime (addUTCTime (realToFrac (t :: Double)) epoch))
+
+-- if UTCTime is serialised using extended encoding,
+-- it can precisely represent any UTCTime,
+-- but the encoding is not yet well supported by other cbor libraries.
+newtype ExtendedUTCTime = ExtendedUTCTime UTCTime
+  deriving (Eq, Show, Arbitrary)
+
+instance Serialise ExtendedUTCTime where
+  encode (ExtendedUTCTime t) = extendedEncodeUTCTime t
+  decode = ExtendedUTCTime <$> decode
+
+epoch :: UTCTime
+epoch = UTCTime (fromGregorian 1970 1 1) 0
 
 --------------------------------------------------------------------------------
 -- Generic data types
