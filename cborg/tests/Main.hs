@@ -11,6 +11,7 @@ import qualified Tests.Canonical  as Canonical
 import qualified Tests.Regress    as Regress
 import qualified Tests.UTF8       as UTF8
 import qualified Tests.PreEncoded as PreEncoded
+import qualified Tests.GetInputSpan as GetInputSpan
 
 main :: IO ()
 main = defaultMain tests
@@ -22,6 +23,7 @@ tests =
     , UnitTests.testTree
     , Properties.testTree
     , ByteOffset.testTree
+    , GetInputSpan.testTree
     , Boundary.testTree
     , Canonical.testTree
     , Regress.testTree

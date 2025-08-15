@@ -55,6 +55,7 @@ module Codec.CBOR.Magic
 
   , intToWord         -- :: Int    -> Word
   , intToInt64        -- :: Int    -> Int64
+  , int64ToInt
 
   , intToWord64       -- :: Int    -> Word64
   , int64ToWord64     -- :: Int64  -> Word64
@@ -390,6 +391,10 @@ word32ToWord64 :: Word32 -> Word64
 intToInt64 :: Int -> Int64
 intToInt64 = fromIntegral
 {-# INLINE intToInt64 #-}
+
+int64ToInt :: Int64 -> Int
+int64ToInt = fromIntegral
+{-# INLINE int64ToInt #-}
 
 intToWord :: Int -> Word
 intToWord = fromIntegral
