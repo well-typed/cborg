@@ -537,6 +537,8 @@ go_fast !bs da@(ConsumeTag64Canonical k) =
 go_fast !bs da@(ConsumeInteger k) =
     case tryConsumeInteger (BS.unsafeHead bs) bs of
       DecodedToken sz (BigIntToken _ n) -> k n >>= go_fast (BS.unsafeDrop sz bs)
+      DecodedToken sz BigNIntNeedBytes -> go_fast_end (BS.unsafeDrop sz bs) (decodeBytesIndefLen (k . nintegerFromBytes) [])
+      DecodedToken sz BigUIntNeedBytes -> go_fast_end (BS.unsafeDrop sz bs) (decodeBytesIndefLen (k . uintegerFromBytes) [])
       _                                 -> go_fast_end bs da
 
 go_fast !bs da@(ConsumeFloat k) =
@@ -593,6 +595,8 @@ go_fast !bs da@(ConsumeSimple k) =
 go_fast !bs da@(ConsumeIntegerCanonical k) =
     case tryConsumeInteger (BS.unsafeHead bs) bs of
       DecodedToken sz (BigIntToken True n) -> k n >>= go_fast (BS.unsafeDrop sz bs)
+      DecodedToken _sz BigUIntNeedBytes    -> return $ SlowFail bs "non-canonical integer encoding"
+      DecodedToken _sz BigNIntNeedBytes    -> return $ SlowFail bs "non-canonical integer encoding"
       _                                    -> go_fast_end bs da
 
 
@@ -1037,6 +1041,9 @@ go_fast_end !bs (ConsumeInteger k) =
       DecodedToken sz (BigNIntNeedBody _ len) -> return $! SlowConsumeTokenBytes (BS.unsafeDrop sz bs) (adjustContBigNIntNeedBody k) len
       DecodedToken sz  BigUIntNeedHeader    -> return $! SlowDecodeAction      (BS.unsafeDrop sz bs) (adjustContBigUIntNeedHeader k)
       DecodedToken sz  BigNIntNeedHeader    -> return $! SlowDecodeAction      (BS.unsafeDrop sz bs) (adjustContBigNIntNeedHeader k)
+      DecodedToken sz  BigUIntNeedBytes -> go_fast_end (BS.unsafeDrop sz bs) (decodeBytesIndefLen (k . uintegerFromBytes) [])
+      DecodedToken sz  BigNIntNeedBytes -> go_fast_end (BS.unsafeDrop sz bs) (decodeBytesIndefLen (k . nintegerFromBytes) [])
+
 
 go_fast_end !bs (ConsumeFloat k) =
     case tryConsumeFloat (BS.unsafeHead bs) bs of
@@ -2696,12 +2703,26 @@ readBytes64 bs = case word64ToInt (eatTailWord64 bs) of
 -- Note that canonicity information is calculated lazily. This way we don't need
 -- to concern ourselves with two distinct paths, while according to benchmarks
 -- it doesn't affect performance in the non-canonical case.
+--
+-- According to the CBOR specification, big integers can be encoded as
+-- *indefinite-length* byte strings. To support this representation, we return
+-- the 'BigUIntNeedBytes' or 'BigNIntNeedBytes' constructors, which indicate that
+-- more tokens are required before the integer can be fully reconstructed.
+-- In this case we fall back to the slow path.
+--
+-- Note that this is a non-canonical encoding of big integers. The canonical
+-- representation uses a definite-length byte string. Therefore, when canonical
+-- decoding is requested, indefinite-length values are rejected immediately.
+
 
 data BigIntToken a = BigIntToken     Bool {- canonical? -} Integer
                    | BigUIntNeedBody Bool {- canonical? -} Int
                    | BigNIntNeedBody Bool {- canonical? -} Int
                    | BigUIntNeedHeader
                    | BigNIntNeedHeader
+                   | BigUIntNeedBytes
+                   | BigNIntNeedBytes
+
 
 -- So when we have to break out because we can't read the whole bytes body
 -- in one go then we need to use SlowConsumeTokenBytes but we can adjust the
@@ -2714,7 +2735,6 @@ adjustContBigUIntNeedBody, adjustContBigNIntNeedBody
 
 adjustContBigUIntNeedBody k = \bs -> k $! uintegerFromBytes bs
 adjustContBigNIntNeedBody k = \bs -> k $! nintegerFromBytes bs
-
 adjustContCanonicalBigUIntNeedBody, adjustContCanonicalBigNIntNeedBody
   :: (Integer -> ST s (DecodeAction s a))
   -> (ByteString -> ST s (DecodeAction s a))
@@ -2770,7 +2790,9 @@ readBigUInt bs
     , not (BS.null bs')
     , let !hdr = BS.unsafeHead bs'
     , BS.length bs' >= tokenSize hdr
-    = case tryConsumeBytes hdr bs' of
+    = if isIndefiniteBytes hdr
+      then DecodedToken 2 BigUIntNeedBytes
+      else case tryConsumeBytes hdr bs' of
         DecodeFailure                           -> DecodeFailure
         DecodedToken sz (Fits canonical bstr)   -> DecodedToken (1+sz)
           (BigIntToken (canonical && isBigIntRepCanonical bstr)
@@ -2788,7 +2810,9 @@ readBigNInt bs
     , not (BS.null bs')
     , let !hdr = BS.unsafeHead bs'
     , BS.length bs' >= tokenSize hdr
-    = case tryConsumeBytes hdr bs' of
+    = if isIndefiniteBytes hdr
+      then DecodedToken 2 BigNIntNeedBytes
+      else case tryConsumeBytes hdr bs' of
         DecodeFailure                           -> DecodeFailure
         DecodedToken sz (Fits canonical bstr)   -> DecodedToken (1+sz)
           (BigIntToken (canonical && isBigIntRepCanonical bstr)
@@ -2805,3 +2829,15 @@ readBigNInt bs
 -- representation for the number in question).
 isBigIntRepCanonical :: ByteString -> Bool
 isBigIntRepCanonical bstr = BS.length bstr > 8 && BS.unsafeHead bstr /= 0x00
+
+-- | Check if the given bytes(*) header has an indefinite length.
+isIndefiniteBytes :: Word8 -> Bool
+isIndefiniteBytes hdr = case word8ToWord hdr of
+  0x5f -> True
+  _ -> False
+
+decodeBytesIndefLen :: (BS.ByteString -> ST s (DecodeAction s a)) -> [BS.ByteString] -> DecodeAction s a
+decodeBytesIndefLen k acc = ConsumeBreakOr $ \isBreak ->
+    if isBreak
+    then k (LBS.toStrict $! LBS.fromChunks $! reverse acc)
+    else return $! ConsumeBytes $ \bs -> return (decodeBytesIndefLen k (bs:acc))
