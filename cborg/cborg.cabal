@@ -125,7 +125,10 @@ test-suite cborg-tests
   default-language:  Haskell2010
   ghc-options:
     -Wall -Wno-orphans
-    -threaded -rtsopts "-with-rtsopts=-N2"
+    -rtsopts
+  if !arch(wasm32)
+    ghc-options:
+      -threaded "-with-rtsopts=-N2"
 
   other-modules:
     Tests.UnitTests
