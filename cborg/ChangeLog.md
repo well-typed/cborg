@@ -12,6 +12,7 @@
 * Change the type of `decodeWithByteSpan` to actually return a byte span, and
   add `decodeWithByteOffsets` to provide the previous functionality that
   returns an offset span.
+* Support for GHC 9.14
 
 ## 0.2.10.0
 
