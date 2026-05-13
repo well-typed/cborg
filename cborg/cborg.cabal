@@ -142,6 +142,7 @@ test-suite cborg-tests
     Tests.Regress
     Tests.Regress.Issue160
     Tests.Regress.Issue162
+    Tests.Regress.Issue263
     Tests.Regress.FlatTerm
     Tests.Reference
     Tests.Reference.Implementation
