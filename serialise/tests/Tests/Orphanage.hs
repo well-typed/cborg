@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                #-}
 {-# LANGUAGE DataKinds          #-}
 {-# LANGUAGE FlexibleContexts   #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -8,7 +9,9 @@ import           Data.Proxy
 import qualified Type.Reflection as Refl
 
 import           GHC.Fingerprint.Type
-import           Data.Ord
+#if !MIN_VERSION_QuickCheck(2,17,0)
+import           Data.Ord (Down (..))
+#endif
 
 import           Test.QuickCheck.Arbitrary
 
@@ -20,9 +23,11 @@ import           Test.QuickCheck.Arbitrary
 --
 -- [https://github.com/nick8325/quickcheck/pull/90]
 
+#if !MIN_VERSION_QuickCheck(2,17,0)
 instance Arbitrary a => Arbitrary (Down a) where
   arbitrary = fmap Down arbitrary
   shrink = map Down . shrink . (\(Down a) -> a)
+#endif
 
 instance Arbitrary Fingerprint where
   arbitrary = Fingerprint <$> arbitrary <*> arbitrary
