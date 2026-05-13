@@ -38,7 +38,8 @@ tested-with:
   GHC == 9.6.7,
   GHC == 9.8.4,
   GHC == 9.10.2,
-  GHC == 9.12.2
+  GHC == 9.12.2,
+  GHC == 9.14.1
 
 extra-source-files:
   ChangeLog.md
@@ -65,10 +66,10 @@ library
     Codec.Serialise.Internal.GeneralisedUTF8
 
   build-depends:
-    base                    >= 4.13    && < 4.22,
+    base                    >= 4.13    && < 4.23,
     bytestring              >= 0.10.4  && < 0.13,
     cborg                   == 0.2.*,
-    containers              >= 0.6.2.1 && < 0.8,
+    containers              >= 0.6.2.1 && < 0.9,
     half                    >= 0.2.2.3 && < 0.4,
     hashable                >= 1.2     && < 2,
     primitive               >= 0.8.0.0 && < 0.10,
@@ -123,11 +124,11 @@ test-suite tests
     unordered-containers,
     cborg,
     serialise,
-    QuickCheck              >= 2.15    && < 2.17,
+    QuickCheck              >= 2.15    && < 2.18,
     tasty                   >= 0.11    && < 1.6,
     tasty-hunit             >= 0.9     && < 0.11,
     tasty-quickcheck        >= 0.8     && < 0.12,
-    quickcheck-instances    >= 0.3.32  && < 0.4,
+    quickcheck-instances    >= 0.3.32  && < 0.5,
     vector
 
 --------------------------------------------------------------------------------
