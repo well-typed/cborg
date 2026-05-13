@@ -90,7 +90,7 @@ library
 
   build-depends:
     array                   >= 0.4     && < 0.6,
-    base                    >= 4.13    && < 4.22,
+    base                    >= 4.13    && < 4.23,
     bytestring              >= 0.10.4  && < 0.13,
     deepseq                 >= 1.4.4.0 && < 1.6,
     half                    >= 0.2.2.3 && < 0.4,
@@ -102,7 +102,7 @@ library
 
   if flag(optimize-gmp)
     cpp-options:            -DOPTIMIZE_GMP
-    if impl(ghc >= 9.0)
+    if impl(ghc >= 9.0 && < 9.14)
       cpp-options:          -DHAVE_GHC_BIGNUM
       build-depends: ghc-bignum >= 1.0 && < 2
     else
@@ -155,7 +155,7 @@ test-suite cborg-tests
     base16-bytestring       >= 1.0     && < 1.1,
     deepseq,
     half,
-    QuickCheck              >= 2.9     && < 2.17,
+    QuickCheck              >= 2.9     && < 2.18,
     random,
     scientific              >= 0.3     && < 0.4,
     tasty                   >= 0.11    && < 1.6,
