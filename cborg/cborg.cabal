@@ -103,9 +103,12 @@ library
 
   if flag(optimize-gmp)
     cpp-options:            -DOPTIMIZE_GMP
-    if impl(ghc >= 9.0 && < 9.14)
+    if impl(ghc >= 9.0)
       cpp-options:          -DHAVE_GHC_BIGNUM
-      build-depends: ghc-bignum >= 1.0 && < 2
+      -- from ghc-9.14 we don't need ghc-bignum anymore,
+      -- all the bignum modules are exported from base
+      if impl(ghc < 9.14)
+        build-depends: ghc-bignum >= 1.0 && < 1.4
     else
       build-depends: integer-gmp >= 1.0 && < 2
 
