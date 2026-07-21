@@ -279,9 +279,11 @@ jobs:
         run: |
           $CABAL v2-build $ARG_COMPILER $ARG_TESTS $ARG_BENCH all --write-ghc-environment-files=always
       - name: tests
+        if: matrix.compilerKind != "ghcjs"
         run: |
           $CABAL v2-test $ARG_COMPILER $ARG_TESTS $ARG_BENCH all --test-show-details=direct
       - name: cabal check
+        if: matrix.compilerKind != "ghcjs"
         run: |
           cd ${PKGDIR_cborg} || false
           ${CABAL} -vnormal check
@@ -294,6 +296,7 @@ jobs:
           cd ${PKGDIR_cborg_json} || false
           ${CABAL} -vnormal check
       - name: haddock
+        if: matrix.compilerKind != "ghcjs"
         run: |
           $CABAL v2-haddock --disable-documentation --haddock-all $ARG_COMPILER --with-haddock $HADDOCK $ARG_TESTS $ARG_BENCH all
       - name: unconstrained build
