@@ -6,6 +6,7 @@ import           Test.Tasty
 
 import qualified Tests.Regress.Issue160 as Issue160
 import qualified Tests.Regress.Issue162 as Issue162
+import qualified Tests.Regress.Issue263 as Issue263
 import qualified Tests.Regress.FlatTerm as FlatTerm
 
 --------------------------------------------------------------------------------
@@ -16,4 +17,5 @@ testTree = testGroup "Regression tests"
   [ FlatTerm.testTree
   , Issue160.testTree
   , Issue162.testTree
+  , Issue263.testTree
   ]
