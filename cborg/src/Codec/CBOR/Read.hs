@@ -2762,8 +2762,15 @@ adjustContBigUIntNeedHeader, adjustContBigNIntNeedHeader
   :: (Integer -> ST s (DecodeAction s a))
   -> DecodeAction s a
 
-adjustContBigUIntNeedHeader k = ConsumeBytes (\bs -> k $! uintegerFromBytes bs)
-adjustContBigNIntNeedHeader k = ConsumeBytes (\bs -> k $! nintegerFromBytes bs)
+adjustContBigUIntNeedHeader k =
+  PeekTokenType $ \tkty -> return $ case tkty of
+    TypeBytesIndef -> ConsumeBytesIndef (pure $ decodeBytesIndefLen (k . uintegerFromBytes) [])
+    _              -> ConsumeBytes (\bs -> k $! uintegerFromBytes bs)
+
+adjustContBigNIntNeedHeader k =
+    PeekTokenType $ \tkty -> return $ case tkty of
+      TypeBytesIndef -> ConsumeBytesIndef (pure $ decodeBytesIndefLen (k . nintegerFromBytes) [])
+      _              -> ConsumeBytes (\bs -> k $! nintegerFromBytes bs)
 
 adjustContCanonicalBigUIntNeedHeader, adjustContCanonicalBigNIntNeedHeader
   :: (Integer -> ST s (DecodeAction s a))
