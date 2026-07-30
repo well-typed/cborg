@@ -1034,7 +1034,11 @@ instance Arbitrary Sliced.SlicedByteArray where
 
       where
         genShortByteString :: Int -> Gen SBS.ShortByteString
+#if MIN_VERSION_random(1,3,0)
+        genShortByteString n = MkGen (\r _n -> runStateGen_ r (uniformShortByteStringM n))
+#else
         genShortByteString n = MkGen (\r _n -> runStateGen_ r (uniformShortByteString n))
+#endif
 
         genByteArray :: Int -> Gen Prim.ByteArray
         genByteArray n = do
