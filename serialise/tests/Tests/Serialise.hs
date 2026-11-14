@@ -178,7 +178,7 @@ testTree = testGroup "Serialise class"
       , mkTest (T :: T (Semigroup.Max ()))
       , mkTest (T :: T (Semigroup.First ()))
       , mkTest (T :: T (Semigroup.Last ()))
-#if !MIN_VERSION_base(4,16,0)
+#if !MIN_VERSION_base(4,16,0) && !MIN_VERSION_quickcheck_instances(0,4,0)
       , mkTest (T :: T (Semigroup.Option ()))
 #endif
       , mkTest (T :: T (Semigroup.WrappedMonoid ()))
