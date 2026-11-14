@@ -9,7 +9,7 @@
 -- Copyright   : (c) Ben Gamari 2017-2018
 -- License     : BSD3-style (see LICENSE.txt)
 --
--- Maintainer  : duncan@community.haskell.org
+-- Maintainer  : duncan@well-typed.com
 -- Stability   : experimental
 -- Portability : non-portable (GHC extensions)
 --

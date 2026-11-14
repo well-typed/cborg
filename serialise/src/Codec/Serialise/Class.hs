@@ -13,7 +13,7 @@
 -- Copyright   : (c) Duncan Coutts 2015-2017
 -- License     : BSD3-style (see LICENSE.txt)
 --
--- Maintainer  : duncan@community.haskell.org
+-- Maintainer  : duncan@well-typed.com
 -- Stability   : experimental
 -- Portability : non-portable (GHC extensions)
 --
