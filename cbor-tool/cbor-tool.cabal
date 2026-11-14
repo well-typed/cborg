@@ -33,7 +33,7 @@ executable cbor-tool
   build-depends:
     base                 >=4.13 && <4.23,
     filepath             >=1.0  && <1.6,
-    aeson                >=0.7  && <2.3,
+    aeson                >=0.7  && <2.4,
     aeson-pretty         >=0.8  && <0.9,
     bytestring           >=0.10 && <0.13,
     text                 >=1.1  && <2.2,
