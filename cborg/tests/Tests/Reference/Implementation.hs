@@ -65,6 +65,9 @@ module Tests.Reference.Implementation (
     prop_word32ToFromNet,
     prop_word64ToFromNet,
     prop_halfToFromFloat,
+
+    -- helper functions
+    integerToBytes,
     ) where
 
 
