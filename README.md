@@ -29,6 +29,13 @@ gives it the following benefits:
  * suitable to use with untrusted input (resistance to asymmetric resource
    consumption attacks)
 
+> [!WARNING]
+> Library `binary-serialise-cbor` was a transitionary package, and is no longer
+> being maintained. Use of this library as well as feedback is welcome, but
+> Well-Typed cannot guarantee any level of unpaid maintenance or support. Please
+> contact us via email to info@well-typed.com if you are interested in
+> commercial support or funding development of this library.
+
 # Installation
 
 They are just a `cabal install` away on [Hackage][]:
